@@ -626,11 +626,9 @@ def main():  # pylint: disable=too-many-branches,too-many-statements
 
     error_message = ''
     try:
-        config = configparser.ConfigParser()
-        config.read(INIFILE_PATH)
-        profiles = {}
-        for section in config.sections():
-            profiles[section] = dict(config[section])
+        profiles = configparser.ConfigParser()
+        profiles.read(INIFILE_PATH, encoding='utf-8')
+        profiles = {profile: dict(profiles.items(profile)) for profile in profiles.sections()}
 
         if input_filename.endswith(('.xls', '.xlsx')):
             logging.debug('Los ficheros están en formato Excel.')
