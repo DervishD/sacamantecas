@@ -383,9 +383,8 @@ class SkimmedText(SkimmedFile):
         logging.debug('Fichero sin Manteca cerrado.')
 
 
-class LibraryCatalogueHTMLParser(HTMLParser):
-    """HTML parser for web pages of library catalogues."""
-
+class MantecaSkimmer(HTMLParser):
+    """HTML retriever/parser Manteca URIs, that is, web pages of library catalogues."""
     def __init__(self, k_class, v_class, *args, **kwargs):
         """Initialize object."""
         super().__init__(*args, **kwargs)
@@ -440,76 +439,73 @@ class LibraryCatalogueHTMLParser(HTMLParser):
                 self.current_value += ' / '
             self.current_value += data
 
-    def parse(self, contents):
-        """Get some library item metadata from the 'contents' HTML."""
+    def skim(self, uri):
+        """
+        Retrieve and process contents from 'uri'.
+
+        This function resolves meta-refresh redirection for 'uri', then gets the
+        contents and decodes them using the detected charset, or iso-8859-1 if
+        none is detected.
+
+        Then the contents are fed into the HTML parser and processed in order to
+        skim the Manteca.
+
+        NOTE about charset: if no charset is detected, then iso-8859-1 is used
+        as default. Really, utf-8 should be a better default, because modern web
+        pages may NOT specify any encoding if they are using utf-8 and it is
+        identical to ascii in the 7-bit codepoints. The problem is that utf-8
+        will fail for pages encoded with iso-8859-1, and the vast majority of
+        web pages processed will in fact use iso-8859-1 anyway.
+        """
+        try:
+            with urlopen(uri) as request:
+                # First, check if any redirection is needed and get the charset the easy way.
+                logging.debug('Procesando URI «%s».', uri)
+                contents = request.read()
+                charset = request.headers.get_content_charset()
+                match = re.search(rb'<meta http-equiv="refresh" content="[^;]+;\s*url=([^"]+)"', contents, re.I)
+                if match:
+                    uri = urlparse(uri)
+                    uri = urlunparse((uri.scheme, uri.netloc, match.group(1).decode('ascii'), '', '', ''))
+                    logging.debug('Redirección -> «%s».', uri)
+                    with urlopen(uri) as redirected_request:
+                        contents = redirected_request.read()
+                        charset = redirected_request.headers.get_content_charset()
+                else:
+                    logging.debug('El URI no está redirigido.')
+        except ValueError as exc:
+            if str(exc).startswith('unknown url type:'):
+                raise URLError(f"El URI '{uri}' es de tipo desconocido.") from exc
+            raise
+
+        # In this point, we have the contents as a byte string.
+        # If the charset is None, it has to be determined the hard way.
+        if charset is None:
+            # Next best thing, from the meta http-equiv="content-type".
+            match = re.search(rb'<meta http-equiv="content-type".*charset=([^"]+)"', contents, re.I)
+            if match:
+                logging.debug('Charset detectado mediante meta http-equiv.')
+                charset = match.group(1).decode('ascii')
+            else:
+                # Last resort, from some meta charset, if any…
+                match = re.search(rb'<meta charset="([^"]+)"', contents, re.I)
+                if match:
+                    logging.debug('Charset detectado mediante meta charset.')
+                    charset = match.group(1).decode('ascii')
+                else:
+                    charset = 'iso-8859-1'
+                    logging.debug('Usando charset por defecto.')
+        else:
+            logging.debug('Charset detectado en las cabeceras.')
+        logging.debug('Contenidos codificados con charset «%s».', charset)
+
         self.retrieved_metadata.clear()
-        self.feed(contents)
+        self.feed(contents.decode(charset))
         self.close()
         return self.retrieved_metadata
 
     def error(self, _):
         """Override ParserBase abstract method."""
-
-
-def retrieve_uri_contents(uri):
-    """
-    Retrieve contents from 'uri', performing redirections if needed.
-
-    This function resolves meta-refresh redirection for 'uri', then gets the
-    contents and decodes them using the detected charset, or utf-8 if none
-    specified.
-
-    NOTE about charset: if no charset is detected, then iso-8859-1 is used as
-    default. Really, utf-8 should be a better default, because modern web pages
-    may NOT specify any encoding if they are using utf-8 and it is identical to
-    ascii in the 7-bit codepoints. The problem is that utf-8 will fail for pages
-    encoded with iso-8859-1, and the vast majority of web pages processed will
-    in fact use iso-8859-1 anyway.
-    """
-    try:
-        with urlopen(uri) as request:
-            # First, check if any redirection is needed and get the charset the easy way.
-            logging.debug('Procesando URI «%s».', uri)
-            contents = request.read()
-            charset = request.headers.get_content_charset()
-            match = re.search(rb'<meta http-equiv="refresh" content="[^;]+;\s*url=([^"]+)"', contents, re.I)
-            if match:
-                uri = urlparse(uri)
-                uri = urlunparse((uri.scheme, uri.netloc, match.group(1).decode('ascii'), '', '', ''))
-                logging.debug('Redirección -> «%s».', uri)
-                with urlopen(uri) as redirected_request:
-                    contents = redirected_request.read()
-                    charset = redirected_request.headers.get_content_charset()
-            else:
-                logging.debug('El URI no está redirigido.')
-    except ValueError as exc:
-        if str(exc).startswith('unknown url type:'):
-            raise URLError(f"El URI '{uri}' es de tipo desconocido.") from exc
-        raise
-
-    # In this point, we have the contents as a byte string.
-    # If the charset is None, it has to be determined the hard way.
-    if charset is None:
-        # Next best thing, from the meta http-equiv="content-type".
-        match = re.search(rb'<meta http-equiv="content-type".*charset=([^"]+)"', contents, re.I)
-        if match:
-            logging.debug('Charset detectado mediante meta http-equiv.')
-            charset = match.group(1).decode('ascii')
-        else:
-            # Last resort, from some meta charset, if any…
-            match = re.search(rb'<meta charset="([^"]+)"', contents, re.I)
-            if match:
-                logging.debug('Charset detectado mediante meta charset.')
-                charset = match.group(1).decode('ascii')
-            else:
-                charset = 'iso-8859-1'
-                logging.debug('Usando charset por defecto.')
-    else:
-        logging.debug('Charset detectado en las cabeceras.')
-    logging.debug('Contenidos codificados con charset «%s».', charset)
-
-    # Decode the retrieved contents using the proper charset.
-    return contents.decode(charset)
 
 
 def main():  # pylint: disable=too-many-branches,too-many-statements
@@ -561,12 +557,12 @@ def main():  # pylint: disable=too-many-branches,too-many-statements
 
         print()
         logging.info('Sacando las mantecas:')
-        parser = LibraryCatalogueHTMLParser(CONFIG_K_DIV_CLASS, CONFIG_V_DIV_CLASS)
+        skimmer = MantecaSkimmer(CONFIG_K_DIV_CLASS, CONFIG_V_DIV_CLASS)
         bad_uris = []
         for row, uri in mantecafile.get_mantecas():
             try:
                 logging.info('  %s', uri)
-                metadata = parser.parse(retrieve_uri_contents(uri))
+                metadata = skimmer.skim(uri)
                 if not metadata:
                     bad_uris.append((uri, 'No se obtuvieron metadatos'))
                 skimmedfile.add_metadata(row, uri, metadata)
