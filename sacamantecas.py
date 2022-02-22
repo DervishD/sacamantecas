@@ -589,7 +589,7 @@ class MantecaSkimmer(HTMLParser):
 #                                                         #
 #                                                         #
 ###########################################################
-def main():  # pylint: disable=too-many-branches,too-many-statements
+def main():  # pylint: disable=too-many-branches,too-many-statements,too-many-locals
     """."""
     timestamp = time.strftime('%Y%m%d_%H%M%S')
     if len(sys.argv) < 2:
