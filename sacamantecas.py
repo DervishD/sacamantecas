@@ -50,10 +50,6 @@ import win32con
 import win32ui
 
 
-# Prefix to add to headers for the columns where the new metadata will go.
-CONFIG_PREFIX = '[sm] '
-
-
 # sys.modules[__name__].__file__ is used to determine the program's fully
 # qualified directory and filename, so if it's not defined for some reason
 # (which may happen...) it's better to break execution here.
@@ -203,9 +199,6 @@ def setup_logging(debugfile, logfile):
     logging.debug('El registro de eventos se guardará en «%s».', logfile)
     logging.debug('El registro de depuración se guardará en «%s».', debugfile)
     logging.info(PROGRAM_NAME)
-    for var in globals():
-        if var.startswith('CONFIG_'):
-            logging.debug('%s = %s', var, globals()[var])
 
 
 class MantecaFile():
@@ -321,7 +314,7 @@ class SkimmedExcel(SkimmedFile):
         """
         logging.debug('Añadiendo metadatos para «%s».', uri)
         for key, value in metadata.items():
-            key = CONFIG_PREFIX + key
+            key = '[sm] ' + key
             if key not in self.metadata_columns:
                 logging.debug('Se encontró un metadato nuevo, «%s».', key)
                 column = self.sheet.max_column + 1
