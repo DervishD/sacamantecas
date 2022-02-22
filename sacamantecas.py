@@ -502,7 +502,7 @@ def retrieve_uri_contents(uri):
                 logging.debug('Charset detectado mediante meta charset.')
                 charset = match.group(1).decode('ascii')
             else:
-                charset = 'latin_1'
+                charset = 'iso-8859-1'
                 logging.debug('Usando charset por defecto.')
     else:
         logging.debug('Charset detectado en las cabeceras.')
