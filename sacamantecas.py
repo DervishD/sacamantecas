@@ -244,10 +244,10 @@ class MantecaExcel(MantecaFile):
             logging.debug('Procesando fila %s.', row[0].row)
             for cell in row:
                 if cell.data_type != 's':
-                    logging.debug('La celda %s no es de tipo cadena, será ignorada.', cell.coordinate)
+                    logging.debug('La celda «%s» no es de tipo cadena, será ignorada.', cell.coordinate)
                     continue
                 if urlparse(cell.value).scheme.startswith('http'):
-                    logging.debug('Se encontró un URI en la celda %s: %s', cell.coordinate, cell.value)
+                    logging.debug('Se encontró un URI en la celda «%s»: %s', cell.coordinate, cell.value)
                     yield (cell.row, cell.value)
                     break
 
@@ -297,7 +297,7 @@ class SkimmedExcel(SkimmedFile):
                 logging.debug('Se encontró un metadato nuevo, «%s».', key)
                 column = self.sheet.max_column + 1
                 self.metadata_columns[key] = column
-                logging.debug('El metadato «%s» irá en la columna %s.', key, get_column_letter(column))
+                logging.debug('El metadato «%s» irá en la columna «%s».', key, get_column_letter(column))
                 cell = self.sheet.cell(row=1, column=column, value=key)
                 cell.font = self.heading_style['font']
                 cell.fill = self.heading_style['fill']
