@@ -27,6 +27,7 @@ a new Manteca processing profile.
 __version__ = '1.0'
 
 # Imports
+import configparser
 import sys
 import os.path
 import errno
@@ -49,10 +50,6 @@ import win32con
 import win32ui
 
 
-# Class for the tag containing keys for the new metadata.
-CONFIG_K_DIV_CLASS = 'auth'
-# Class for the tag containing values for the new metadata.
-CONFIG_V_DIV_CLASS = 'titn'
 # Prefix to add to headers for the columns where the new metadata will go.
 CONFIG_PREFIX = '[sm] '
 
@@ -63,6 +60,7 @@ CONFIG_PREFIX = '[sm] '
 try:
     PROGRAM_PATH = os.path.realpath(sys.modules['__main__'].__file__)
     PROGRAM_NAME = os.path.splitext(os.path.basename(PROGRAM_PATH))[0] + ' v' + __version__
+    INIFILE_PATH = os.path.splitext(PROGRAM_PATH)[0] + '.ini'
 except NameError:
     sys.exit('Error de inicialización del programa.')
 
@@ -444,13 +442,13 @@ class SkimmedText(SkimmedFile):
 ##############################################################################
 class MantecaSkimmer(HTMLParser):
     """HTML retriever/parser Manteca URIs, that is, web pages of library catalogues."""
-    def __init__(self, k_class, v_class, *args, **kwargs):
+    def __init__(self, profiles, *args, **kwargs):
         """Initialize object."""
         super().__init__(*args, **kwargs)
         self.within_k_tag = False
         self.within_v_tag = False
-        self.k_class = k_class
-        self.v_class = v_class
+        self.profiles = profiles
+        self.profile = None
         self.current_key = ''
         self.current_value = ''
         self.retrieved_metadata = {}
@@ -458,12 +456,12 @@ class MantecaSkimmer(HTMLParser):
     def handle_starttag(self, tag, attrs):
         """Handle opening tags."""
         for attr in attrs:
-            if attr[0] == 'class' and self.k_class in attr[1]:
-                logging.debug('Se encontró una marca de clave.')
+            if attr[0] == 'class' and self.profile['k_class'] in attr[1]:
+                logging.debug('Se encontró una marca de clave %s.', attr[1])
                 self.within_k_tag = True
                 self.current_key = ''
-            if attr[0] == 'class' and self.v_class in attr[1]:
-                logging.debug('Se encontró una marca de valor.')
+            if attr[0] == 'class' and self.profile['v_class'] in attr[1]:
+                logging.debug('Se encontró una marca de valor %s.', attr[1])
                 self.within_v_tag = True
                 self.current_value = ''
 
@@ -498,7 +496,7 @@ class MantecaSkimmer(HTMLParser):
                 self.current_value += ' / '
             self.current_value += data
 
-    def skim(self, uri):
+    def skim(self, uri):  # pylint: disable=too-many-branches
         """
         Retrieve and process contents from 'uri'.
 
@@ -516,6 +514,17 @@ class MantecaSkimmer(HTMLParser):
         will fail for pages encoded with iso-8859-1, and the vast majority of
         web pages processed will in fact use iso-8859-1 anyway.
         """
+        self.retrieved_metadata.clear()
+        self.profile = None
+        for profile in self.profiles:
+            pattern = self.profiles[profile]['u_match']
+            if re.match(pattern, uri, re.IGNORECASE):
+                logging.debug('Matched profile: «%s».', profile)
+                self.profile = self.profiles[profile]
+        if not self.profile:  # Ignore URIs if no profile exists for them.
+            logging.debug('No matched profile for «%s», ignoring…', uri)
+            return {}
+
         try:
             with urlopen(uri) as request:
                 # First, check if any redirection is needed and get the charset the easy way.
@@ -558,7 +567,6 @@ class MantecaSkimmer(HTMLParser):
             logging.debug('Charset detectado en las cabeceras.')
         logging.debug('Contenidos codificados con charset «%s».', charset)
 
-        self.retrieved_metadata.clear()
         self.feed(contents.decode(charset))
         self.close()
         return self.retrieved_metadata
@@ -618,6 +626,12 @@ def main():  # pylint: disable=too-many-branches,too-many-statements
 
     error_message = ''
     try:
+        config = configparser.ConfigParser()
+        config.read(INIFILE_PATH)
+        profiles = {}
+        for section in config.sections():
+            profiles[section] = dict(config[section])
+
         if input_filename.endswith(('.xls', '.xlsx')):
             logging.debug('Los ficheros están en formato Excel.')
             mantecafile = MantecaExcel(input_filename)
@@ -630,7 +644,7 @@ def main():  # pylint: disable=too-many-branches,too-many-statements
 
         print()
         logging.info('Sacando las mantecas:')
-        skimmer = MantecaSkimmer(CONFIG_K_DIV_CLASS, CONFIG_V_DIV_CLASS)
+        skimmer = MantecaSkimmer(profiles)
         bad_uris = []
         for row, uri in mantecafile.get_mantecas():
             try:
