@@ -54,7 +54,11 @@ import win32ui
 # qualified directory and filename, so if it's not defined for some reason
 # (which may happen...) it's better to break execution here.
 try:
-    PROGRAM_PATH = os.path.realpath(sys.modules['__main__'].__file__)
+    if getattr(sys, 'frozen', False):
+        PROGRAM_PATH = sys.executable
+    else:
+        PROGRAM_PATH = __file__
+    PROGRAM_PATH = os.path.realpath(PROGRAM_PATH)
     PROGRAM_NAME = os.path.splitext(os.path.basename(PROGRAM_PATH))[0] + ' v' + __version__
     INIFILE_PATH = os.path.splitext(PROGRAM_PATH)[0] + '.ini'
 except NameError:
