@@ -1,7 +1,5 @@
 # sacamantecas
 
-**This is the HISTORICAL version of `sacamantecas`.**
-
 `sacamantecas` reads an Excel file (xls/xlsx), containing a list of book titles,
 each one with its signature and Manteca, which is an URI pointing to an entry
 within some bibliographic catalogue where the book metadata can be obtained,
