@@ -624,8 +624,16 @@ def main():  # pylint: disable=too-many-branches,too-many-statements,too-many-lo
     error_message = ''
     try:
         profiles = configparser.ConfigParser()
-        profiles.read(INIFILE_PATH, encoding='utf-8')
+        logging.debug('Getting profiles from «%s».', INIFILE_PATH)
+        logging.info('Obteniendo perfiles de «%s».', INIFILE_PATH)
+        with open(INIFILE_PATH, encoding='utf-8') as inifile:
+            profiles.read_file(inifile)
+        # Translate ConfigParser contents to a better suited format.
+        #
+        # To wit, a REAL dictionary whose keys are profile names and the values
+        # are dictionaries containing the profile configuration.
         profiles = {profile: dict(profiles.items(profile)) for profile in profiles.sections()}
+        logging.debug('Se obtuvieron los siguientes perfiles: %s.', list(profiles.keys()))
 
         if input_filename.endswith(('.xls', '.xlsx')):
             logging.debug('Los ficheros están en formato Excel.')
@@ -664,6 +672,8 @@ def main():  # pylint: disable=too-many-branches,too-many-statements,too-many-lo
     except FileNotFoundError as exc:
         if exc.filename == input_filename:
             error_message = 'No se encontró el fichero de entrada.'
+        elif exc.filename == INIFILE_PATH:
+            error_message = 'No se encontró el fichero de perfiles.'
         else:  # This should not happen, so re-raise the exception.
             raise
     except PermissionError as exc:
