@@ -59,7 +59,7 @@ try:
     else:
         PROGRAM_PATH = __file__
     PROGRAM_PATH = os.path.realpath(PROGRAM_PATH)
-    PROGRAM_NAME = os.path.splitext(os.path.basename(PROGRAM_PATH))[0] + ' v' + __version__
+    PROGRAM_NAME = os.path.splitext(os.path.basename(PROGRAM_PATH))[0] + ' ' + __version__
     INIFILE_PATH = os.path.splitext(PROGRAM_PATH)[0] + '.ini'
 except NameError:
     sys.exit('Error de inicialización del programa.')
