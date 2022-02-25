@@ -657,7 +657,8 @@ def main():  # pylint: disable=too-many-branches,too-many-statements,too-many-lo
                 metadata = skimmer.skim(uri)
                 if not metadata:
                     bad_uris.append((uri, 'No se obtuvieron metadatos'))
-                skimmedfile.add_metadata(row, uri, metadata)
+                else:
+                    skimmedfile.add_metadata(row, uri, metadata)
             except ConnectionError:
                 logging.debug('Error de conexión accediendo a «%s».', uri)
                 bad_uris.append((uri, 'No se pudo conectar'))
