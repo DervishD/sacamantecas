@@ -453,12 +453,12 @@ class MantecaSkimmer(HTMLParser):
     def handle_starttag(self, tag, attrs):
         """Handle opening tags."""
         for attr in attrs:
-            if attr[0] == 'class' and self.profile['k_class'] in attr[1]:
-                logging.debug('Se encontró una marca de clave %s.', attr[1])
+            if attr[0] == 'class' and (match := re.match(self.profile['k_class'], attr[1])):
+                logging.debug('Se encontró una marca de clave «%s».', match.group(0))
                 self.within_k_tag = True
                 self.current_key = ''
-            if attr[0] == 'class' and self.profile['v_class'] in attr[1]:
-                logging.debug('Se encontró una marca de valor %s.', attr[1])
+            if attr[0] == 'class' and (match := re.match(self.profile['v_class'], attr[1])):
+                logging.debug('Se encontró una marca de valor «%s».', match.group(0))
                 self.within_v_tag = True
                 self.current_value = ''
 
