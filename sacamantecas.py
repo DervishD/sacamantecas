@@ -453,11 +453,11 @@ class MantecaSkimmer(HTMLParser):
     def handle_starttag(self, tag, attrs):
         """Handle opening tags."""
         for attr in attrs:
-            if attr[0] == 'class' and (match := re.match(self.profile['k_class'], attr[1])):
+            if attr[0] == 'class' and (match := self.profile['k_class'].match(attr[1])):
                 logging.debug('Se encontró una marca de clave «%s».', match.group(0))
                 self.within_k_tag = True
                 self.current_key = ''
-            if attr[0] == 'class' and (match := re.match(self.profile['v_class'], attr[1])):
+            if attr[0] == 'class' and (match := self.profile['v_class'].match(attr[1])):
                 logging.debug('Se encontró una marca de valor «%s».', match.group(0))
                 self.within_v_tag = True
                 self.current_value = ''
@@ -514,8 +514,7 @@ class MantecaSkimmer(HTMLParser):
         self.retrieved_metadata.clear()
         self.profile = None
         for profile in self.profiles:
-            pattern = self.profiles[profile]['u_match']
-            if re.match(pattern, uri, re.IGNORECASE):
+            if self.profiles[profile]['u_match'].match(uri):
                 logging.debug('Matched profile: «%s».', profile)
                 self.profile = self.profiles[profile]
         if not self.profile:  # Ignore URIs if no profile exists for them.
@@ -633,6 +632,9 @@ def main():  # pylint: disable=too-many-branches,too-many-statements,too-many-lo
         # To wit, a REAL dictionary whose keys are profile names and the values
         # are dictionaries containing the profile configuration.
         profiles = {profile: dict(profiles.items(profile)) for profile in profiles.sections()}
+        for profile in profiles:
+            profiles[profile] = {key: re.compile(value, re.IGNORECASE) for key, value in profiles[profile].items()}
+
         logging.debug('Se obtuvieron los siguientes perfiles: %s.', list(profiles.keys()))
 
         if input_filename.endswith(('.xls', '.xlsx')):
