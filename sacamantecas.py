@@ -32,6 +32,7 @@ import sys
 import os.path
 import errno
 import logging
+import atexit
 from logging.config import dictConfig
 import traceback as tb
 from shutil import copy2
@@ -66,6 +67,10 @@ except NameError:
 # Check if platform is win32 or not.
 if sys.platform != 'win32':
     sys.exit(f'{PROGRAM_NAME} solo funciona en la plataforma Win32.')
+
+
+# Wait for a keypress on program exit.
+atexit.register(lambda: (print('\nPulse cualquier tecla para continuar...', end='', flush=True), getch()))
 
 
 def error(message):
@@ -694,8 +699,6 @@ def main():  # pylint: disable=too-many-branches,too-many-statements,too-many-lo
         logging.debug('Registro de eventos finalizado.')
         logging.shutdown()
 
-    print('Pulse cualquier tecla para continuar...', end='', flush=True)
-    getch()
     return 0 if not error_message else 1
 
 
