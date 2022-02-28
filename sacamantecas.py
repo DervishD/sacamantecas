@@ -46,8 +46,6 @@ from openpyxl import load_workbook
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils.exceptions import SheetTitleException, InvalidFileException
 from openpyxl.utils.cell import get_column_letter
-import win32con
-import win32ui
 
 
 # sys.modules[__name__].__file__ is used to determine the program's fully
@@ -82,7 +80,6 @@ def error(message):
     no logging functions should be used here.
     """
     print(f'\n\n*** Error en {PROGRAM_NAME}\n{message}', file=sys.stderr, end='')
-    win32ui.MessageBox(message, f'Error en {PROGRAM_NAME}', win32con.MB_ICONERROR)
 
 
 # Define the default exception hook.
