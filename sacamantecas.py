@@ -84,7 +84,7 @@ def error(message):
     Since the logging system may not be initialized when calling this function,
     no logging functions should be used here.
     """
-    print(f'\n\n*** Error en {PROGRAM_NAME}\n{message}', file=sys.stderr, end='')
+    print(f'\n*** Error en {PROGRAM_NAME}\n{message}', file=sys.stderr, end='')
 
 
 # Define the default exception hook.
@@ -104,10 +104,13 @@ def excepthook(exc_type, exc_value, exc_traceback):
             f'{f" -> «{exc_value.filename2}»" if exc_value.filename2 is not None else ""}'
         )
     else:
-        message = f'Excepción {exc_type.__name__} sin gestionar.\n{exc_value}'
-
+        message = (
+            f'Excepción sin gestionar en línea {tb.extract_tb(exc_traceback)[-1].lineno}.\n'
+            f'{exc_type.__name__}: {exc_value}.\n'
+        )
     message += '\n'
     message += '\n'.join([f'Línea {frame.lineno}: {frame.line}' for frame in tb.extract_tb(exc_traceback)]).rstrip()
+    message += '\n'
     error(message)
 
 
@@ -689,6 +692,7 @@ def main():  # pylint: disable=too-many-branches,too-many-statements,too-many-lo
     except (InvalidFileException, SheetTitleException):
         error_message = 'El fichero Excel de entrada es inválido.'
     except KeyboardInterrupt:
+        print()
         logging.info('El usuario interrumpió la operación del programa.')
     finally:
         if error_message:
