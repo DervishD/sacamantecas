@@ -720,14 +720,11 @@ def main():  # pylint: disable=too-many-branches,too-many-statements,too-many-lo
     """."""
     manteca_sources = process_argv()
     if not manteca_sources:
-        return 1
+        return
 
     profiles = load_profiles(INIFILE_PATH)
     if not profiles:
-        return 1
-
-    manteca_source = manteca_sources[0][1]
-    skimmed_sink = manteca_sources[0][2]
+        return
 
     # Create skimmer. It will be reused for each source.
     skimmer = MantecaSkimmer(profiles)
@@ -794,11 +791,9 @@ if __name__ == '__main__':
     logging.debug('Registro de depuración iniciado.')
 
     print()
-    status = 0  # pylint: disable=invalid-name
     try:
-        status = main()  # Main processing. pylint: disable=invalid-name
+        main()  # Main processing. pylint: disable=invalid-name
     except KeyboardInterrupt:
-        status = 1  # pylint: disable=invalid-name
         print()
         logging.info('El usuario interrumpió la operación del programa.')
     print()
@@ -807,4 +802,4 @@ if __name__ == '__main__':
     logging.debug('Registro de depuración finalizado.')
     logging.shutdown()
 
-    sys.exit(status)
+    sys.exit(0)
