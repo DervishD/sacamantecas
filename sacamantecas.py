@@ -750,6 +750,63 @@ def load_profiles(filename):
     return profiles
 
 
+def saca_las_mantecas(manteca_spec, skimmer):
+    """
+    Saca las Mantecas (skims) from 'manteca_spec' using 'skimmer'.
+
+    The 'manteca_spec' is a tuple (kind, source, sink).
+    """
+    kind, source, sink = manteca_spec
+    logging.debug('Procesando fuente de Manteca «%s».', source)
+    logging.debug('La fuente está en formato «%s».', kind)
+
+    try:
+        if kind == 'XLS':
+            logging.debug('Copiando workbook a «%s».', sink)
+            copy2(source, sink)
+            try:
+                manteca_source = MantecaExcel(source)
+                skimmed_sink = SkimmedExcel(sink)
+            except (InvalidFileException, SheetTitleException):
+                error('El fichero Excel de entrada es inválido.')
+                return []
+        elif kind == 'TXT':
+            manteca_source = MantecaText(source)
+            skimmed_sink = SkimmedText(sink)
+        else:
+            manteca_source = MantecaURI(source)
+            skimmed_sink = SkimmedURI(sink)
+    except FileNotFoundError:
+        error('No se encontró el fichero de entrada.')
+        return []
+    except PermissionError as exc:
+        message = 'No hay permisos suficientes para '
+        message += 'leer ' if exc.filename == source else 'crear '
+        message += 'el fichero de '
+        message += 'entrada.' if exc.filename == source else 'salida.'
+        error(message)
+        return []
+
+    bad_metadata = []
+    for row, uri in manteca_source.get_mantecas():
+        logging.info('  %s', uri)
+        try:
+            metadata = skimmer.skim(uri)
+            if not metadata:
+                bad_metadata.append((uri, 'No se obtuvieron metadatos'))
+            else:
+                skimmed_sink.add_metadata(row, uri, metadata)
+        except ConnectionError:
+            logging.debug('Error de conexión accediendo a «%s».', uri)
+            bad_metadata.append((uri, 'No se pudo conectar'))
+        except URLError as exc:
+            logging.debug('Error accediendo a «%s»: %s.', uri, exc.reason)
+            bad_metadata.append((uri, 'No se pudo acceder'))
+    manteca_source.close()
+    skimmed_sink.close()
+    return bad_metadata
+
+
 ###########################################################
 #                                                         #
 #                                                         #
@@ -766,8 +823,8 @@ def load_profiles(filename):
 ###########################################################
 def main():  # pylint: disable=too-many-branches,too-many-statements,too-many-locals
     """."""
-    manteca_sources = process_argv()
-    if not manteca_sources:
+    manteca_specs = process_argv()
+    if not manteca_specs:
         return
 
     profiles = load_profiles(INIFILE_PATH)
@@ -777,56 +834,18 @@ def main():  # pylint: disable=too-many-branches,too-many-statements,too-many-lo
     # Create skimmer. It will be reused for each source.
     skimmer = MantecaSkimmer(profiles)
 
-    try:
-        if manteca_source.endswith(('.xls', '.xlsx')):
-            logging.debug('Los ficheros están en formato Excel.')
-            mantecafile = MantecaExcel(manteca_source)
-            copy2(manteca_source, skimmed_sink)
-            skimmedfile = SkimmedExcel(skimmed_sink)
-        else:
-            logging.debug('Los ficheros están en formato texto.')
-            mantecafile = MantecaText(manteca_source)
-            skimmedfile = SkimmedText(skimmed_sink)
-
+    # Loop over the sources and skim them.
+    logging.info('Sacando las mantecas:')
+    bad_metadata = []
+    for manteca_spec in manteca_specs:
+        result = saca_las_mantecas(manteca_spec, skimmer)
+        if result is not None:
+            bad_metadata.extend(result)
+    if bad_metadata:
         print()
-        logging.info('Sacando las mantecas:')
-        bad_uris = []
-        for row, uri in mantecafile.get_mantecas():
-            try:
-                logging.info('  %s', uri)
-                metadata = skimmer.skim(uri)
-                if not metadata:
-                    bad_uris.append((uri, 'No se obtuvieron metadatos'))
-                else:
-                    skimmedfile.add_metadata(row, uri, metadata)
-            except ConnectionError:
-                logging.debug('Error de conexión accediendo a «%s».', uri)
-                bad_uris.append((uri, 'No se pudo conectar'))
-            except URLError as exc:
-                logging.debug('Error accediendo a «%s»: %s.', uri, exc.reason)
-                bad_uris.append((uri, 'No se pudo acceder'))
-        mantecafile.close()
-        skimmedfile.close()
-        if bad_uris:
-            print()
-            logging.info('Se encontraron problemas en los siguientes enlaces:')
-        for uri, problem in bad_uris:
+        logging.info('Se encontraron problemas en los siguientes enlaces:')
+        for uri, problem in bad_metadata:
             logging.info('  [%s] %s.', uri, problem)
-    except FileNotFoundError as exc:
-        if exc.filename == manteca_source:
-            error('No se encontró el fichero de entrada.')
-        else:  # This should not happen, so re-raise the exception.
-            raise
-    except PermissionError as exc:
-        message = 'No hay permisos suficientes para '
-        message += 'leer ' if exc.filename == manteca_source else 'crear '
-        message += 'el fichero de '
-        message += 'entrada.' if exc.filename == manteca_source else 'salida.'
-        error(message)
-    except (InvalidFileException, SheetTitleException):
-        error('El fichero Excel de entrada es inválido.')
-
-    return 0
 
 
 if __name__ == '__main__':
