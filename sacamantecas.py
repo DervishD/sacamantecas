@@ -725,7 +725,6 @@ def load_profiles(filename):
     """
     profiles = {}
     parser = configparser.ConfigParser()
-    logging.info('Obteniendo perfiles desde «%s».', filename)
     logging.debug('Obteniendo perfiles desde «%s».', filename)
     try:
         with open(filename, encoding='utf-8') as inifile:
