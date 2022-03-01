@@ -630,6 +630,36 @@ def setup_logging():
     dictConfig(logging_configuration)
 
 
+def load_profiles(filename):
+    """Load the profiles from 'filename'."""
+    profiles = {}
+    parser = configparser.ConfigParser()
+    logging.info('Obteniendo perfiles desde «%s».', filename)
+    logging.debug('Obteniendo perfiles desde «%s».', filename)
+    try:
+        with open(filename, encoding='utf-8') as inifile:
+            parser.read_file(inifile)
+    except FileNotFoundError as exc:
+        if exc.filename != filename:
+            raise
+        error('No se encontró el fichero de perfiles.')
+    except configparser.Error as exc:
+        error('Problema de sintaxis al leer el fichero de perfiles.')
+        logging.debug('Error «%s» leyendo el fichero de perfiles:\n%s.', type(exc).__name__, exc)
+    else:
+        # Translate ConfigParser contents to a better suited format.
+        #
+        # To wit, a REAL dictionary whose keys are profile names and the values
+        # are dictionaries containing the profile configuration.
+        for profile in parser.sections():
+            profiles[profile] = {key: re.compile(value, re.IGNORECASE) for key, value in parser[profile].items()}
+        if not profiles:
+            error('No hay perfiles definidos en el fichero de perfiles.')
+        else:
+            logging.debug('Se obtuvieron los siguientes perfiles: %s.', list(profiles.keys()))
+    return profiles
+
+
 ###########################################################
 #                                                         #
 #                                                         #
@@ -669,23 +699,12 @@ def main():  # pylint: disable=too-many-branches,too-many-statements,too-many-lo
     logging.info('La fuente de Mantecas es «%s».', manteca_source)
     logging.info('La salida sin Mantecas es «%s».', skimmed_sink)
 
+    profiles = load_profiles(INIFILE_PATH)
+    if not profiles:
+        return 1
+
     error_message = ''
     try:
-        profiles = configparser.ConfigParser()
-        logging.debug('Getting profiles from «%s».', INIFILE_PATH)
-        logging.info('Obteniendo perfiles de «%s».', INIFILE_PATH)
-        with open(INIFILE_PATH, encoding='utf-8') as inifile:
-            profiles.read_file(inifile)
-        # Translate ConfigParser contents to a better suited format.
-        #
-        # To wit, a REAL dictionary whose keys are profile names and the values
-        # are dictionaries containing the profile configuration.
-        profiles = {profile: dict(profiles.items(profile)) for profile in profiles.sections()}
-        for profile in profiles:
-            profiles[profile] = {key: re.compile(value, re.IGNORECASE) for key, value in profiles[profile].items()}
-
-        logging.debug('Se obtuvieron los siguientes perfiles: %s.', list(profiles.keys()))
-
         if manteca_source.endswith(('.xls', '.xlsx')):
             logging.debug('Los ficheros están en formato Excel.')
             mantecafile = MantecaExcel(manteca_source)
@@ -724,8 +743,6 @@ def main():  # pylint: disable=too-many-branches,too-many-statements,too-many-lo
     except FileNotFoundError as exc:
         if exc.filename == manteca_source:
             error_message = 'No se encontró el fichero de entrada.'
-        elif exc.filename == INIFILE_PATH:
-            error_message = 'No se encontró el fichero de perfiles.'
         else:  # This should not happen, so re-raise the exception.
             raise
     except PermissionError as exc:
