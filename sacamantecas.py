@@ -454,10 +454,10 @@ class MantecaSkimmer(HTMLParser):
         self.profile = None
         for profile in self.profiles:
             if self.profiles[profile]['u_match'].match(uri):
-                logging.debug('Matched profile: «%s».', profile)
+                logging.debug('Perfil detectado: «%s».', profile)
                 self.profile = self.profiles[profile]
         if not self.profile:  # Ignore URIs if no profile exists for them.
-            logging.debug('No matched profile for «%s», ignoring…', uri)
+            logging.debug('No se detectó un perfil para «%s», ignorando…', uri)
             return {}
 
         try:
