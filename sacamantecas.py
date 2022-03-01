@@ -794,9 +794,11 @@ if __name__ == '__main__':
     logging.debug('Registro de depuración iniciado.')
 
     print()
+    status = 0  # pylint: disable=invalid-name
     try:
         status = main()  # Main processing. pylint: disable=invalid-name
     except KeyboardInterrupt:
+        status = 1  # pylint: disable=invalid-name
         print()
         logging.info('El usuario interrumpió la operación del programa.')
     print()
