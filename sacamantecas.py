@@ -358,6 +358,55 @@ class SkimmedText(SkimmedSink):
         logging.debug('Fichero sin Manteca cerrado.')
 
 
+################################################
+#                                              #
+#                                              #
+#    888     888 8888888b.  8888888            #
+#    888     888 888   Y88b   888              #
+#    888     888 888    888   888              #
+#    888     888 888   d88P   888  .d8888b     #
+#    888     888 8888888P"    888  88K         #
+#    888     888 888 T88b     888  "Y8888b.    #
+#    Y88b. .d88P 888  T88b    888       X88    #
+#     "Y88888P"  888   T88b 8888888 88888P'    #
+#                                              #
+#                                              #
+################################################
+class MantecaURI(MantecaSource):
+    """A class to represent Manteca single URIs."""
+    def get_mantecas(self):
+        """
+        Get the Mantecas found in the URI, that is… the URI itself.
+
+        Returns a generator of (row, URI) tuples, but 'row' is always 1 and the
+        generator stops after only one iteration, of course.
+        """
+        yield (1, self.source)
+
+    def close(self):
+        """NOP"""
+
+
+class SkimmedURI(SkimmedSink):
+    """A class to represent Skimmed (with 0% Manteca) single URIs."""
+    def add_metadata(self, row, uri, metadata):
+        """
+        Print specified 'metadata' to stdout.
+
+        The 'metadata' is a list of 'key'-'value' pairs.
+
+        The 'row' parameter is ignored, the rest of the metatata is somewhat
+        pretty-printed after the URI itself.
+        """
+        logging.debug('Añadiendo metadatos para «%s».', uri)
+        print(f'Metadatos obtenidos para {uri}:')
+        for key, value in metadata.items():
+            print(f'  {key}: {value}')
+
+    def close(self):
+        """NOP"""
+
+
 ##############################################################################
 #                                                                            #
 #                                                                            #
