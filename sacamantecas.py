@@ -821,52 +821,54 @@ def saca_las_mantecas(manteca_spec, skimmer):
 #                                                         #
 #                                                         #
 ###########################################################
-def main():  # pylint: disable=too-many-branches,too-many-statements,too-many-locals
+def main():
     """."""
-    manteca_specs = process_argv()
-    if not manteca_specs:
-        return
-
-    profiles = load_profiles(INIFILE_PATH)
-    if not profiles:
-        return
-
-    # Create skimmer. It will be reused for each source.
-    skimmer = MantecaSkimmer(profiles)
-
-    # Loop over the sources and skim them.
-    logging.info('Sacando las mantecas:')
-    bad_metadata = []
-    for manteca_spec in manteca_specs:
-        result = saca_las_mantecas(manteca_spec, skimmer)
-        if result is not None:
-            bad_metadata.extend(result)
-    if bad_metadata:
-        print()
-        logging.info('Se encontraron problemas en los siguientes enlaces:')
-        for uri, problem in bad_metadata:
-            logging.info('  [%s] %s.', uri, problem)
-
-
-if __name__ == '__main__':
-    # Install the default exception hook.
+    # Install the default exception hook first.
     sys.excepthook = excepthook
 
-    # Initialize logging system ASAP.
-    setup_logging()
-    logging.info(PROGRAM_NAME)
-    logging.debug('Registro de depuración iniciado.')
-
-    print()
     try:
-        main()  # Main processing. pylint: disable=invalid-name
+        # Initialize logging system ASAP.
+        setup_logging()
+        logging.debug(PROGRAM_NAME)
+        logging.debug('Registro de depuración iniciado.')
+
+        logging.info(PROGRAM_NAME)
+
+        manteca_specs = process_argv()
+        if not manteca_specs:
+            raise SystemExit
+
+        profiles = load_profiles(INIFILE_PATH)
+        if not profiles:
+            raise SystemExit
+
+        # Create skimmer. It will be reused for each source.
+        skimmer = MantecaSkimmer(profiles)
+
+        # Loop over the sources and skim them.
+        print()
+        logging.info('Sacando las mantecas:')
+        bad_metadata = []
+        for manteca_spec in manteca_specs:
+            result = saca_las_mantecas(manteca_spec, skimmer)
+            if result is not None:
+                bad_metadata.extend(result)
+        if bad_metadata:
+            print()
+            logging.info('Se encontraron problemas en los siguientes enlaces:')
+            for uri, problem in bad_metadata:
+                logging.info('  [%s] %s.', uri, problem)
+    except SystemExit:
+        pass
     except KeyboardInterrupt:
         print()
         logging.info('El usuario interrumpió la operación del programa.')
-    print()
 
+    print()
     logging.info('Proceso terminado.')
     logging.debug('Registro de depuración finalizado.')
     logging.shutdown()
 
-    sys.exit(0)
+
+if __name__ == '__main__':
+    sys.exit(main())
