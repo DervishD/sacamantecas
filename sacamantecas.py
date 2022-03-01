@@ -630,6 +630,45 @@ def setup_logging():
     dictConfig(logging_configuration)
 
 
+def process_argv():
+    """
+    Process command line arguments.
+
+    For each argument, identify the type of Manteca source, and signal the
+    invalid ones.
+
+    Returns a list of valid sources (can be empty).
+    """
+    sys.argv.pop(0)  # Remove program name from sys.argv.
+    if len(sys.argv) == 0:
+        # The input source should be provided automatically if the program is
+        # used as a drag'n'drop target, which is in fact the intended method of
+        # operation.
+        #
+        # But the program can be also run by hand from a command prompt, so it
+        # is better to give the end user a warning (well, error...) if the input
+        # source is missing.
+        error(
+            'No se ha especificado un fichero de entrada para ser procesado.\n'
+            '\n'
+            'Arrastre y suelte un fichero de entrada sobre el icono del programa, '
+            'o proporcione el nombre del fichero como argumento.'
+        )
+        return []
+
+    sources = []
+    for arg in sys.argv:
+        if arg.startswith('http'):
+            sources.append(('URI', arg))
+        elif arg.endswith(('.xls', '.xlsx')):
+            sources.append(('XLS', arg, '_out'.join(os.path.splitext(arg))))
+        elif arg.endswith('.txt'):
+            sources.append(('TXE', arg, '_out'.join(os.path.splitext(arg))))
+        else:
+            logging.debug('La fuente «%s» es inválida.', arg)
+    return sources
+
+
 def load_profiles(filename):
     """
     Load the profiles from 'filename'.
@@ -684,32 +723,19 @@ def load_profiles(filename):
 ###########################################################
 def main():  # pylint: disable=too-many-branches,too-many-statements,too-many-locals
     """."""
-    sys.argv.pop(0)  # Remove program name from sys.argv.
-    if len(sys.argv) == 0:
-        # The input source should be provided automatically if the program is
-        # used as a drag'n'drop target, which is in fact the intended method of
-        # operation.
-        #
-        # But the program can be also run by hand from a command prompt, so it
-        # is better to give the end user a warning (well, error...) if the input
-        # source is missing.
-        error(
-            'No se ha especificado un fichero de entrada para ser procesado.\n'
-            '\n'
-            'Arrastre y suelte un fichero de entrada sobre el icono del programa, '
-            'o proporcione el nombre del fichero como argumento.'
-        )
+    manteca_sources = process_argv()
+    if not manteca_sources:
         return 1
-
-    manteca_source = sys.argv[1]
-    skimmed_sink = '_out'.join(os.path.splitext(manteca_source))
-
-    logging.info('La fuente de Mantecas es «%s».', manteca_source)
-    logging.info('La salida sin Mantecas es «%s».', skimmed_sink)
 
     profiles = load_profiles(INIFILE_PATH)
     if not profiles:
         return 1
+
+    manteca_source = manteca_sources[0][1]
+    skimmed_sink = manteca_sources[0][2]
+
+    # Create skimmer. It will be reused for each source.
+    skimmer = MantecaSkimmer(profiles)
 
     error_message = ''
     try:
@@ -725,7 +751,6 @@ def main():  # pylint: disable=too-many-branches,too-many-statements,too-many-lo
 
         print()
         logging.info('Sacando las mantecas:')
-        skimmer = MantecaSkimmer(profiles)
         bad_uris = []
         for row, uri in mantecafile.get_mantecas():
             try:
