@@ -619,25 +619,24 @@ def setup_logging():
 ###########################################################
 def main():  # pylint: disable=too-many-branches,too-many-statements,too-many-locals
     """."""
-    if len(sys.argv) < 2:
-        # The input filename should be provided automatically if the program is
+    sys.argv.pop(0)  # Remove program name from sys.argv.
+    if len(sys.argv) == 0:
+        # The input source should be provided automatically if the program is
         # used as a drag'n'drop target, which is in fact the intended method of
         # operation.
         #
         # But the program can be also run by hand from a command prompt, so it
         # is better to give the end user a warning (well, error...) if the input
-        # filename is missing.
-        #
-        # Also, at this point, the logging system is not initialized, so error
-        # notification code has to be kept as simple as possible, using only
-        # 'error()' to notify the end user of problems.
+        # source is missing.
         error(
             'No se ha especificado un fichero de entrada para ser procesado.\n'
             '\n'
             'Arrastre y suelte un fichero de entrada sobre el icono del programa, '
             'o proporcione el nombre del fichero como argumento.'
         )
+        logging.error('No Manteca sources provided.')
         return 1
+
     manteca_source = sys.argv[1]
     skimmed_sink = '_out'.join(os.path.splitext(manteca_source))
 
