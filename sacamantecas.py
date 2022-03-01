@@ -561,10 +561,10 @@ def setup_logging():
         },
         'filters': {
             'info': {
-                '()': lambda: lambda log_record: log_record.levelno == logging.INFO
+                '()': lambda: lambda log_record: log_record.msg.strip() and log_record.levelno == logging.INFO
             },
             'debug': {
-                '()': lambda: lambda log_record: log_record.levelno != logging.INFO
+                '()': lambda: lambda log_record: log_record.msg.strip() and log_record.levelno != logging.INFO
             }
         },
         'handlers': {},
