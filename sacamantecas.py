@@ -733,7 +733,6 @@ def main():  # pylint: disable=too-many-branches,too-many-statements,too-many-lo
     # Create skimmer. It will be reused for each source.
     skimmer = MantecaSkimmer(profiles)
 
-    error_message = ''
     try:
         if manteca_source.endswith(('.xls', '.xlsx')):
             logging.debug('Los ficheros están en formato Excel.')
@@ -771,21 +770,19 @@ def main():  # pylint: disable=too-many-branches,too-many-statements,too-many-lo
             logging.info('  [%s] %s.', uri, problem)
     except FileNotFoundError as exc:
         if exc.filename == manteca_source:
-            error_message = 'No se encontró el fichero de entrada.'
+            error('No se encontró el fichero de entrada.')
         else:  # This should not happen, so re-raise the exception.
             raise
     except PermissionError as exc:
-        error_message = 'No hay permisos suficientes para '
-        error_message += 'leer ' if exc.filename == manteca_source else 'crear '
-        error_message += 'el fichero de '
-        error_message += 'entrada.' if exc.filename == manteca_source else 'salida.'
+        message = 'No hay permisos suficientes para '
+        message += 'leer ' if exc.filename == manteca_source else 'crear '
+        message += 'el fichero de '
+        message += 'entrada.' if exc.filename == manteca_source else 'salida.'
+        error(message)
     except (InvalidFileException, SheetTitleException):
-        error_message = 'El fichero Excel de entrada es inválido.'
-    finally:
-        if error_message:
-            error(error_message)
+        error('El fichero Excel de entrada es inválido.')
 
-    return 0 if not error_message else 1
+    return 0
 
 
 if __name__ == '__main__':
