@@ -73,10 +73,11 @@ if sys.platform != 'win32':
 atexit.register(lambda: (print('\nPulse cualquier tecla para continuar...', end='', flush=True), getch()))
 
 
-# Helper for pretty-printing error messages to stderr.
+# Helper for pretty-printing error messages to stderr and the debug logfile.
 def error(message):
-    """Show the error message 'message', properly formatted, on stderr."""
+    """Show the error 'message' on stderr and the debug logfile."""
     print(f'\n*** Error en {PROGRAM_NAME}\n{message}', file=sys.stderr)
+    logging.debug(message)
 
 
 ################################################################################################
@@ -660,7 +661,6 @@ def main():  # pylint: disable=too-many-branches,too-many-statements,too-many-lo
             'Arrastre y suelte un fichero de entrada sobre el icono del programa, '
             'o proporcione el nombre del fichero como argumento.'
         )
-        logging.error('No Manteca sources provided.')
         return 1
 
     manteca_source = sys.argv[1]
@@ -737,7 +737,6 @@ def main():  # pylint: disable=too-many-branches,too-many-statements,too-many-lo
         error_message = 'El fichero Excel de entrada es inválido.'
     finally:
         if error_message:
-            logging.error('%s', error_message)
             error(error_message)
 
     return 0 if not error_message else 1
