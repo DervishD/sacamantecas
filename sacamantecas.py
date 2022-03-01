@@ -135,12 +135,9 @@ sys.excepthook = excepthook
 #                                                                                                               #
 #                                                                                                               #
 #################################################################################################################
-def setup_logging(basename):
+def setup_logging():
     """
     Sets up logging system, disabling all existing loggers.
-
-    The provided 'basename' is used as a base for naming the debug file and the
-    file names.
 
     With the current configuration ALL logging messages are sent to the debug
     file, logging.INFO messages are sent to the log file (timestamped), and the
@@ -148,8 +145,8 @@ def setup_logging(basename):
     """
     # Get timestamp as soon as possible.
     timestamp = time.strftime('%Y%m%d_%H%M%S')
-    debugfile = f'{os.path.splitext(basename)[0]}_debug_{timestamp}.txt'
-    logfile = f'{os.path.splitext(basename)[0]}_log_{timestamp}.txt'
+    debugfile = f'{os.path.splitext(PROGRAM_PATH)[0]}_debug_{timestamp}.txt'
+    logfile = f'{os.path.splitext(PROGRAM_PATH)[0]}_log_{timestamp}.txt'
 
     logging_configuration = {
         'version': 1,
@@ -212,10 +209,6 @@ def setup_logging(basename):
     logging_configuration['loggers']['']['handlers'].append('console')
 
     dictConfig(logging_configuration)
-    logging.debug('Registro de depuración iniciado.')
-    logging.debug('El registro de eventos se guardará en «%s».', logfile)
-    logging.debug('El registro de depuración se guardará en «%s».', debugfile)
-    logging.info(PROGRAM_NAME)
 
 
 class MantecaFile():
@@ -625,11 +618,6 @@ def main():  # pylint: disable=too-many-branches,too-many-statements,too-many-lo
     manteca_source = sys.argv[1]
     skimmed_sink = '_out'.join(os.path.splitext(manteca_source))
 
-    # Initialize logging system.
-    # The logging file names will be based upon input source name.
-    setup_logging(manteca_source)
-
-    print()
     logging.info('La fuente de Mantecas es «%s».', manteca_source)
     logging.info('La salida sin Mantecas es «%s».', skimmed_sink)
 
@@ -699,20 +687,30 @@ def main():  # pylint: disable=too-many-branches,too-many-statements,too-many-lo
         error_message += 'entrada.' if exc.filename == manteca_source else 'salida.'
     except (InvalidFileException, SheetTitleException):
         error_message = 'El fichero Excel de entrada es inválido.'
-    except KeyboardInterrupt:
-        print()
-        logging.info('El usuario interrumpió la operación del programa.')
     finally:
         if error_message:
             logging.error('%s', error_message)
             error(error_message)
-        print()
-        logging.info('Proceso terminado.')
-        logging.debug('Registro de eventos finalizado.')
-        logging.shutdown()
 
     return 0 if not error_message else 1
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    # Initialize logging system ASAP.
+    setup_logging()
+    logging.info(PROGRAM_NAME)
+    logging.debug('Registro de depuración iniciado.')
+
+    print()
+    try:
+        status = main()  # Main processing. pylint: disable=invalid-name
+    except KeyboardInterrupt:
+        print()
+        logging.info('El usuario interrumpió la operación del programa.')
+    print()
+
+    logging.info('Proceso terminado.')
+    logging.debug('Registro de depuración finalizado.')
+    logging.shutdown()
+
+    sys.exit(status)
