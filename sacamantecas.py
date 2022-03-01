@@ -559,7 +559,14 @@ def setup_logging():
                 'format': '{message}',
             },
         },
-        'filters': {'info': {'()': lambda: lambda log_record: log_record.levelno == logging.INFO}},
+        'filters': {
+            'info': {
+                '()': lambda: lambda log_record: log_record.levelno == logging.INFO
+            },
+            'debug': {
+                '()': lambda: lambda log_record: log_record.levelno != logging.INFO
+            }
+        },
         'handlers': {},
         'loggers': {
             '': {  # root logger.
@@ -573,6 +580,7 @@ def setup_logging():
     logging_configuration['handlers']['debugfile'] = {
         'level': 'NOTSET',
         'formatter': 'debug',
+        'filters': ['debug'],
         'class': 'logging.FileHandler',
         'filename': debugfile,
         'mode': 'w',
