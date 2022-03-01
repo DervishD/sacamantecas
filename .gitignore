@@ -1,2 +1,4 @@
 test*.*
+sacamantecas_log_*
+sacamantecas_debug_*
 .venv
