@@ -655,10 +655,10 @@ def process_argv():
     for arg in sys.argv:
         if arg.startswith('http'):
             sources.append(('URI', arg, None))
-        elif arg.endswith(('.xls', '.xlsx')):
+        elif arg.endswith('.xlsx'):
             sources.append(('XLS', arg, '_out'.join(os.path.splitext(arg))))
         elif arg.endswith('.txt'):
-            sources.append(('TXE', arg, '_out'.join(os.path.splitext(arg))))
+            sources.append(('TXT', arg, '_out'.join(os.path.splitext(arg))))
         else:
             logging.debug('La fuente «%s» es inválida.', arg)
     return sources
