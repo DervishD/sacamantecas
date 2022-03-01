@@ -120,7 +120,6 @@ def excepthook(exc_type, exc_value, exc_traceback):
         )
     message += '\n'
     message += '\n'.join([f'Línea {frame.lineno}: {frame.line}' for frame in tb.extract_tb(exc_traceback)]).rstrip()
-    message += '\n'
     error(message)
 
 
