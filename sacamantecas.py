@@ -654,7 +654,7 @@ def process_argv():
     sources = []
     for arg in sys.argv:
         if arg.startswith('http'):
-            sources.append(('URI', arg))
+            sources.append(('URI', arg, None))
         elif arg.endswith(('.xls', '.xlsx')):
             sources.append(('XLS', arg, '_out'.join(os.path.splitext(arg))))
         elif arg.endswith('.txt'):
