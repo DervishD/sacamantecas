@@ -540,16 +540,34 @@ def setup_logging():
     debugfile = f'{os.path.splitext(PROGRAM_PATH)[0]}_debug_{timestamp}.txt'
     logfile = f'{os.path.splitext(PROGRAM_PATH)[0]}_log_{timestamp}.txt'
 
+    class MultilineFormatter(logging.Formatter):
+        """Simple multiline formatter for logging messages."""
+        def format(self, record):
+            """Format multiline records so they look like multiple records."""
+            message = super().format(record)  # Default formatting first.
+
+            if record.message.strip() == '':  # Should not happen, ever, but…
+                # Ignore empty messages.
+                return ''
+            # Get the preamble so it can be reproduced on each line.
+            preamble = message.split(record.message)[0]
+            # Clean the message: no multiple newlines, no trailing spaces.
+            message = '\n'.join([line.rstrip() for line in message.splitlines() if line.strip()])
+            # Insert the preamble on each line and return the result.
+            return message.replace('\n', f'\n{preamble}↳')
+
     logging_configuration = {
         'version': 1,
         'disable_existing_loggers': True,
         'formatters': {
             'debug': {
+                '()': MultilineFormatter,
                 'style': '{',
                 'format': '{asctime}.{msecs:04.0f} [{levelname}] {message}',
                 'datefmt': '%Y%m%d_%H%M%S'
             },
             'log': {
+                '()': MultilineFormatter,
                 'style': '{',
                 'format': '{asctime} {message}',
                 'datefmt': '%Y%m%d_%H%M%S'
