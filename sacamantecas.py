@@ -135,14 +135,22 @@ sys.excepthook = excepthook
 #                                                                                                               #
 #                                                                                                               #
 #################################################################################################################
-def setup_logging(debugfile, logfile):
+def setup_logging(basename):
     """
     Sets up logging system, disabling all existing loggers.
 
-    With the current configuration ALL logging messages are sent to 'debugfile',
-    logging.INFO messages are sent to 'logfile' (timestamped), and the console
-    (but not timestamped in this case).
+    The provided 'basename' is used as a base for naming the debug file and the
+    file names.
+
+    With the current configuration ALL logging messages are sent to the debug
+    file, logging.INFO messages are sent to the log file (timestamped), and the
+    console (but not timestamped in this case).
     """
+    # Get timestamp as soon as possible.
+    timestamp = time.strftime('%Y%m%d_%H%M%S')
+    debugfile = f'{os.path.splitext(basename)[0]}_debug_{timestamp}.txt'
+    logfile = f'{os.path.splitext(basename)[0]}_log_{timestamp}.txt'
+
     logging_configuration = {
         'version': 1,
         'disable_existing_loggers': True,
@@ -595,7 +603,6 @@ class MantecaSkimmer(HTMLParser):
 ###########################################################
 def main():  # pylint: disable=too-many-branches,too-many-statements,too-many-locals
     """."""
-    timestamp = time.strftime('%Y%m%d_%H%M%S')
     if len(sys.argv) < 2:
         # The input filename should be provided automatically if the program is
         # used as a drag'n'drop target, which is in fact the intended method of
@@ -619,10 +626,8 @@ def main():  # pylint: disable=too-many-branches,too-many-statements,too-many-lo
     skimmed_sink = '_out'.join(os.path.splitext(manteca_source))
 
     # Initialize logging system.
-    # Generate the logging file names based upon input source name.
-    debugfile = f'{os.path.splitext(manteca_source)[0]}_debug_{timestamp}.txt'
-    logfile = f'{os.path.splitext(manteca_source)[0]}_log_{timestamp}.txt'
-    setup_logging(debugfile, logfile)
+    # The logging file names will be based upon input source name.
+    setup_logging(manteca_source)
 
     print()
     logging.info('La fuente de Mantecas es «%s».', manteca_source)
