@@ -124,10 +124,6 @@ def excepthook(exc_type, exc_value, exc_traceback):
     error(message)
 
 
-# Install the default exception hook.
-sys.excepthook = excepthook
-
-
 ##############################################################################################################
 #                                                                                                            #
 #                                                                                                            #
@@ -793,6 +789,9 @@ def main():  # pylint: disable=too-many-branches,too-many-statements,too-many-lo
 
 
 if __name__ == '__main__':
+    # Install the default exception hook.
+    sys.excepthook = excepthook
+
     # Initialize logging system ASAP.
     setup_logging()
     logging.info(PROGRAM_NAME)
