@@ -73,32 +73,10 @@ if sys.platform != 'win32':
 atexit.register(lambda: (print('\nPulse cualquier tecla para continuar...', end='', flush=True), getch()))
 
 
-################################################################
-#                                                              #
-#                                                              #
-#                                               .d88 88b.      #
-#                                              d88P" "Y88b     #
-#                                             d88P     Y88b    #
-#     .d88b.  888d888 888d888 .d88b.  888d888 888       888    #
-#    d8P  Y8b 888P"   888P"  d88""88b 888P"   888       888    #
-#    88888888 888     888    888  888 888     Y88b     d88P    #
-#    Y8b.     888     888    Y88..88P 888      Y88b. .d88P     #
-#     "Y8888  888     888     "Y88P"  888       "Y88 88P"      #
-#                                                              #
-#                                                              #
-################################################################
+# Helper for pretty-printing error messages to stderr.
 def error(message):
-    """
-    Show the error message 'message' on a Windows API MessageBox and stderr.
-
-    This function is used when the end user needs to be signalled about a
-    serious problem and the logging system is not direct enough or it has not
-    been initialized yet.
-
-    Since the logging system may not be initialized when calling this function,
-    no logging functions should be used here.
-    """
-    print(f'\n*** Error en {PROGRAM_NAME}\n{message}', file=sys.stderr, end='')
+    """Show the error message 'message', properly formatted, on stderr."""
+    print(f'\n*** Error en {PROGRAM_NAME}\n{message}', file=sys.stderr)
 
 
 ################################################################################################
