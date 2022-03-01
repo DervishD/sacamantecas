@@ -631,7 +631,15 @@ def setup_logging():
 
 
 def load_profiles(filename):
-    """Load the profiles from 'filename'."""
+    """
+    Load the profiles from 'filename'.
+
+    Returns the preprocessed list of profiles as a dictionary whose keys are the
+    found profiles and the values are dictionaries containing the corresponding
+    profile configuration items as key-value pairs.
+
+    The returned list can be empty.
+    """
     profiles = {}
     parser = configparser.ConfigParser()
     logging.info('Obteniendo perfiles desde «%s».', filename)
