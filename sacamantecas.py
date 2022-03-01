@@ -137,31 +137,31 @@ def excepthook(exc_type, exc_value, exc_traceback):
 #                                                                                                            #
 #                                                                                                            #
 ##############################################################################################################
-class MantecaFile():
-    """Abstract class to define an interface for Manteca files."""
-    def __init__(self, filename):
-        self.filename = filename
+class MantecaSource():
+    """Abstract class to define an interface for Manteca sources."""
+    def __init__(self, source):
+        self.source = source
 
     def get_mantecas(self):
-        """ Pure virtual function: get Mantecas from file."""
+        """ Pure virtual function: get Mantecas from source."""
         raise NotImplementedError()
 
     def close(self):
-        """ Pure virtual function: close Manteca file."""
+        """ Pure virtual function: close Manteca source."""
         raise NotImplementedError()
 
 
-class SkimmedFile():
-    """Abstract class to define an interface for Manteca files."""
-    def __init__(self, filename):
-        self.filename = filename
+class SkimmedSink():
+    """Abstract class to define an interface for Skimmed sinks."""
+    def __init__(self, sink):
+        self.sink = sink
 
     def add_metadata(self, row, uri, metadata):
-        """Pure virtual function: add metadata to Skimmed file."""
+        """Pure virtual function: add metadata to Skimmed sink."""
         raise NotImplementedError()
 
     def close(self):
-        """ Pure virtual function: close Skimmed file."""
+        """ Pure virtual function: close Skimmed sink."""
         raise NotImplementedError()
 
 
@@ -179,13 +179,13 @@ class SkimmedFile():
 #                                                                                      #
 #                                                                                      #
 ########################################################################################
-class MantecaExcel(MantecaFile):
+class MantecaExcel(MantecaSource):
     """A class to represent Manteca Excel workbooks."""
 
     def __init__(self, *args, **kwargs):
         """Load the input Excel workbook."""
         super().__init__(*args, **kwargs)
-        self.workbook = load_workbook(self.filename)
+        self.workbook = load_workbook(self.source)
         # NOTE: not all sheets are processed, only the first one because it is
         # (allegedly) the one where the Manteca URIs for the items are.
         self.sheet = self.workbook.worksheets[0]
@@ -215,12 +215,12 @@ class MantecaExcel(MantecaFile):
         logging.debug('Fichero de Manteca cerrado.')
 
 
-class SkimmedExcel(SkimmedFile):
+class SkimmedExcel(SkimmedSink):
     """A class to represent Skimmed (with 0% Manteca) Excel workbooks."""
     def __init__(self, *args, **kwargs):
         """Load the output Excel workbook."""
         super().__init__(*args, **kwargs)
-        self.workbook = load_workbook(self.filename)
+        self.workbook = load_workbook(self.sink)
         # Keys are metadata names, values are the column where that metadata is stored.
         self.metadata_columns = {}
         # Style for cells on the header row.
@@ -284,7 +284,7 @@ class SkimmedExcel(SkimmedFile):
 
     def close(self):
         """Close the current workbook, saving it."""
-        self.workbook.save(self.filename)
+        self.workbook.save(self.sink)
         self.workbook.close()
         logging.debug('Workbook Excel guardado.')
         logging.debug('Fichero sin Manteca cerrado.')
@@ -304,12 +304,12 @@ class SkimmedExcel(SkimmedFile):
 #                                                                               #
 #                                                                               #
 #################################################################################
-class MantecaText(MantecaFile):
+class MantecaText(MantecaSource):
     """A class to represent Manteca text files."""
     def __init__(self, *args, **kwargs):
         """Load the input text file."""
         super().__init__(*args, **kwargs)
-        self.file = open(self.filename, encoding='utf-8')  # pylint: disable=consider-using-with
+        self.file = open(self.source, encoding='utf-8')  # pylint: disable=consider-using-with
 
     def get_mantecas(self):
         """
@@ -328,12 +328,12 @@ class MantecaText(MantecaFile):
         logging.debug('Fichero de Manteca cerrado.')
 
 
-class SkimmedText(SkimmedFile):
+class SkimmedText(SkimmedSink):
     """A class to represent Skimmed (with 0% Manteca) text files."""
     def __init__(self, *args, **kwargs):
         """Create the output text file."""
         super().__init__(*args, **kwargs)
-        self.file = open(self.filename, 'w', encoding='utf-8')  # pylint: disable=consider-using-with
+        self.file = open(self.sink, 'w', encoding='utf-8')  # pylint: disable=consider-using-with
 
     def add_metadata(self, row, uri, metadata):
         """
