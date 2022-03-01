@@ -216,11 +216,11 @@ class MantecaFile():
         self.filename = filename
 
     def get_mantecas(self):
-        """ Pure virtual function: get Mantecas from 'filename'."""
+        """ Pure virtual function: get Mantecas from file."""
         raise NotImplementedError()
 
     def close(self):
-        """ Pure virtual function: close 'filename'."""
+        """ Pure virtual function: close Manteca file."""
         raise NotImplementedError()
 
 
@@ -230,11 +230,11 @@ class SkimmedFile():
         self.filename = filename
 
     def add_metadata(self, row, uri, metadata):
-        """Pure virtual function: add 'metadata' to Skimmed file."""
+        """Pure virtual function: add metadata to Skimmed file."""
         raise NotImplementedError()
 
     def close(self):
-        """ Pure virtual function: close 'filename'."""
+        """ Pure virtual function: close Skimmed file."""
         raise NotImplementedError()
 
 
@@ -266,7 +266,7 @@ class MantecaExcel(MantecaFile):
 
     def get_mantecas(self):
         """
-        Get the Mantecas found in the default worksheet. It's a generator.
+        Get the Mantecas found in the default worksheet.
 
         Returns a generator of (row, URI) tuples. Only the FIRST URI found in
         each row is considered and returned.
@@ -386,7 +386,7 @@ class MantecaText(MantecaFile):
 
     def get_mantecas(self):
         """
-        Get the Mantecas found in the text file. It's a generator.
+        Get the Mantecas found in the text file.
 
         Returns a generator of (row, URI) tuples, one per non empty file line.
         """
@@ -396,6 +396,7 @@ class MantecaText(MantecaFile):
                 yield (row, uri)
 
     def close(self):
+        """Close the file."""
         self.file.close()
         logging.debug('Fichero de Manteca cerrado.')
 
@@ -403,6 +404,7 @@ class MantecaText(MantecaFile):
 class SkimmedText(SkimmedFile):
     """A class to represent Skimmed (with 0% Manteca) text files."""
     def __init__(self, *args, **kwargs):
+        """Create the output text file."""
         super().__init__(*args, **kwargs)
         self.file = open(self.filename, 'w', encoding='utf-8')  # pylint: disable=consider-using-with
 
@@ -424,6 +426,7 @@ class SkimmedText(SkimmedFile):
             self.file.write(f'    {key}: {value}\n')
 
     def close(self):
+        """Close the file."""
         self.file.close()
         logging.debug('Fichero sin Manteca cerrado.')
 
