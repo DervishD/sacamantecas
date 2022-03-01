@@ -615,18 +615,18 @@ def main():  # pylint: disable=too-many-branches,too-many-statements,too-many-lo
             'o proporcione el nombre del fichero como argumento.'
         )
         return 1
-    input_filename = sys.argv[1]
-    output_filename = '_out'.join(os.path.splitext(input_filename))
+    manteca_source = sys.argv[1]
+    skimmed_sink = '_out'.join(os.path.splitext(manteca_source))
 
     # Initialize logging system.
-    # Generate the logging file names based upon input file name.
-    debugfile = f'{os.path.splitext(input_filename)[0]}_debug_{timestamp}.txt'
-    logfile = f'{os.path.splitext(input_filename)[0]}_log_{timestamp}.txt'
+    # Generate the logging file names based upon input source name.
+    debugfile = f'{os.path.splitext(manteca_source)[0]}_debug_{timestamp}.txt'
+    logfile = f'{os.path.splitext(manteca_source)[0]}_log_{timestamp}.txt'
     setup_logging(debugfile, logfile)
 
     print()
-    logging.info('El fichero de entrada es «%s».', input_filename)
-    logging.info('El fichero de salida es «%s».', output_filename)
+    logging.info('La fuente de Mantecas es «%s».', manteca_source)
+    logging.info('La salida sin Mantecas es «%s».', skimmed_sink)
 
     error_message = ''
     try:
@@ -645,15 +645,15 @@ def main():  # pylint: disable=too-many-branches,too-many-statements,too-many-lo
 
         logging.debug('Se obtuvieron los siguientes perfiles: %s.', list(profiles.keys()))
 
-        if input_filename.endswith(('.xls', '.xlsx')):
+        if manteca_source.endswith(('.xls', '.xlsx')):
             logging.debug('Los ficheros están en formato Excel.')
-            mantecafile = MantecaExcel(input_filename)
-            copy2(input_filename, output_filename)
-            skimmedfile = SkimmedExcel(output_filename)
+            mantecafile = MantecaExcel(manteca_source)
+            copy2(manteca_source, skimmed_sink)
+            skimmedfile = SkimmedExcel(skimmed_sink)
         else:
             logging.debug('Los ficheros están en formato texto.')
-            mantecafile = MantecaText(input_filename)
-            skimmedfile = SkimmedText(output_filename)
+            mantecafile = MantecaText(manteca_source)
+            skimmedfile = SkimmedText(skimmed_sink)
 
         print()
         logging.info('Sacando las mantecas:')
@@ -681,7 +681,7 @@ def main():  # pylint: disable=too-many-branches,too-many-statements,too-many-lo
         for uri, problem in bad_uris:
             logging.info('  [%s] %s.', uri, problem)
     except FileNotFoundError as exc:
-        if exc.filename == input_filename:
+        if exc.filename == manteca_source:
             error_message = 'No se encontró el fichero de entrada.'
         elif exc.filename == INIFILE_PATH:
             error_message = 'No se encontró el fichero de perfiles.'
@@ -689,9 +689,9 @@ def main():  # pylint: disable=too-many-branches,too-many-statements,too-many-lo
             raise
     except PermissionError as exc:
         error_message = 'No hay permisos suficientes para '
-        error_message += 'leer ' if exc.filename == input_filename else 'crear '
+        error_message += 'leer ' if exc.filename == manteca_source else 'crear '
         error_message += 'el fichero de '
-        error_message += 'entrada.' if exc.filename == input_filename else 'salida.'
+        error_message += 'entrada.' if exc.filename == manteca_source else 'salida.'
     except (InvalidFileException, SheetTitleException):
         error_message = 'El fichero Excel de entrada es inválido.'
     except KeyboardInterrupt:
