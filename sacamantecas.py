@@ -532,6 +532,99 @@ class MantecaSkimmer(HTMLParser):
         """Override ParserBase abstract method."""
 
 
+#################################################################################################################
+#                                                                                                               #
+#                                                                                                               #
+#                      888                              888                            d8b                      #
+#                      888                              888                            Y8P                      #
+#                      888                              888                                                     #
+#    .d8888b   .d88b.  888888 888  888 88888b.          888  .d88b.   .d88b.   .d88b.  888 88888b.   .d88b.     #
+#    88K      d8P  Y8b 888    888  888 888 "88b         888 d88""88b d88P"88b d88P"88b 888 888 "88b d88P"88b    #
+#    "Y8888b. 88888888 888    888  888 888  888         888 888  888 888  888 888  888 888 888  888 888  888    #
+#         X88 Y8b.     Y88b.  Y88b 888 888 d88P         888 Y88..88P Y88b 888 Y88b 888 888 888  888 Y88b 888    #
+#     88888P'  "Y8888   "Y888  "Y88888 88888P" 88888888 888  "Y88P"   "Y88888  "Y88888 888 888  888  "Y88888    #
+#                                      888                                888      888                   888    #
+#                                      888                           Y8b d88P Y8b d88P              Y8b d88P    #
+#                                      888                            "Y88P"   "Y88P"                "Y88P"     #
+#                                                                                                               #
+#                                                                                                               #
+#################################################################################################################
+def setup_logging():
+    """
+    Sets up logging system, disabling all existing loggers.
+
+    With the current configuration ALL logging messages are sent to the debug
+    file, logging.INFO messages are sent to the log file (timestamped), and the
+    console (but not timestamped in this case).
+    """
+    # Get timestamp as soon as possible.
+    timestamp = time.strftime('%Y%m%d_%H%M%S')
+    debugfile = f'{os.path.splitext(PROGRAM_PATH)[0]}_debug_{timestamp}.txt'
+    logfile = f'{os.path.splitext(PROGRAM_PATH)[0]}_log_{timestamp}.txt'
+
+    logging_configuration = {
+        'version': 1,
+        'disable_existing_loggers': True,
+        'formatters': {
+            'debug': {
+                'style': '{',
+                'format': '{asctime}.{msecs:04.0f} [{levelname}] {message}',
+                'datefmt': '%Y%m%d_%H%M%S'
+            },
+            'log': {
+                'style': '{',
+                'format': '{asctime} {message}',
+                'datefmt': '%Y%m%d_%H%M%S'
+            },
+            'console': {
+                'style': '{',
+                'format': '{message}',
+            },
+        },
+        'filters': {'info': {'()': lambda: lambda log_record: log_record.levelno == logging.INFO}},
+        'handlers': {},
+        'loggers': {
+            '': {  # root logger.
+                'level': 'NOTSET',
+                'handlers': [],
+                'propagate': False,
+            },
+        },
+    }
+
+    logging_configuration['handlers']['debugfile'] = {
+        'level': 'NOTSET',
+        'formatter': 'debug',
+        'class': 'logging.FileHandler',
+        'filename': debugfile,
+        'mode': 'w',
+        'encoding': 'utf8'
+    }
+
+    logging_configuration['handlers']['logfile'] = {
+        'level': 'NOTSET',
+        'formatter': 'log',
+        'filters': ['info'],
+        'class': 'logging.FileHandler',
+        'filename': logfile,
+        'mode': 'w',
+        'encoding': 'utf8'
+    }
+
+    logging_configuration['handlers']['console'] = {
+        'level': 'NOTSET',
+        'formatter': 'console',
+        'filters': ['info'],
+        'class': 'logging.StreamHandler',
+    }
+
+    logging_configuration['loggers']['']['handlers'].append('debugfile')
+    logging_configuration['loggers']['']['handlers'].append('logfile')
+    logging_configuration['loggers']['']['handlers'].append('console')
+
+    dictConfig(logging_configuration)
+
+
 ###########################################################
 #                                                         #
 #                                                         #
