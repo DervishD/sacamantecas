@@ -24,7 +24,7 @@ a new Manteca processing profile.
 """
 
 # Current version…
-__version__ = 'v3.0a1'
+__version__ = 'v3.0'
 
 # Imports
 import configparser
