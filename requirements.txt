@@ -1,0 +1,5 @@
+pycodestyle
+pydocstyle
+pylint
+pyinstaller
+openpyxl

@@ -1,4 +1,6 @@
+.venv
+# The line above MUST BE the virtual environment directory name and MUST BE the first line in the file.
 test*.*
+sacamantecas.exe
 sacamantecas_log_*
 sacamantecas_debug_*
-.venv
