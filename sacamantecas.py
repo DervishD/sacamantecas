@@ -232,6 +232,8 @@ class SkimmedExcel(SkimmedSink):
         # (allegedly) the one where the Manteca URIs for the items are.
         self.sheet = self.workbook.worksheets[0]
         logging.debug('La hoja con la que se trabajará es «%s»".', self.sheet.title)
+        logging.debug('Insertando fila de cabeceras.')
+        self.sheet.insert_rows(1, 1)  # Insert one row before first row.
 
     def add_metadata(self, row, uri, metadata):
         """
@@ -280,7 +282,9 @@ class SkimmedExcel(SkimmedSink):
                 self.sheet.column_dimensions[get_column_letter(column)].max = column
             # Add the value to the proper column.
             logging.debug('Añadiendo metadato «%s» con valor «%s».', key, value)
-            self.sheet.cell(row, self.metadata_columns[key], value=value)
+            # Since a heading row is inserted, the rows where metadata has to go
+            # have now an +1 offset, as they have been displaced.
+            self.sheet.cell(row+1, self.metadata_columns[key], value=value)
 
     def close(self):
         """Close the current workbook, saving it."""
