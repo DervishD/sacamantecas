@@ -1,5 +1,5 @@
 @echo off
-setlocal
+setlocal EnableDelayedExpansion
 
 rem Get virtual environment directory from the first line of .gitignore file.
 set /p VENV_DIR=<.gitignore
@@ -9,8 +9,8 @@ set WORKPATH=%VENV_DIR%\build
 set DISTPATH=%VENV_DIR%\dist
 
 rem Get version code of the current release.
-for /F "tokens=2 delims=^=' " %%a in ('findstr /b "__version__" sacamantecas.py') do set VERSION=%%a
-echo Building sacamantecas %VERSION%
+for /F "tokens=2 delims=^=' " %%a in ('findstr /b "__version__" sacamantecas.py') do set SM_VERSION=%%a
+echo Building sacamantecas %SM_VERSION%
 
 if not exist "%VENV_DIR%\" (
     echo Virtual environment does not exist at "%VENV_DIR%"
@@ -30,9 +30,9 @@ if exist "%DISTPATH%\sacamantecas.exe" (
     copy /b /y "%DISTPATH%\sacamantecas.exe" . >NUL
     echo Creating ZIP bundle
     set ZIPCOMMAND=Compress-Archive -Force
-    set ZIPCOMMAND=%ZIPCOMMAND% -Path 'sacamantecas.exe','sacamantecas.ini'
-    set ZIPCOMMAND=%ZIPCOMMAND% -DestinationPath 'sacamantecas %VERSION%.zip'
-    powershell -NoLogo -NonInteractive -NoProfile -Command "$progressPreference='silentlyContinue';%ZIPCOMMAND%"
+    set ZIPCOMMAND=!ZIPCOMMAND! -Path 'sacamantecas.exe','sacamantecas.ini'
+    set ZIPCOMMAND=!ZIPCOMMAND! -DestinationPath 'sacamantecas %SM_VERSION%.zip'
+    powershell -NoLogo -NonInteractive -NoProfile -Command "$progressPreference='silentlyContinue';!ZIPCOMMAND!"
 )
 
 endlocal
