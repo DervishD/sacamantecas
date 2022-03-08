@@ -1,7 +1,7 @@
 .venv
 # The line above MUST BE the virtual environment directory name and MUST BE the first line in the file.
+# The virtual environment directory name MUST CONTAIN 'venv' somewhere.
 test*.*
-sacamantecas.exe
-sacamantecas v*.zip
+sacamantecas_v*.zip
 sacamantecas_log_*
 sacamantecas_debug_*
