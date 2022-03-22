@@ -427,6 +427,8 @@ class SkimmedURI(SkimmedSink):
 ##############################################################################
 class MantecaSkimmer(HTMLParser):
     """HTML retriever/parser Manteca URIs, that is, web pages of library catalogues."""
+    # In order to keep this parser as simple as possible, some assumptions are
+    # made. See the comments below to know which those are.
     def __init__(self, profiles, *args, **kwargs):
         """Initialize object."""
         super().__init__(*args, **kwargs)
@@ -441,28 +443,39 @@ class MantecaSkimmer(HTMLParser):
     def handle_starttag(self, tag, attrs):
         """Handle opening tags."""
         for attr in attrs:
-            if attr[0] == 'class' and (match := self.profile['k_class'].match(attr[1])):
+            if attr[0] == 'class' and (match := self.profile['k_class'].fullmatch(attr[1])):
                 logging.debug('Se encontró una marca de clave «%s».', match.group(0))
                 self.within_k_tag = True
                 self.current_key = ''
-            if attr[0] == 'class' and (match := self.profile['v_class'].match(attr[1])):
+                break
+            if attr[0] == 'class' and (match := self.profile['v_class'].fullmatch(attr[1])):
                 logging.debug('Se encontró una marca de valor «%s».', match.group(0))
                 self.within_v_tag = True
                 self.current_value = ''
+                break
+            if self.within_k_tag and self.within_v_tag:
+                # Nesting happened and it is not allowed.
+                logging.error('Se encontraron marcas anidadas en el fichero, restableciendo parser.')
+                self.within_v_tag = False  # Give preference to key tags.
 
     def handle_endtag(self, tag):
         """Handle closing tags."""
-        if self.within_k_tag:
-            self.within_k_tag = False
         if self.within_v_tag:
             self.within_v_tag = False
             # Metadata is only stored after getting the value.
-            if not self.current_key:
-                logging.debug('La clave estaba vacía.')
-                self.current_key = '[vacío]'
+            if not self.current_value:
+                logging.error('No se encontró un valor.')
+                self.current_value = '[vacío]'
             self.retrieved_metadata[self.current_key] = self.current_value
             self.current_key = ''
             self.current_value = ''
+            return
+        if self.within_k_tag:
+            self.within_k_tag = False
+            if not self.current_key:
+                logging.error('No se encontró una clave.')
+                self.current_key = '[vacío]'
+            return
 
     def handle_data(self, data):
         """Handle data."""
@@ -475,11 +488,13 @@ class MantecaSkimmer(HTMLParser):
         if self.within_k_tag:
             logging.debug('Se encontró la clave «%s».', data)
             self.current_key += data.rstrip(':')
+            return
         if self.within_v_tag:
-            logging.debug('Se encontró el valor «%s».', data)
+            logging.debug('Se encontró un valor «%s».', data)
             if self.current_value:
                 self.current_value += ' / '
             self.current_value += data
+            return
 
     def skim(self, uri):  # pylint: disable=too-many-branches
         """
