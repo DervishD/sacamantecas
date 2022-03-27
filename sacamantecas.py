@@ -100,27 +100,36 @@ def error(message):
 # Define the default exception hook.
 def excepthook(exc_type, exc_value, exc_traceback):
     """Handle unhandled exceptions, default exception hook."""
+    message = '✱ '
     if isinstance(exc_value, OSError):
         # Handle OSError differently by giving more details.
-        message = (
-            f'Error inesperado del sistema operativo.\n'
-            '['
-            f'{exc_type.__name__}'
-            f'{f"/{errno.errorcode[exc_value.errno]}" if exc_value.errno is not None else ""}'
-            f'{f"/Win{exc_value.winerror}" if exc_value.winerror is not None else ""}'
-            ']\n'
-            f'{exc_value.strerror}.\n'
-            f'{f"«{exc_value.filename}»" if exc_value.filename is not None else ""}'
-            f'{f" -> «{exc_value.filename2}»" if exc_value.filename2 is not None else ""}'
-        )
+        message += f'Error inesperado del sistema operativo.\n{exc_type.__name__}'
+        if exc_value.errno is not None:
+            message += f'/{errno.errorcode[exc_value.errno]}'
+        if exc_value.winerror is not None:
+            message += f'/Win{exc_value.winerror}'
+        message += f': {exc_value.strerror}.\n'
+        if exc_value.filename is not None:
+            message += 'Fichero'
+            if exc_value.filename2 is not None:
+                message += f' de origen:  «{exc_value.filename}».\n'
+                message += f'Fichero de destino: «{exc_value.filename2}».\n'
+            else:
+                message += f': «{exc_value.filename}».\n'
     else:
-        message = (
-            f'Excepción sin gestionar en línea {tb.extract_tb(exc_traceback)[-1].lineno}.\n'
-            f'{exc_type.__name__}: {exc_value}.\n'
-        )
+        message += f'Excepción sin gestionar.\n«{exc_type.__name__}»: {exc_value}.\n'
     message += '\n'
-    message += '\n'.join([f'Línea {frame.lineno}: {frame.line}' for frame in tb.extract_tb(exc_traceback)]).rstrip()
-    error(message)
+    current_filename = None
+    for frame in tb.extract_tb(exc_traceback):
+        if current_filename != frame.filename:
+            message += f'▸ Fichero {frame.filename}\n'
+            current_filename = frame.filename
+        message += f'  Línea {frame.lineno} ['
+        message += os.path.basename(PROGRAM_PATH) if frame.name == '<module>' else frame.name
+        message += ']'
+        message += f': {frame.line}' if frame.line else ''  # No source content when frozen…
+        message += '\n'
+    error(message.rstrip())
 
 
 ##############################################################################################################
