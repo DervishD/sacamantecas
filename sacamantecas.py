@@ -787,7 +787,19 @@ def load_profiles(filename):
         # To wit, a REAL dictionary whose keys are profile names and the values
         # are dictionaries containing the profile configuration.
         for profile in parser.sections():
-            profiles[profile] = {key: re.compile(value, re.IGNORECASE) for key, value in parser[profile].items()}
+            profiles[profile] = {}
+            for key, value in parser[profile].items():
+                # profiles[profile] = {key: re.compile(value, re.IGNORECASE) for
+                # key, value in parser[profile].items()}
+                try:
+                    profiles[profile][key] = re.compile(value, re.IGNORECASE)
+                except re.error as exc:
+                    message = 'Problema de sintaxis al leer el fichero de perfiles.\n'
+                    message += f'Perfil «{profile}»: {exc.msg[0].upper() + exc.msg[1:]}.\n'
+                    message += f'  {key} = {exc.pattern}\n'
+                    message += '  ' + '_' * (exc.pos + len(key) + len(' = ')) + '^'
+                    error(message)
+                    return None
         if not profiles:
             error('No hay perfiles definidos en el fichero de perfiles.')
         else:
