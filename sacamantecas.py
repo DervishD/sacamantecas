@@ -624,10 +624,9 @@ def setup_logging():
                 return ''
             # Get the preamble so it can be reproduced on each line.
             preamble = message.split(record.message)[0]
-            # Clean the message: no multiple newlines, no trailing spaces.
-            message = '\n'.join([line.rstrip() for line in message.splitlines() if line.strip()])
-            # Insert the preamble on each line and return the result.
-            return message.replace('\n', f'\n{preamble}↳')
+            # Return cleaned message: no multiple newlines, no trailing spaces,
+            # and the preamble is inserted at the beginning of each line.
+            return f'↲\n{preamble}'.join([line.rstrip() for line in message.splitlines() if line.strip()])
 
     logging_configuration = {
         'version': 1,
