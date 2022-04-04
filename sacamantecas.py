@@ -441,68 +441,79 @@ class MantecaSkimmer(HTMLParser):
     def __init__(self, profiles, *args, **kwargs):
         """Initialize object."""
         super().__init__(*args, **kwargs)
-        self.within_k_tag = False
-        self.within_v_tag = False
+        self.within_k = False
+        self.within_v = False
         self.profiles = profiles
         self.profile = None
-        self.current_key = ''
-        self.current_value = ''
+        self.current_k = ''
+        self.current_v = ''
         self.retrieved_metadata = {}
 
     def handle_starttag(self, tag, attrs):
         """Handle opening tags."""
         for attr in attrs:
             if attr[0] == 'class' and (match := self.profile['k_class'].fullmatch(attr[1])):
+                # Key mark found.
                 logging.debug('Se encontró una marca de clave «%s».', match.group(0))
-                self.within_k_tag = True
-                self.current_key = ''
+                self.within_k = True
+                self.current_k = ''
+                if self.within_v:
+                    # If still processing a value, notify about the nesting
+                    # error but reset parser so everything starts afresh, like
+                    # if a new key had been found.
+                    logging.error('Error de anidación (clave dentro de valor), restableciendo parser.')
+                    self.within_v = False
+                    self.current_v = ''
                 break
             if attr[0] == 'class' and (match := self.profile['v_class'].fullmatch(attr[1])):
+                # Value mark found.
                 logging.debug('Se encontró una marca de valor «%s».', match.group(0))
-                self.within_v_tag = True
-                self.current_value = ''
+                self.within_v = True
+                self.current_v = ''
+                if self.within_k:
+                    # If still processing a key, the nesting error can still be
+                    # recovered to a certain point. If some data was obtained
+                    # for the key, the parser is put in 'within_v' mode to get
+                    # the corresponding value. Otherwise the parser is reset.
+                    logging.error('Error de anidación (valor dentro de clave), restableciendo parser.')
+                    self.within_k = False
+                    if not self.current_k:
+                        self.within_v = False
                 break
-            if self.within_k_tag and self.within_v_tag:
-                # Nesting happened and it is not allowed.
-                logging.error('Se encontraron marcas anidadas en el fichero, restableciendo parser.')
-                self.within_v_tag = False  # Give preference to key tags.
 
     def handle_endtag(self, tag):
         """Handle closing tags."""
-        if self.within_v_tag:
-            self.within_v_tag = False
-            # Metadata is only stored after getting the value.
-            if not self.current_value:
-                logging.error('No se encontró un valor.')
-                self.current_value = '[vacío]'
-            self.retrieved_metadata[self.current_key] = self.current_value
-            self.current_key = ''
-            self.current_value = ''
+        if self.within_k:
+            self.within_k = False
             return
-        if self.within_k_tag:
-            self.within_k_tag = False
-            if not self.current_key:
-                logging.error('No se encontró una clave.')
-                self.current_key = '[vacío]'
+        if self.within_v:
+            self.within_v = False
+            # Metadata is only stored after getting the full key/value pair.
+            if self.current_k and self.current_v:
+                self.retrieved_metadata[self.current_k] = self.current_v
+            if not self.current_k or not self.current_k:
+                logging.error('Metadato incompleto. K«%s» = V«%s».')
+            self.current_k = ''
+            self.current_v = ''
             return
 
     def handle_data(self, data):
         """Handle data."""
-        if self.within_k_tag or self.within_v_tag:
+        if self.within_k or self.within_v:
             # Clean up the received data by removing superfluous whitespace
             # characters, including newlines, carriage returns, etc.
             data = ' '.join(data.split())
             if not data:  # Ignore empty data
                 return
-        if self.within_k_tag:
+        if self.within_k:
             logging.debug('Se encontró la clave «%s».', data)
-            self.current_key += data.rstrip(':')
+            self.current_k += data.rstrip(':')
             return
-        if self.within_v_tag:
+        if self.within_v:
             logging.debug('Se encontró un valor «%s».', data)
-            if self.current_value:
-                self.current_value += ' / '
-            self.current_value += data
+            if self.current_v:
+                self.current_v += ' / '
+            self.current_v += data
             return
 
     def skim(self, uri):  # pylint: disable=too-many-branches
