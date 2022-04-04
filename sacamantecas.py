@@ -36,11 +36,12 @@ import atexit
 from logging.config import dictConfig
 import traceback as tb
 from shutil import copy2
-from urllib.request import urlopen
+from urllib.request import urlopen, Request
 from urllib.parse import urlparse, urlunparse
 from urllib.error import URLError
 import re
 import time
+import platform
 from html.parser import HTMLParser
 from msvcrt import getch
 from openpyxl import load_workbook
@@ -68,6 +69,9 @@ except NameError:
 if sys.platform != 'win32':
     sys.exit(f'{PROGRAM_NAME} solo funciona en la plataforma Win32.')
 
+# Create a sane User-Agent.
+USER_AGENT = f'{PROGRAM_NAME.replace(" v", "/")} +https://github.com/DervishD/sacamantecas'
+USER_AGENT += f' (Windows {platform.version()}; {platform.architecture()[0]}; {platform.machine()})'
 
 # Wait for a keypress on program exit.
 atexit.register(lambda: (print('\nPulse cualquier tecla para continuar...', end='', flush=True), getch()))
@@ -545,7 +549,7 @@ class MantecaSkimmer(HTMLParser):
             return {}
 
         try:
-            with urlopen(uri) as request:
+            with urlopen(Request(uri, headers={'User-Agent': USER_AGENT})) as request:
                 # First, check if any redirection is needed and get the charset the easy way.
                 logging.debug('Procesando URI «%s».', uri)
                 contents = request.read()
@@ -555,7 +559,7 @@ class MantecaSkimmer(HTMLParser):
                     uri = urlparse(uri)
                     uri = urlunparse((uri.scheme, uri.netloc, match.group(1).decode('ascii'), '', '', ''))
                     logging.debug('Redirección -> «%s».', uri)
-                    with urlopen(uri) as redirected_request:
+                    with urlopen(Request(uri, headers={'User-Agent': USER_AGENT})) as redirected_request:
                         contents = redirected_request.read()
                         charset = redirected_request.headers.get_content_charset()
                 else:
@@ -912,6 +916,7 @@ def main():
         setup_logging()
         logging.debug(PROGRAM_NAME)
         logging.debug('Registro de depuración iniciado.')
+        logging.debug('User-Agent: «%s».', USER_AGENT)
 
         logging.info(PROGRAM_NAME)
 
