@@ -525,80 +525,6 @@ class LegacyParser(HTMLParser):
         """Override ParserBase abstract method."""
 
 
-###################################################################################################
-#                                                                                                 #
-#                                                                                                 #
-#                    888            d8b                                                    d8b    #
-#                    888            Y8P                                                    Y8P    #
-#                    888                                                                          #
-#    888d888 .d88b.  888888 888d888 888  .d88b.  888  888  .d88b.         888  888 888d888 888    #
-#    888P"  d8P  Y8b 888    888P"   888 d8P  Y8b 888  888 d8P  Y8b        888  888 888P"   888    #
-#    888    88888888 888    888     888 88888888 Y88  88P 88888888        888  888 888     888    #
-#    888    Y8b.     Y88b.  888     888 Y8b.      Y8bd8P  Y8b.            Y88b 888 888     888    #
-#    888     "Y8888   "Y888 888     888  "Y8888    Y88P    "Y8888 88888888 "Y88888 888     888    #
-#                                                                                                 #
-#                                                                                                 #
-###################################################################################################
-def retrieve_uri(uri):
-    """
-    Retrieve contents from 'uri'.
-
-    This function resolves meta-refresh redirection for 'uri', then gets the
-    contents and decodes them using the detected charset, or iso-8859-1 if
-    none is detected.
-
-    NOTE about charset: if no charset is detected, then iso-8859-1 is used
-    as default. Really, utf-8 should be a better default, because modern web
-    pages may NOT specify any encoding if they are using utf-8 and it is
-    identical to ascii in the 7-bit codepoints. The problem is that utf-8
-    will fail for pages encoded with iso-8859-1, and the vast majority of
-    web pages processed will in fact use iso-8859-1 anyway.
-    """
-    try:
-        with urlopen(Request(uri, headers={'User-Agent': USER_AGENT})) as request:
-            # First, check if any redirection is needed and get the charset the easy way.
-            logging.debug('Procesando URI «%s».', uri)
-            contents = request.read()
-            charset = request.headers.get_content_charset()
-            match = re.search(rb'<meta http-equiv="refresh" content="[^;]+;\s*url=([^"]+)"', contents, re.I)
-            if match:
-                uri = urlparse(uri)
-                uri = urlunparse((uri.scheme, uri.netloc, match.group(1).decode('ascii'), '', '', ''))
-                logging.debug('Redirección -> «%s».', uri)
-                with urlopen(Request(uri, headers={'User-Agent': USER_AGENT})) as redirected_request:
-                    contents = redirected_request.read()
-                    charset = redirected_request.headers.get_content_charset()
-            else:
-                logging.debug('El URI no está redirigido.')
-    except ValueError as exc:
-        if str(exc).startswith('unknown url type:'):
-            raise URLError(f"El URI '{uri}' es de tipo desconocido.") from exc
-        raise
-
-    # In this point, we have the contents as a byte string.
-    # If the charset is None, it has to be determined the hard way.
-    if charset is None:
-        # Next best thing, from the meta http-equiv="content-type".
-        match = re.search(rb'<meta http-equiv="content-type".*charset=([^"]+)"', contents, re.I)
-        if match:
-            logging.debug('Charset detectado mediante meta http-equiv.')
-            charset = match.group(1).decode('ascii')
-        else:
-            # Last resort, from some meta charset, if any…
-            match = re.search(rb'<meta charset="([^"]+)"', contents, re.I)
-            if match:
-                logging.debug('Charset detectado mediante meta charset.')
-                charset = match.group(1).decode('ascii')
-            else:
-                charset = 'iso-8859-1'
-                logging.debug('Usando charset por defecto.')
-    else:
-        logging.debug('Charset detectado en las cabeceras.')
-    logging.debug('Contenidos codificados con charset «%s».', charset)
-
-    return contents.decode(charset)
-
-
 #################################################################################################################
 #                                                                                                               #
 #                                                                                                               #
@@ -861,6 +787,80 @@ def load_profiles(filename):
         else:
             logging.debug('Se obtuvieron los siguientes perfiles: %s.', list(profiles.keys()))
     return profiles
+
+
+###################################################################################################
+#                                                                                                 #
+#                                                                                                 #
+#                    888            d8b                                                    d8b    #
+#                    888            Y8P                                                    Y8P    #
+#                    888                                                                          #
+#    888d888 .d88b.  888888 888d888 888  .d88b.  888  888  .d88b.         888  888 888d888 888    #
+#    888P"  d8P  Y8b 888    888P"   888 d8P  Y8b 888  888 d8P  Y8b        888  888 888P"   888    #
+#    888    88888888 888    888     888 88888888 Y88  88P 88888888        888  888 888     888    #
+#    888    Y8b.     Y88b.  888     888 Y8b.      Y8bd8P  Y8b.            Y88b 888 888     888    #
+#    888     "Y8888   "Y888 888     888  "Y8888    Y88P    "Y8888 88888888 "Y88888 888     888    #
+#                                                                                                 #
+#                                                                                                 #
+###################################################################################################
+def retrieve_uri(uri):
+    """
+    Retrieve contents from 'uri'.
+
+    This function resolves meta-refresh redirection for 'uri', then gets the
+    contents and decodes them using the detected charset, or iso-8859-1 if
+    none is detected.
+
+    NOTE about charset: if no charset is detected, then iso-8859-1 is used
+    as default. Really, utf-8 should be a better default, because modern web
+    pages may NOT specify any encoding if they are using utf-8 and it is
+    identical to ascii in the 7-bit codepoints. The problem is that utf-8
+    will fail for pages encoded with iso-8859-1, and the vast majority of
+    web pages processed will in fact use iso-8859-1 anyway.
+    """
+    try:
+        with urlopen(Request(uri, headers={'User-Agent': USER_AGENT})) as request:
+            # First, check if any redirection is needed and get the charset the easy way.
+            logging.debug('Procesando URI «%s».', uri)
+            contents = request.read()
+            charset = request.headers.get_content_charset()
+            match = re.search(rb'<meta http-equiv="refresh" content="[^;]+;\s*url=([^"]+)"', contents, re.I)
+            if match:
+                uri = urlparse(uri)
+                uri = urlunparse((uri.scheme, uri.netloc, match.group(1).decode('ascii'), '', '', ''))
+                logging.debug('Redirección -> «%s».', uri)
+                with urlopen(Request(uri, headers={'User-Agent': USER_AGENT})) as redirected_request:
+                    contents = redirected_request.read()
+                    charset = redirected_request.headers.get_content_charset()
+            else:
+                logging.debug('El URI no está redirigido.')
+    except ValueError as exc:
+        if str(exc).startswith('unknown url type:'):
+            raise URLError(f"El URI '{uri}' es de tipo desconocido.") from exc
+        raise
+
+    # In this point, we have the contents as a byte string.
+    # If the charset is None, it has to be determined the hard way.
+    if charset is None:
+        # Next best thing, from the meta http-equiv="content-type".
+        match = re.search(rb'<meta http-equiv="content-type".*charset=([^"]+)"', contents, re.I)
+        if match:
+            logging.debug('Charset detectado mediante meta http-equiv.')
+            charset = match.group(1).decode('ascii')
+        else:
+            # Last resort, from some meta charset, if any…
+            match = re.search(rb'<meta charset="([^"]+)"', contents, re.I)
+            if match:
+                logging.debug('Charset detectado mediante meta charset.')
+                charset = match.group(1).decode('ascii')
+            else:
+                charset = 'iso-8859-1'
+                logging.debug('Usando charset por defecto.')
+    else:
+        logging.debug('Charset detectado en las cabeceras.')
+    logging.debug('Contenidos codificados con charset «%s».', charset)
+
+    return contents.decode(charset)
 
 
 #################################################################
