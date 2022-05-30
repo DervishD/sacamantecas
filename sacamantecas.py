@@ -437,31 +437,22 @@ class SkimmedURI(SkimmedSink):
         """NOP"""
 
 
-##############################################################################
-#                                                                            #
-#                                                                            #
-#     .d8888b.  888      d8b                                                 #
-#    d88P  Y88b 888      Y8P                                                 #
-#    Y88b.      888                                                          #
-#     "Y888b.   888  888 888 88888b.d88b.  88888b.d88b.   .d88b.  888d888    #
-#        "Y88b. 888 .88P 888 888 "888 "88b 888 "888 "88b d8P  Y8b 888P"      #
-#          "888 888888K  888 888  888  888 888  888  888 88888888 888        #
-#    Y88b  d88P 888 "88b 888 888  888  888 888  888  888 Y8b.     888        #
-#     "Y8888P"  888  888 888 888  888  888 888  888  888  "Y8888  888        #
-#                                                                            #
-#                                                                            #
-##############################################################################
-class MantecaSkimmer(HTMLParser):
-    """HTML retriever/parser Manteca URIs, that is, web pages of library catalogues."""
-    # In order to keep this parser as simple as possible, some assumptions are
-    # made. See the comments below to know which those are.
-    def __init__(self, profiles, *args, **kwargs):
+class LegacyParser(HTMLParser):
+    """
+    Legacy parser for Manteca URIs which use different HTML class attributes to
+    mark metadata keys and metadata values.
+
+    This is inherently complex, specially when dealing with ill-formed HTML.
+
+    So, in order to keep this parser as simple as possible, some assumptions are
+    made. See the comments below to know which those are.
+    """
+    def __init__(self, profile, *args, **kwargs):
         """Initialize object."""
         super().__init__(*args, **kwargs)
         self.within_k = False
         self.within_v = False
-        self.profiles = profiles
-        self.profile = None
+        self.profile = profile
         self.current_k = ''
         self.current_v = ''
         self.retrieved_metadata = {}
@@ -533,6 +524,36 @@ class MantecaSkimmer(HTMLParser):
             self.current_v += data
             return
 
+    def get_metadata(self):
+        """Get retrieved metadata so far."""
+        return self.retrieved_metadata
+
+    def error(self, _):
+        """Override ParserBase abstract method."""
+
+
+##############################################################################
+#                                                                            #
+#                                                                            #
+#     .d8888b.  888      d8b                                                 #
+#    d88P  Y88b 888      Y8P                                                 #
+#    Y88b.      888                                                          #
+#     "Y888b.   888  888 888 88888b.d88b.  88888b.d88b.   .d88b.  888d888    #
+#        "Y88b. 888 .88P 888 888 "888 "88b 888 "888 "88b d8P  Y8b 888P"      #
+#          "888 888888K  888 888  888  888 888  888  888 88888888 888        #
+#    Y88b  d88P 888 "88b 888 888  888  888 888  888  888 Y8b.     888        #
+#     "Y8888P"  888  888 888 888  888  888 888  888  888  "Y8888  888        #
+#                                                                            #
+#                                                                            #
+##############################################################################
+class MantecaSkimmer():
+    """HTML retriever/parser for Manteca URIs (library catalogues web pages)."""
+    # In order to keep this parser as simple as possible, some assumptions are
+    # made. See the comments below to know which those are.
+    def __init__(self, profiles):
+        """Initialize object."""
+        self.profiles = profiles
+
     def skim(self, uri):  # pylint: disable=too-many-branches
         """
         Retrieve and process contents from 'uri'.
@@ -551,13 +572,12 @@ class MantecaSkimmer(HTMLParser):
         will fail for pages encoded with iso-8859-1, and the vast majority of
         web pages processed will in fact use iso-8859-1 anyway.
         """
-        self.retrieved_metadata.clear()
-        self.profile = None
+        parser = None
         for profile in self.profiles:
             if self.profiles[profile]['u_match'].match(uri):
                 logging.debug('Perfil detectado: «%s».', profile)
-                self.profile = self.profiles[profile]
-        if not self.profile:  # Ignore URIs if no profile exists for them.
+                parser = LegacyParser(self.profiles[profile])
+        if not parser:  # Ignore URIs if no profile exists for them.
             logging.debug('No se detectó un perfil para «%s», ignorando…', uri)
             return {}
 
@@ -603,12 +623,9 @@ class MantecaSkimmer(HTMLParser):
             logging.debug('Charset detectado en las cabeceras.')
         logging.debug('Contenidos codificados con charset «%s».', charset)
 
-        self.feed(contents.decode(charset))
-        self.close()
-        return self.retrieved_metadata
-
-    def error(self, _):
-        """Override ParserBase abstract method."""
+        parser.feed(contents.decode(charset))
+        parser.close()
+        return parser.get_metadata()
 
 
 #################################################################################################################
