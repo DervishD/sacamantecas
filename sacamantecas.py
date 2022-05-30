@@ -547,86 +547,78 @@ class LegacyParser(HTMLParser):
 #                                                                            #
 #                                                                            #
 ##############################################################################
-class MantecaSkimmer():
-    """HTML retriever/parser for Manteca URIs (library catalogues web pages)."""
-    # In order to keep this parser as simple as possible, some assumptions are
-    # made. See the comments below to know which those are.
-    def __init__(self, profiles):
-        """Initialize object."""
-        self.profiles = profiles
+def skim(uri, profiles):  # pylint: disable=too-many-branches
+    """
+    Retrieve and process contents from 'uri'.
 
-    def skim(self, uri):  # pylint: disable=too-many-branches
-        """
-        Retrieve and process contents from 'uri'.
+    This function resolves meta-refresh redirection for 'uri', then gets the
+    contents and decodes them using the detected charset, or iso-8859-1 if
+    none is detected.
 
-        This function resolves meta-refresh redirection for 'uri', then gets the
-        contents and decodes them using the detected charset, or iso-8859-1 if
-        none is detected.
+    Then the contents are fed into the HTML parser and processed in order to
+    skim the Manteca.
 
-        Then the contents are fed into the HTML parser and processed in order to
-        skim the Manteca.
+    NOTE about charset: if no charset is detected, then iso-8859-1 is used
+    as default. Really, utf-8 should be a better default, because modern web
+    pages may NOT specify any encoding if they are using utf-8 and it is
+    identical to ascii in the 7-bit codepoints. The problem is that utf-8
+    will fail for pages encoded with iso-8859-1, and the vast majority of
+    web pages processed will in fact use iso-8859-1 anyway.
+    """
+    parser = None
+    for profile in profiles:
+        if profiles[profile]['u_match'].match(uri):
+            logging.debug('Perfil detectado: «%s».', profile)
+            parser = LegacyParser(profiles[profile])
+    if not parser:  # Ignore URIs if no profile exists for them.
+        logging.debug('No se detectó un perfil para «%s», ignorando…', uri)
+        return {}
 
-        NOTE about charset: if no charset is detected, then iso-8859-1 is used
-        as default. Really, utf-8 should be a better default, because modern web
-        pages may NOT specify any encoding if they are using utf-8 and it is
-        identical to ascii in the 7-bit codepoints. The problem is that utf-8
-        will fail for pages encoded with iso-8859-1, and the vast majority of
-        web pages processed will in fact use iso-8859-1 anyway.
-        """
-        parser = None
-        for profile in self.profiles:
-            if self.profiles[profile]['u_match'].match(uri):
-                logging.debug('Perfil detectado: «%s».', profile)
-                parser = LegacyParser(self.profiles[profile])
-        if not parser:  # Ignore URIs if no profile exists for them.
-            logging.debug('No se detectó un perfil para «%s», ignorando…', uri)
-            return {}
-
-        try:
-            with urlopen(Request(uri, headers={'User-Agent': USER_AGENT})) as request:
-                # First, check if any redirection is needed and get the charset the easy way.
-                logging.debug('Procesando URI «%s».', uri)
-                contents = request.read()
-                charset = request.headers.get_content_charset()
-                match = re.search(rb'<meta http-equiv="refresh" content="[^;]+;\s*url=([^"]+)"', contents, re.I)
-                if match:
-                    uri = urlparse(uri)
-                    uri = urlunparse((uri.scheme, uri.netloc, match.group(1).decode('ascii'), '', '', ''))
-                    logging.debug('Redirección -> «%s».', uri)
-                    with urlopen(Request(uri, headers={'User-Agent': USER_AGENT})) as redirected_request:
-                        contents = redirected_request.read()
-                        charset = redirected_request.headers.get_content_charset()
-                else:
-                    logging.debug('El URI no está redirigido.')
-        except ValueError as exc:
-            if str(exc).startswith('unknown url type:'):
-                raise URLError(f"El URI '{uri}' es de tipo desconocido.") from exc
-            raise
-
-        # In this point, we have the contents as a byte string.
-        # If the charset is None, it has to be determined the hard way.
-        if charset is None:
-            # Next best thing, from the meta http-equiv="content-type".
-            match = re.search(rb'<meta http-equiv="content-type".*charset=([^"]+)"', contents, re.I)
+    try:
+        with urlopen(Request(uri, headers={'User-Agent': USER_AGENT})) as request:
+            # First, check if any redirection is needed and get the charset the easy way.
+            logging.debug('Procesando URI «%s».', uri)
+            contents = request.read()
+            charset = request.headers.get_content_charset()
+            match = re.search(rb'<meta http-equiv="refresh" content="[^;]+;\s*url=([^"]+)"', contents, re.I)
             if match:
-                logging.debug('Charset detectado mediante meta http-equiv.')
+                uri = urlparse(uri)
+                uri = urlunparse((uri.scheme, uri.netloc, match.group(1).decode('ascii'), '', '', ''))
+                logging.debug('Redirección -> «%s».', uri)
+                with urlopen(Request(uri, headers={'User-Agent': USER_AGENT})) as redirected_request:
+                    contents = redirected_request.read()
+                    charset = redirected_request.headers.get_content_charset()
+            else:
+                logging.debug('El URI no está redirigido.')
+    except ValueError as exc:
+        if str(exc).startswith('unknown url type:'):
+            raise URLError(f"El URI '{uri}' es de tipo desconocido.") from exc
+        raise
+
+    # In this point, we have the contents as a byte string.
+    # If the charset is None, it has to be determined the hard way.
+    if charset is None:
+        # Next best thing, from the meta http-equiv="content-type".
+        match = re.search(rb'<meta http-equiv="content-type".*charset=([^"]+)"', contents, re.I)
+        if match:
+            logging.debug('Charset detectado mediante meta http-equiv.')
+            charset = match.group(1).decode('ascii')
+        else:
+            # Last resort, from some meta charset, if any…
+            match = re.search(rb'<meta charset="([^"]+)"', contents, re.I)
+            if match:
+                logging.debug('Charset detectado mediante meta charset.')
                 charset = match.group(1).decode('ascii')
             else:
-                # Last resort, from some meta charset, if any…
-                match = re.search(rb'<meta charset="([^"]+)"', contents, re.I)
-                if match:
-                    logging.debug('Charset detectado mediante meta charset.')
-                    charset = match.group(1).decode('ascii')
-                else:
-                    charset = 'iso-8859-1'
-                    logging.debug('Usando charset por defecto.')
-        else:
-            logging.debug('Charset detectado en las cabeceras.')
-        logging.debug('Contenidos codificados con charset «%s».', charset)
+                charset = 'iso-8859-1'
+                logging.debug('Usando charset por defecto.')
+    else:
+        logging.debug('Charset detectado en las cabeceras.')
+    logging.debug('Contenidos codificados con charset «%s».', charset)
 
-        parser.feed(contents.decode(charset))
-        parser.close()
-        return parser.get_metadata()
+    parser.feed(contents.decode(charset))
+    parser.close()
+    return parser.get_metadata()
 
 
 #################################################################################################################
@@ -880,7 +872,7 @@ def load_profiles(filename):
 #                                                               #
 #                                                               #
 #################################################################
-def saca_las_mantecas(manteca_spec, skimmer):
+def saca_las_mantecas(manteca_spec, profiles):
     """
     Saca las Mantecas (skims) from each 'manteca_spec', using 'skimmer'.
 
@@ -923,7 +915,7 @@ def saca_las_mantecas(manteca_spec, skimmer):
     for row, uri in manteca_source.get_mantecas():
         logging.info('  %s', uri)
         try:
-            metadata = skimmer.skim(uri)
+            metadata = skim(uri, profiles)
             if not metadata:
                 bad_metadata.append((uri, 'No se obtuvieron metadatos'))
             else:
@@ -975,15 +967,12 @@ def main():
         if not profiles:
             raise SystemExit
 
-        # Create skimmer. It will be reused for each source.
-        skimmer = MantecaSkimmer(profiles)
-
         # Loop over the sources and skim them.
         print()
         logging.info('Sacando las mantecas:')
         bad_metadata = []
         for manteca_spec in manteca_specs:
-            result = saca_las_mantecas(manteca_spec, skimmer)
+            result = saca_las_mantecas(manteca_spec, profiles)
             if result is not None:
                 bad_metadata.extend(result)
         if bad_metadata:
