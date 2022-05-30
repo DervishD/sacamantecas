@@ -53,8 +53,8 @@ from openpyxl.utils.cell import get_column_letter
 
 class SourceType(Enum):
     """A class to define constants for the different input source types."""
-    XLSX = auto()  # For .xlsx (Excel) workbooks.
-    TEXT = auto()  # For text files containing URIs.
+    XLS = auto()  # For .xlsx (Excel) workbooks.
+    TXT = auto()  # For text files.
     URI = auto()  # For URIs.
 
 
@@ -769,9 +769,9 @@ def process_argv():
         if arg.startswith('http'):
             sources.append((SourceType.URI, arg, None))
         elif arg.endswith('.xlsx'):
-            sources.append((SourceType.XLSX, arg, '_out'.join(os.path.splitext(arg))))
+            sources.append((SourceType.XLS, arg, '_out'.join(os.path.splitext(arg))))
         elif arg.endswith('.txt'):
-            sources.append((SourceType.TEXT, arg, '_out'.join(os.path.splitext(arg))))
+            sources.append((SourceType.TXT, arg, '_out'.join(os.path.splitext(arg))))
         else:
             logging.debug('La fuente «%s» es inválida.', arg)
     return sources
@@ -868,7 +868,7 @@ def saca_las_mantecas(manteca_spec, skimmer):
     logging.debug('La fuente está en formato «%s».', sourcetype)
 
     try:
-        if sourcetype == SourceType.XLSX:
+        if sourcetype == SourceType.XLS:
             logging.debug('Copiando workbook a «%s».', sink)
             copy2(source, sink)
             try:
@@ -877,7 +877,7 @@ def saca_las_mantecas(manteca_spec, skimmer):
             except (InvalidFileException, SheetTitleException):
                 error('El fichero Excel de entrada es inválido.')
                 return []
-        elif sourcetype == SourceType.TEXT:
+        elif sourcetype == SourceType.TXT:
             manteca_source = MantecaText(source)
             skimmed_sink = SkimmedText(sink)
         else:
