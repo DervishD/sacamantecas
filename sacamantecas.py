@@ -255,7 +255,7 @@ class SkimmedExcel(SkimmedSink):
         The 'metadata' is a list of 'key'-'value' pairs.
 
         Each 'value' will be added in a new column if the 'key' doesn't already
-        exists on the sheet, at the specified 'row'. The 'URI' is not used.
+        exists on the sheet, at the specified 'row'. The 'uri' is not used.
 
         Adds the header and styles it, also, if it doesn't exist.
 
@@ -361,7 +361,7 @@ class SkimmedText(SkimmedSink):
         The 'row' parameter is not used as a location where the 'data' will be
         added, since those are the file lines, and will be consecutive anyway.
         The 'row' parameter will be added at the beginning of each line as a
-        reference only, followed by 'URI'. Then, the metadata will be more or
+        reference only, followed by 'uri'. Then, the metadata will be more or
         less pretty-printed.
         """
         logging.debug('Añadiendo metadatos para «%s».', uri)
