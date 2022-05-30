@@ -539,16 +539,13 @@ class LegacyParser(HTMLParser):
 #                                                                            #
 #                                                                            #
 ##############################################################################
-def skim(uri, profiles):  # pylint: disable=too-many-branches
+def skim(uri):  # pylint: disable=too-many-branches
     """
-    Retrieve and process contents from 'uri'.
+    Retrieve contents from 'uri'.
 
     This function resolves meta-refresh redirection for 'uri', then gets the
     contents and decodes them using the detected charset, or iso-8859-1 if
     none is detected.
-
-    Then the contents are fed into the HTML parser and processed in order to
-    skim the Manteca.
 
     NOTE about charset: if no charset is detected, then iso-8859-1 is used
     as default. Really, utf-8 should be a better default, because modern web
@@ -557,15 +554,6 @@ def skim(uri, profiles):  # pylint: disable=too-many-branches
     will fail for pages encoded with iso-8859-1, and the vast majority of
     web pages processed will in fact use iso-8859-1 anyway.
     """
-    parser = None
-    for profile in profiles:
-        if profiles[profile]['u_match'].match(uri):
-            logging.debug('Perfil detectado: «%s».', profile)
-            parser = LegacyParser(profiles[profile])
-    if not parser:  # Ignore URIs if no profile exists for them.
-        logging.debug('No se detectó un perfil para «%s», ignorando…', uri)
-        return {}
-
     try:
         with urlopen(Request(uri, headers={'User-Agent': USER_AGENT})) as request:
             # First, check if any redirection is needed and get the charset the easy way.
@@ -608,9 +596,7 @@ def skim(uri, profiles):  # pylint: disable=too-many-branches
         logging.debug('Charset detectado en las cabeceras.')
     logging.debug('Contenidos codificados con charset «%s».', charset)
 
-    parser.feed(contents.decode(charset))
-    parser.close()
-    return parser.get_metadata()
+    return contents.decode(charset)
 
 
 #################################################################################################################
@@ -893,17 +879,30 @@ def load_profiles(filename):
 #################################################################
 def saca_las_mantecas(source, sink, profiles):
     """
-    Saca las Mantecas (skims) from each 'manteca_spec', using 'skimmer'.
+    Saca las Mantecas (skims) from each 'source' dumping metadata to 'sink'.
 
-    The 'manteca_spec' is a tuple (sourcetype, source, sink), where 'sourcetype'
-    is the Manteca source variety, 'source' is the Manteca source itself and
-    'sink' is where to dump the metadata once the Manteca has been skimmed.
+    The 'profiles' are used to properly perform the skimming, since that process
+    depends on the particular profile matched by the Manteca being skimmed.
+
+    The full process is to obtain the list of Mantecas from each 'source', then
+    retrieving the contents from each URI and then get the metadata (that is,
+    skim the Manteca) using the proper parser depending on the particular URI.
     """
     bad_metadata = []
     for row, uri in source.get_mantecas():
         logging.info('  %s', uri)
+        for profile in profiles:
+            if profiles[profile]['u_match'].match(uri):
+                logging.debug('Perfil detectado: «%s».', profile)
+                parser = LegacyParser(profiles[profile])
+                break
+        if not parser:
+            logging.debug('No se detectó un perfil para «%s», ignorando…', uri)
+            continue
         try:
-            metadata = skim(uri, profiles)
+            parser.feed(skim(uri))
+            parser.close()
+            metadata = parser.get_metadata()
             if not metadata:
                 bad_metadata.append((uri, 'No se obtuvieron metadatos'))
             else:
