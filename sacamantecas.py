@@ -50,6 +50,7 @@ import platform
 from html.parser import HTMLParser
 from msvcrt import getch
 from enum import Enum, auto
+from zipfile import BadZipFile
 from openpyxl import load_workbook
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils.exceptions import SheetTitleException, InvalidFileException
@@ -898,7 +899,7 @@ def saca_las_mantecas(manteca_spec, skimmer):
             try:
                 manteca_source = MantecaExcel(source)
                 skimmed_sink = SkimmedExcel(sink)
-            except (InvalidFileException, SheetTitleException):
+            except (InvalidFileException, SheetTitleException, BadZipFile):
                 error('El fichero Excel de entrada es inválido.')
                 return []
         elif sourcetype == SourceType.TXT:
