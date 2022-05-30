@@ -859,9 +859,11 @@ def load_profiles(filename):
 #################################################################
 def saca_las_mantecas(manteca_spec, skimmer):
     """
-    Saca las Mantecas (skims) from 'manteca_spec' using 'skimmer'.
+    Saca las Mantecas (skims) from each 'manteca_spec', using 'skimmer'.
 
-    The 'manteca_spec' is a tuple (kind, source, sink).
+    The 'manteca_spec' is a tuple (sourcetype, source, sink), where 'sourcetype'
+    is the Manteca source variety, 'source' is the Manteca source itself and
+    'sink' is where to dump the metadata once the Manteca has been skimmed.
     """
     sourcetype, source, sink = manteca_spec
     logging.debug('Procesando fuente de Manteca «%s».', source)
