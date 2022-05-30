@@ -44,10 +44,18 @@ import time
 import platform
 from html.parser import HTMLParser
 from msvcrt import getch
+from enum import Enum, auto
 from openpyxl import load_workbook
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils.exceptions import SheetTitleException, InvalidFileException
 from openpyxl.utils.cell import get_column_letter
+
+
+class SourceType(Enum):
+    """ A class to define constants for the different input source types. """
+    XLSX = auto()  # For .xlsx (Excel) workbooks.
+    TEXT = auto()  # For text files containing URIs.
+    URI = auto()  # For URIs.
 
 
 # sys.modules[__name__].__file__ is used to determine the program's fully
@@ -759,11 +767,11 @@ def process_argv():
     sources = []
     for arg in sys.argv:
         if arg.startswith('http'):
-            sources.append(('URI', arg, None))
+            sources.append((SourceType.URI, arg, None))
         elif arg.endswith('.xlsx'):
-            sources.append(('XLS', arg, '_out'.join(os.path.splitext(arg))))
+            sources.append((SourceType.XLSX, arg, '_out'.join(os.path.splitext(arg))))
         elif arg.endswith('.txt'):
-            sources.append(('TXT', arg, '_out'.join(os.path.splitext(arg))))
+            sources.append((SourceType.TEXT, arg, '_out'.join(os.path.splitext(arg))))
         else:
             logging.debug('La fuente «%s» es inválida.', arg)
     return sources
@@ -855,12 +863,12 @@ def saca_las_mantecas(manteca_spec, skimmer):
 
     The 'manteca_spec' is a tuple (kind, source, sink).
     """
-    kind, source, sink = manteca_spec
+    sourcetype, source, sink = manteca_spec
     logging.debug('Procesando fuente de Manteca «%s».', source)
-    logging.debug('La fuente está en formato «%s».', kind)
+    logging.debug('La fuente está en formato «%s».', sourcetype)
 
     try:
-        if kind == 'XLS':
+        if sourcetype == SourceType.XLSX:
             logging.debug('Copiando workbook a «%s».', sink)
             copy2(source, sink)
             try:
@@ -869,7 +877,7 @@ def saca_las_mantecas(manteca_spec, skimmer):
             except (InvalidFileException, SheetTitleException):
                 error('El fichero Excel de entrada es inválido.')
                 return []
-        elif kind == 'TXT':
+        elif sourcetype == SourceType.TEXT:
             manteca_source = MantecaText(source)
             skimmed_sink = SkimmedText(sink)
         else:
