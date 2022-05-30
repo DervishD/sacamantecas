@@ -49,19 +49,11 @@ import time
 import platform
 from html.parser import HTMLParser
 from msvcrt import getch
-from enum import Enum, auto
 from zipfile import BadZipFile
 from openpyxl import load_workbook
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils.exceptions import SheetTitleException, InvalidFileException
 from openpyxl.utils.cell import get_column_letter
-
-
-class SourceType(Enum):
-    """A class to define constants for the different input source types."""
-    XLS = auto()  # For .xlsx (Excel) workbooks.
-    TXT = auto()  # For text files.
-    URI = auto()  # For URIs.
 
 
 # sys.modules[__name__].__file__ is used to determine the program's fully
@@ -777,19 +769,46 @@ def process_argv():
             'Arrastre y suelte un fichero de entrada sobre el icono del programa, '
             'o proporcione el nombre del fichero como argumento.'
         )
-        return []
+        return
 
-    sources = []
     for arg in sys.argv:
-        if re.match(r'(?:https?|file)://', arg):
-            sources.append((SourceType.URI, arg, None))
-        elif arg.endswith('.xlsx'):
-            sources.append((SourceType.XLS, arg, '_out'.join(os.path.splitext(arg))))
-        elif arg.endswith('.txt'):
-            sources.append((SourceType.TXT, arg, '_out'.join(os.path.splitext(arg))))
-        else:
-            logging.debug('La fuente «%s» es inválida.', arg)
-    return sources
+        source = arg
+        sink = None
+        logging.debug('Procesando fuente de Manteca «%s».', source)
+        try:
+            if re.match(r'(?:https?|file)://', source):
+                logging.debug('La fuente es un URI.')
+                source = MantecaURI(source)
+                sink = SkimmedURI(None)
+            elif arg.endswith('.txt'):
+                logging.debug('La fuente es un fichero de texto.')
+                source = MantecaText(source)
+                sink = SkimmedText('_out'.join(os.path.splitext(source)))
+            elif arg.endswith('.xlsx'):
+                logging.debug('La fuente es un fichero Excel.')
+                sink = '_out'.join(os.path.splitext(source))
+                logging.debug('Copiando workbook a «%s».', sink)
+                copy2(source, sink)
+                try:
+                    source = MantecaExcel(source)
+                    sink = SkimmedExcel(sink)
+                except (InvalidFileException, SheetTitleException, BadZipFile):
+                    error('El fichero Excel de entrada es inválido.')
+                    continue
+            else:
+                logging.debug('La fuente «%s» es inválida.', arg)
+                continue
+        except FileNotFoundError:
+            error('No se encontró el fichero de entrada.')
+            continue
+        except PermissionError as exc:
+            message = 'No hay permisos suficientes para '
+            message += 'leer ' if exc.filename == arg else 'crear '
+            message += 'el fichero de '
+            message += 'entrada.' if exc.filename == arg else 'salida.'
+            error(message)
+            continue
+        yield source, sink
 
 
 ###########################################################################################################
@@ -872,7 +891,7 @@ def load_profiles(filename):
 #                                                               #
 #                                                               #
 #################################################################
-def saca_las_mantecas(manteca_spec, profiles):
+def saca_las_mantecas(source, sink, profiles):
     """
     Saca las Mantecas (skims) from each 'manteca_spec', using 'skimmer'.
 
@@ -880,54 +899,23 @@ def saca_las_mantecas(manteca_spec, profiles):
     is the Manteca source variety, 'source' is the Manteca source itself and
     'sink' is where to dump the metadata once the Manteca has been skimmed.
     """
-    sourcetype, source, sink = manteca_spec
-    logging.debug('Procesando fuente de Manteca «%s».', source)
-    logging.debug('La fuente está en formato «%s».', sourcetype)
-
-    try:
-        if sourcetype == SourceType.XLS:
-            logging.debug('Copiando workbook a «%s».', sink)
-            copy2(source, sink)
-            try:
-                manteca_source = MantecaExcel(source)
-                skimmed_sink = SkimmedExcel(sink)
-            except (InvalidFileException, SheetTitleException, BadZipFile):
-                error('El fichero Excel de entrada es inválido.')
-                return []
-        elif sourcetype == SourceType.TXT:
-            manteca_source = MantecaText(source)
-            skimmed_sink = SkimmedText(sink)
-        else:
-            manteca_source = MantecaURI(source)
-            skimmed_sink = SkimmedURI(sink)
-    except FileNotFoundError:
-        error('No se encontró el fichero de entrada.')
-        return []
-    except PermissionError as exc:
-        message = 'No hay permisos suficientes para '
-        message += 'leer ' if exc.filename == source else 'crear '
-        message += 'el fichero de '
-        message += 'entrada.' if exc.filename == source else 'salida.'
-        error(message)
-        return []
-
     bad_metadata = []
-    for row, uri in manteca_source.get_mantecas():
+    for row, uri in source.get_mantecas():
         logging.info('  %s', uri)
         try:
             metadata = skim(uri, profiles)
             if not metadata:
                 bad_metadata.append((uri, 'No se obtuvieron metadatos'))
             else:
-                skimmed_sink.add_metadata(row, uri, metadata)
+                sink.add_metadata(row, uri, metadata)
         except ConnectionError:
             logging.debug('Error de conexión accediendo a «%s».', uri)
             bad_metadata.append((uri, 'No se pudo conectar'))
         except URLError as exc:
             logging.debug('Error accediendo a «%s»: %s.', uri, exc.reason)
             bad_metadata.append((uri, 'No se pudo acceder'))
-    manteca_source.close()
-    skimmed_sink.close()
+    source.close()
+    sink.close()
     return bad_metadata
 
 
@@ -959,10 +947,6 @@ def main():
 
         logging.info(PROGRAM_NAME)
 
-        manteca_specs = process_argv()
-        if not manteca_specs:
-            raise SystemExit
-
         profiles = load_profiles(INIFILE_PATH)
         if not profiles:
             raise SystemExit
@@ -971,8 +955,8 @@ def main():
         print()
         logging.info('Sacando las mantecas:')
         bad_metadata = []
-        for manteca_spec in manteca_specs:
-            result = saca_las_mantecas(manteca_spec, profiles)
+        for source, sink in process_argv():
+            result = saca_las_mantecas(source, sink, profiles)
             if result is not None:
                 bad_metadata.extend(result)
         if bad_metadata:
