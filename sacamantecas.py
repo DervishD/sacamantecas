@@ -233,7 +233,7 @@ class MantecaExcel(MantecaSource):
                     continue
                 if urlparse(cell.value).scheme.startswith('http'):
                     logging.debug('Se encontró un URI en la celda «%s»: %s', cell.coordinate, cell.value)
-                    yield (cell.row, cell.value)
+                    yield cell.row, cell.value
                     break
 
     def close(self):
@@ -351,7 +351,7 @@ class MantecaText(MantecaSource):
         for row, uri in enumerate(self.file.readlines(), start=1):
             uri = uri.strip()
             if uri:  # Do not return empty Mantecas.
-                yield (row, uri)
+                yield row, uri
 
     def close(self):
         """Close the file."""
@@ -412,7 +412,7 @@ class MantecaURI(MantecaSource):
         Returns a generator of (row, URI) tuples, but 'row' is always 1 and the
         generator stops after only one iteration, of course.
         """
-        yield (1, self.source)
+        yield 1, self.source
 
     def close(self):
         """NOP"""
