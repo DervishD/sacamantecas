@@ -2,25 +2,30 @@
 """
 Saca las Mantecas.
 
-This program reads an Excel file (xls/xlsx), containing a list of book titles,
-each one with its signature and Manteca, which is an URI pointing to an entry
-within some bibliographic catalogue where the book metadata can be obtained,
-gets that metadata and adds it to each book, producing an output Excel file.
+This program processes "Mantecas", which are URIs pointing to an entry within
+some bibliographic catalogue where book metadata can be obtained, by accessing
+the URI, getting that metadata and producing the proper output.
+
+In short, it "saca las mantecas"…
+
+The input can be:
+
+- an Excel file (xls/xlsx), containing a list of book titles, each one with its
+signature and Manteca. In this case the output will be another Excel file
+containing the original data and extra columns with the retrieved metadata.
+
+- a text file containing a list of Mantecas. In this mode of operation the
+output file will be another text file containing the retrieved metadata for each
+entry.
+
+- a list of Manteca URIs provided as command line arguments. In this case the
+metadata is directly written to the console (it can be redirected and written
+into a text file if desired.)
 
 The Mantecas are processed according to profiles, which indicate how to properly
 process the retrieved contents from the URIs, depending on the bibliographic
 catalogue which is being processed. The proper profile is inferred from the URI
-itself and resides in a separate file.
-
-In short, it saca las Mantecas…
-
-If the input file is not an Excel file, it is assumed it contains a list of
-Mantecas, that is, a list of URIs pointing to bibliographic entries. In this
-mode of operation the output file will not be an Excel file but another text
-file containing the retrieved metadata for each entry. This is by design, so
-profiles can be tested separately without the need to process and write Excel
-files, or when the need arrives to process a new kind of URI in order to create
-a new Manteca processing profile.
+itself and resides in the configuration file (sacamantecas.ini).
 """
 
 # Current version…
