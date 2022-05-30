@@ -52,7 +52,7 @@ from openpyxl.utils.cell import get_column_letter
 
 
 class SourceType(Enum):
-    """ A class to define constants for the different input source types. """
+    """A class to define constants for the different input source types."""
     XLSX = auto()  # For .xlsx (Excel) workbooks.
     TEXT = auto()  # For text files containing URIs.
     URI = auto()  # For URIs.
