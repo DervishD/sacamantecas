@@ -430,9 +430,9 @@ class SkimmedURI(SkimmedSink):
         pretty-printed after the URI itself.
         """
         logging.debug('Añadiendo metadatos para «%s».', uri)
-        print(f'Metadatos obtenidos para {uri}:')
+        print(f'  Metadatos obtenidos para {uri}:')
         for key, value in metadata.items():
-            print(f'  {key}: {value}')
+            print(f'    {key}: {value}')
 
     def close(self):
         """NOP"""
