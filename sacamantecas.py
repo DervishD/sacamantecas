@@ -893,7 +893,7 @@ def load_profiles(filename):
                 # profiles[profile] = {key: re.compile(value, re.IGNORECASE) for
                 # key, value in parser[profile].items()}
                 try:
-                    profiles[profile][key] = re.compile(value, re.IGNORECASE)
+                    profiles[profile][key] = re.compile(value, re.IGNORECASE) if value else None
                 except re.error as exc:
                     message = 'Problema de sintaxis al leer el fichero de perfiles.\n'
                     message += f'Perfil «{profile}»: {exc.msg[0].upper() + exc.msg[1:]}.\n'
