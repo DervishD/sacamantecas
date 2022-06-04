@@ -633,31 +633,28 @@ class BaratzParser(BaseParser):
                 return
             for attr in attrs:
                 if attr[0] == 'class' and attr[1] == self.METADATA_MARKER:
-                    print('Within meta!')
+                    logging.debug('Se encontró una marca de metadato.')
                     self.within_meta = True
                     return
         else:  # We are now processing the key, value pairs.
             if tag == 'dt':
                 self.within_k = True
-                print('Got a key')
+                logging.debug('Se encontró una clave.')
                 return
             if tag == 'dd':
                 self.within_v = True
-                print('Got a value')
+                logging.debug('Se encontró un valor.')
                 return
 
     def handle_endtag(self, tag):
         """Handle closing tags."""
         if self.within_meta and tag == 'dl':
-            print('No more metadata.')
             self.within_meta = False
             return
         if self.within_k and tag == 'dt':
-            print('Key finished')
             self.within_k = False
             return
         if self.within_v and tag == 'dd':
-            print('Value finished')
             self.within_v = False
             if self.current_k and self.current_v:
                 self.retrieved_metadata[self.current_k] = self.current_v
