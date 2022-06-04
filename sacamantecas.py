@@ -890,8 +890,6 @@ def load_profiles(filename):
         for profile in parser.sections():
             profiles[profile] = {}
             for key, value in parser[profile].items():
-                # profiles[profile] = {key: re.compile(value, re.IGNORECASE) for
-                # key, value in parser[profile].items()}
                 try:
                     profiles[profile][key] = re.compile(value, re.IGNORECASE) if value else None
                 except re.error as exc:
@@ -1010,10 +1008,13 @@ def saca_las_mantecas(source, sink, profiles):
     bad_metadata = []
     for row, uri in source.get_mantecas():
         logging.info('  %s', uri)
-        for profile in profiles:
-            if profiles[profile]['u_match'].match(uri):
-                logging.debug('Perfil detectado: «%s».', profile)
-                parser = LegacyParser(profiles[profile])
+        for profile_name, profile in profiles.items():
+            if profile['u_match'].match(uri):
+                logging.debug('Perfil detectado: «%s».', profile_name)
+                if profile['k_class'] is None and profile['v_class'] is None:
+                    parser = BaratzParser()
+                else:
+                    parser = LegacyParser(profile)
                 break
         if not parser:
             logging.debug('No se detectó un perfil para «%s», ignorando…', uri)
