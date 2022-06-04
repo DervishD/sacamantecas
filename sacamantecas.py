@@ -1009,9 +1009,9 @@ def saca_las_mantecas(source, sink, profiles):
     for row, uri in source.get_mantecas():
         logging.info('  %s', uri)
         for profile_name, profile in profiles.items():
-            if profile['u_match'].match(uri):
+            if profile['uri'].match(uri):
                 logging.debug('Perfil detectado: «%s».', profile_name)
-                if profile['k_class'] is None and profile['v_class'] is None:
+                if 'k_class' not in profile and 'v_class' not in profile:
                     parser = BaratzParser()
                 else:
                     parser = LegacyParser(profile)
