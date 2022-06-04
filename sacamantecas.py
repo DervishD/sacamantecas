@@ -430,6 +430,69 @@ class SkimmedURI(SkimmedSink):
         """NOP"""
 
 
+##############################################################
+#                                                            #
+#                                                            #
+#    888888b.                                                #
+#    888  "88b                                               #
+#    888  .88P                                               #
+#    8888888K.   8888b.  .d8888b   .d88b.                    #
+#    888  "Y88b     "88b 88K      d8P  Y8b                   #
+#    888    888 .d888888 "Y8888b. 88888888                   #
+#    888   d88P 888  888      X88 Y8b.                       #
+#    8888888P"  "Y888888  88888P'  "Y8888                    #
+#                                                            #
+#    8888888b.                                               #
+#    888   Y88b                                              #
+#    888    888                                              #
+#    888   d88P 8888b.  888d888 .d8888b   .d88b.  888d888    #
+#    8888888P"     "88b 888P"   88K      d8P  Y8b 888P"      #
+#    888       .d888888 888     "Y8888b. 88888888 888        #
+#    888       888  888 888          X88 Y8b.     888        #
+#    888       "Y888888 888      88888P'  "Y8888  888        #
+#                                                            #
+#                                                            #
+##############################################################
+class BaseParser(HTMLParser):
+    """Base class for catalogue parsers."""
+    URI_REGEX = 'uri'
+
+    def __init__(self, *args, **kwargs):
+        """Initialize object."""
+        super().__init__(*args, **kwargs)
+        self.within_k = False
+        self.within_v = False
+        self.current_k = ''
+        self.current_v = ''
+        self.retrieved_metadata = {}
+
+    def handle_data(self, data):
+        """Handle data."""
+        if self.within_k or self.within_v:
+            # Clean up the received data by removing superfluous whitespace
+            # characters, including newlines, carriage returns, etc.
+            data = ' '.join(data.split())
+            if not data:  # Ignore empty data
+                return
+        if self.within_k:
+            logging.debug('Se encontró la clave «%s».', data)
+            self.current_k += data.rstrip(':')
+            return
+        if self.within_v:
+            logging.debug('Se encontró un valor «%s».', data)
+            if self.current_v:
+                self.current_v += ' / '
+            self.current_v += data
+            return
+
+    def get_metadata(self):
+        """Get retrieved metadata so far."""
+        return self.retrieved_metadata
+
+    def error(self, _):
+        """Override ParserBase abstract method."""
+
+
 #########################################################################################
 #                                                                                       #
 #                                                                                       #
@@ -456,7 +519,7 @@ class SkimmedURI(SkimmedSink):
 #                                                                                       #
 #                                                                                       #
 #########################################################################################
-class OldRegimeParser(HTMLParser):
+class OldRegimeParser(BaseParser):
     """
     Parser for Old Regime Manteca URIs which use different HTML class attributes
     to mark metadata keys and metadata values.
@@ -466,20 +529,18 @@ class OldRegimeParser(HTMLParser):
     So, in order to keep this parser as simple as possible, some assumptions are
     made. See the comments below to know which those are.
     """
+    KEY_CLASS_REGEX = 'k_class'
+    VALUE_CLASS_REGEX = 'v_class'
+
     def __init__(self, profile, *args, **kwargs):
         """Initialize object."""
         super().__init__(*args, **kwargs)
-        self.within_k = False
-        self.within_v = False
         self.profile = profile
-        self.current_k = ''
-        self.current_v = ''
-        self.retrieved_metadata = {}
 
     def handle_starttag(self, tag, attrs):
         """Handle opening tags."""
         for attr in attrs:
-            if attr[0] == 'class' and (match := self.profile['k_class'].fullmatch(attr[1])):
+            if attr[0] == 'class' and (match := self.profile[self.KEY_CLASS_REGEX].fullmatch(attr[1])):
                 # Key mark found.
                 logging.debug('Se encontró una marca de clave «%s».', match.group(0))
                 self.within_k = True
@@ -492,7 +553,7 @@ class OldRegimeParser(HTMLParser):
                     self.within_v = False
                     self.current_v = ''
                 break
-            if attr[0] == 'class' and (match := self.profile['v_class'].fullmatch(attr[1])):
+            if attr[0] == 'class' and (match := self.profile[self.VALUE_CLASS_REGEX].fullmatch(attr[1])):
                 # Value mark found.
                 logging.debug('Se encontró una marca de valor «%s».', match.group(0))
                 self.within_v = True
@@ -524,32 +585,6 @@ class OldRegimeParser(HTMLParser):
             self.current_v = ''
             return
 
-    def handle_data(self, data):
-        """Handle data."""
-        if self.within_k or self.within_v:
-            # Clean up the received data by removing superfluous whitespace
-            # characters, including newlines, carriage returns, etc.
-            data = ' '.join(data.split())
-            if not data:  # Ignore empty data
-                return
-        if self.within_k:
-            logging.debug('Se encontró la clave «%s».', data)
-            self.current_k += data.rstrip(':')
-            return
-        if self.within_v:
-            logging.debug('Se encontró un valor «%s».', data)
-            if self.current_v:
-                self.current_v += ' / '
-            self.current_v += data
-            return
-
-    def get_metadata(self):
-        """Get retrieved metadata so far."""
-        return self.retrieved_metadata
-
-    def error(self, _):
-        """Override ParserBase abstract method."""
-
 
 ##############################################################
 #                                                            #
@@ -574,7 +609,7 @@ class OldRegimeParser(HTMLParser):
 #                                                            #
 #                                                            #
 ##############################################################
-class BaratzParser(HTMLParser):
+class BaratzParser(BaseParser):
     """
     Parser for Manteca URIs whose contents have been generated by the new Baratz
     frontend, which does not use HTML class attributes to mark metadata keys and
@@ -590,11 +625,6 @@ class BaratzParser(HTMLParser):
         """Initialize object."""
         super().__init__(*args, **kwargs)
         self.within_meta = False
-        self.within_k = False
-        self.within_v = False
-        self.current_k = ''
-        self.current_v = ''
-        self.retrieved_metadata = {}
 
     def handle_starttag(self, tag, attrs):
         """Handle opening tags."""
@@ -635,32 +665,6 @@ class BaratzParser(HTMLParser):
                 logging.error('Metadato incompleto. K«%s» = V«%s».')
             self.current_k = ''
             self.current_v = ''
-
-    def handle_data(self, data):
-        """Handle data."""
-        if self.within_k or self.within_v:
-            # Clean up the received data by removing superfluous whitespace
-            # characters, including newlines, carriage returns, etc.
-            data = ' '.join(data.split())
-            if not data:  # Ignore empty data
-                return
-        if self.within_k:
-            logging.debug('Se encontró la clave «%s».', data)
-            self.current_k += data.rstrip(':')
-            return
-        if self.within_v:
-            logging.debug('Se encontró un valor «%s».', data)
-            if self.current_v:
-                self.current_v += ' / '
-            self.current_v += data
-            return
-
-    def get_metadata(self):
-        """Get retrieved metadata so far."""
-        return self.retrieved_metadata
-
-    def error(self, _):
-        """Override ParserBase abstract method."""
 
 
 #################################################################################################################
@@ -1036,12 +1040,12 @@ def saca_las_mantecas(source, sink, profiles):
     for row, uri in source.get_mantecas():
         logging.info('  %s', uri)
         for profile_name, profile in profiles.items():
-            if profile['uri'].match(uri):
+            if profile[BaseParser.URI_REGEX].match(uri):
                 logging.debug('Perfil detectado: «%s».', profile_name)
-                if 'k_class' not in profile and 'v_class' not in profile:
-                    parser = BaratzParser()
-                else:
+                if OldRegimeParser.KEY_CLASS_REGEX in profile and OldRegimeParser.VALUE_CLASS_REGEX in profile:
                     parser = OldRegimeParser(profile)
+                else:
+                    parser = BaratzParser()
                 break
         if not parser:
             logging.debug('No se detectó un perfil para «%s», ignorando…', uri)
