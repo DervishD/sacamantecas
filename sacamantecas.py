@@ -804,21 +804,20 @@ def process_argv():
         return
 
     for arg in sys.argv:
-        source = arg
-        sink = None
-        logging.debug('Procesando fuente de Manteca «%s».', source)
+        logging.debug('Procesando fuente de Manteca «%s».', arg)
         try:
-            if re.match(r'(?:https?|file)://', source):
+            if re.match(r'(?:https?|file)://', arg):
                 logging.debug('La fuente es un URI.')
-                source = MantecaURI(source)
+                source = MantecaURI(arg)
                 sink = SkimmedURI(None)
             elif arg.endswith('.txt'):
                 logging.debug('La fuente es un fichero de texto.')
-                source = MantecaText(source)
-                sink = SkimmedText('_out'.join(os.path.splitext(source)))
+                source = MantecaText(arg)
+                sink = SkimmedText('_out'.join(os.path.splitext(arg)))
             elif arg.endswith('.xlsx'):
                 logging.debug('La fuente es un fichero Excel.')
-                sink = '_out'.join(os.path.splitext(source))
+                source = arg
+                sink = '_out'.join(os.path.splitext(arg))
                 logging.debug('Copiando workbook a «%s».', sink)
                 copy2(source, sink)
                 try:
