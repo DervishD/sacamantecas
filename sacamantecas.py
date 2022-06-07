@@ -34,7 +34,7 @@ __version__ = 'v3.3'
 # Imports
 import configparser
 import sys
-import os.path
+from pathlib import Path
 import errno
 import logging
 import atexit
@@ -47,7 +47,6 @@ from urllib.error import URLError
 import re
 import time
 import platform
-import pathlib
 from html.parser import HTMLParser
 from msvcrt import getch
 from zipfile import BadZipFile
@@ -65,9 +64,9 @@ try:
         PROGRAM_PATH = sys.executable
     else:
         PROGRAM_PATH = __file__
-    PROGRAM_PATH = os.path.realpath(PROGRAM_PATH)
-    PROGRAM_NAME = os.path.splitext(os.path.basename(PROGRAM_PATH))[0] + ' ' + __version__
-    INIFILE_PATH = os.path.splitext(PROGRAM_PATH)[0] + '.ini'
+    PROGRAM_PATH = Path(PROGRAM_PATH).resolve()
+    PROGRAM_NAME = PROGRAM_PATH.stem + ' ' + __version__
+    INIFILE_PATH = PROGRAM_PATH.with_suffix('.ini')
 except NameError:
     sys.exit('Error de inicialización del programa.')
 
@@ -139,7 +138,7 @@ def excepthook(exc_type, exc_value, exc_traceback):
             message += f'▸ Fichero {frame.filename}\n'
             current_filename = frame.filename
         message += f'  Línea {frame.lineno} ['
-        message += os.path.basename(PROGRAM_PATH) if frame.name == '<module>' else frame.name
+        message += PROGRAM_PATH.name if frame.name == '<module>' else frame.name
         message += ']'
         message += f': {frame.line}' if frame.line else ''  # No source content when frozen…
         message += '\n'
@@ -704,8 +703,8 @@ def setup_logging():
     """
     # Get timestamp as soon as possible.
     timestamp = time.strftime('%Y%m%d_%H%M%S')
-    debugfile = f'{os.path.splitext(PROGRAM_PATH)[0]}_debug_{timestamp}.txt'
-    logfile = f'{os.path.splitext(PROGRAM_PATH)[0]}_log_{timestamp}.txt'
+    debugfile = f'{PROGRAM_PATH.with_suffix("")}_debug_{timestamp}.txt'
+    logfile = f'{PROGRAM_PATH.with_suffix("")}_log_{timestamp}.txt'
 
     class MultilineFormatter(logging.Formatter):
         """Simple multiline formatter for logging messages."""
@@ -838,22 +837,22 @@ def process_argv():
     for arg in sys.argv:
         logging.debug('Procesando fuente de Manteca «%s».', arg)
         dumpmode = arg.startswith(DUMPMODE_PREFIX)
-        arg = arg.removeprefix(DUMPMODE_PREFIX)
+        arg = Path(arg.removeprefix(DUMPMODE_PREFIX))
         if dumpmode:
             logging.debug('La fuente de Manteca «%s» será volcada, no procesada.', arg)
         try:
-            if re.match(r'(?:https?|file)://', arg):
+            if re.match(r'(?:https?|file)://', str(arg)):
                 logging.debug('La fuente es un URI.')
                 source = MantecaURI(arg)
                 sink = None if dumpmode else SkimmedURI(None)
-            elif arg.endswith('.txt'):
+            elif arg.suffix == '.txt':
                 logging.debug('La fuente es un fichero de texto.')
                 source = MantecaText(arg)
-                sink = None if dumpmode else SkimmedText('_out'.join(os.path.splitext(arg)))
-            elif arg.endswith('.xlsx'):
+                sink = None if dumpmode else SkimmedText(arg.with_stem(arg.stem + '_out'))
+            elif arg.suffix == '.xlsx':
                 logging.debug('La fuente es un fichero Excel.')
                 source = arg
-                sink = '_out'.join(os.path.splitext(arg))
+                sink = arg.with_stem(arg.stem + '_out')
                 if not dumpmode:
                     logging.debug('Copiando workbook a «%s».', sink)
                     copy2(source, sink)
@@ -981,7 +980,7 @@ def retrieve_uri(uri):
         # If there is no host, the URI may be a relative path. Resolve it.
         if not uri.netloc:
             # Remember that uri.path ALWAYS starts with '/', must be ignored.
-            uri = uri._replace(path=quote(str(pathlib.Path(unquote(uri.path[1:])).resolve().as_posix()), safe=':/'))
+            uri = uri._replace(path=quote(str(Path(unquote(uri.path[1:])).resolve().as_posix()), safe=':/'))
         uri = urlunparse(uri)
     try:
         with urlopen(Request(uri, headers={'User-Agent': USER_AGENT})) as request:
