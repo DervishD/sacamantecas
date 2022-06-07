@@ -1047,7 +1047,7 @@ def saca_las_mantecas(source, sink, profiles):
         logging.info('  %s', uri)
         profile_name = profile = None
         for profile_name, profile in profiles.items():
-            if profile[BaseParser.URI_REGEX].match(uri):
+            if profile[BaseParser.URI_REGEX].search(uri):
                 logging.debug('Perfil detectado: «%s».', profile_name)
                 break
         else:
