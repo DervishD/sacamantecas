@@ -79,6 +79,9 @@ if sys.platform != 'win32':
 USER_AGENT = f'{PROGRAM_NAME.replace(" v", "/")} +https://github.com/DervishD/sacamantecas'
 USER_AGENT += f' (Windows {platform.version()}; {platform.architecture()[0]}; {platform.machine()})'
 
+# Prefix for 'dump mode', where input sources are dumped, not processed.
+DUMPMODE_PREFIX = 'dump://'
+
 # Wait for a keypress on program exit.
 atexit.register(lambda: (print('\nPulse cualquier tecla para continuar...', end='', flush=True), getch()))
 
@@ -833,24 +836,29 @@ def process_argv():
 
     for arg in sys.argv:
         logging.debug('Procesando fuente de Manteca «%s».', arg)
+        dumpmode = arg.startswith(DUMPMODE_PREFIX)
+        arg = arg.removeprefix(DUMPMODE_PREFIX)
+        if dumpmode:
+            logging.debug('La fuente de Manteca «%s» será volcada, no procesada.')
         try:
             if re.match(r'(?:https?|file)://', arg):
                 logging.debug('La fuente es un URI.')
                 source = MantecaURI(arg)
-                sink = SkimmedURI(None)
+                sink = None if dumpmode else SkimmedURI(None)
             elif arg.endswith('.txt'):
                 logging.debug('La fuente es un fichero de texto.')
                 source = MantecaText(arg)
-                sink = SkimmedText('_out'.join(os.path.splitext(arg)))
+                sink = None if dumpmode else SkimmedText('_out'.join(os.path.splitext(arg)))
             elif arg.endswith('.xlsx'):
                 logging.debug('La fuente es un fichero Excel.')
                 source = arg
                 sink = '_out'.join(os.path.splitext(arg))
-                logging.debug('Copiando workbook a «%s».', sink)
-                copy2(source, sink)
+                if not dumpmode:
+                    logging.debug('Copiando workbook a «%s».', sink)
+                    copy2(source, sink)
                 try:
                     source = MantecaExcel(source)
-                    sink = SkimmedExcel(sink)
+                    sink = None if dumpmode else SkimmedExcel(sink)
                 except (InvalidFileException, SheetTitleException, BadZipFile):
                     error('El fichero Excel de entrada es inválido.')
                     continue
@@ -953,15 +961,18 @@ def retrieve_uri(uri):
     Retrieve contents from 'uri'.
 
     This function resolves meta-refresh redirection for 'uri', then gets the
-    contents and decodes them using the detected charset, or iso-8859-1 if
-    none is detected.
+    contents and decodes them using the detected charset, or iso-8859-1 if no
+    charset is detected.
 
-    NOTE about charset: if no charset is detected, then iso-8859-1 is used
-    as default. Really, utf-8 should be a better default, because modern web
-    pages may NOT specify any encoding if they are using utf-8 and it is
-    identical to ascii in the 7-bit codepoints. The problem is that utf-8
-    will fail for pages encoded with iso-8859-1, and the vast majority of
-    web pages processed will in fact use iso-8859-1 anyway.
+    Returns a tuple whose first element are the decoded contents and the second
+    element is the charset detected (or the default one if none is found).
+
+    NOTE about charset: if no charset is detected, then iso-8859-1 is used as
+    default. Really, utf-8 should be a better default, because modern web pages
+    may NOT specify any encoding if they are using utf-8 and it is identical to
+    ascii in the 7-bit codepoints. The problem is that utf-8 will fail for pages
+    encoded with iso-8859-1, and the vast majority of web pages processed which
+    does not specify a charset in fact will be using iso-8859-1 anyway.
     """
     try:
         with urlopen(Request(uri, headers={'User-Agent': USER_AGENT})) as request:
@@ -1005,7 +1016,7 @@ def retrieve_uri(uri):
         logging.debug('Charset detectado en las cabeceras.')
     logging.debug('Contenidos codificados con charset «%s».', charset)
 
-    return contents.decode(charset)
+    return contents.decode(charset), charset
 
 
 ###################################################################################
@@ -1031,7 +1042,7 @@ def retrieve_uri(uri):
 #                                                                                 #
 #                                                                                 #
 ###################################################################################
-def saca_las_mantecas(source, sink, profiles):
+def saca_las_mantecas(source, sink, profiles):  # pylint: disable=too-many-branches,too-many-locals
     """
     Saca las Mantecas (skims) from each 'source' dumping metadata to 'sink'.
 
@@ -1063,22 +1074,37 @@ def saca_las_mantecas(source, sink, profiles):
             logging.debug('No se detectó un parser para el perfil «%s», ignorando «%s».', profile_name, uri)
             continue
 
+        contents = None
         try:
-            parser.feed(retrieve_uri(uri))
-            parser.close()
-            metadata = parser.get_metadata()
-            if not metadata:
-                bad_metadata.append((uri, 'No se obtuvieron metadatos'))
-            else:
-                sink.add_metadata(row, uri, metadata)
+            contents, charset = retrieve_uri(uri)
         except ConnectionError:
             logging.debug('Error de conexión accediendo a «%s».', uri)
             bad_metadata.append((uri, 'No se pudo conectar'))
         except URLError as exc:
             logging.debug('Error accediendo a «%s»: %s.', uri, exc.reason)
             bad_metadata.append((uri, 'No se pudo acceder'))
+        if not contents:
+            logging.debug('No se recibieron contenidos de «%s».', uri)
+            bad_metadata.append((uri, 'No se recibieron contenidos'))
+            continue
+
+        if sink is None:  # Source must be dumped, not processed.
+            dumpfilename = re.sub(r'\W', '_', uri, re.ASCII) + '.html'
+            logging.debug('El fichero de volcado es «%s».', dumpfilename)
+            with open(dumpfilename, 'wt', encoding=charset) as dumpfile:
+                dumpfile.write(contents)
+            logging.info('  Contenido volcado.')
+        else:
+            parser.feed(contents)
+            parser.close()
+            metadata = parser.get_metadata()
+            if not metadata:
+                bad_metadata.append((uri, 'No se obtuvieron metadatos'))
+            else:
+                sink.add_metadata(row, uri, metadata)
     source.close()
-    sink.close()
+    if sink:
+        sink.close()
     return bad_metadata
 
 
