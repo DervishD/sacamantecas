@@ -42,11 +42,12 @@ from logging.config import dictConfig
 import traceback as tb
 from shutil import copy2
 from urllib.request import urlopen, Request
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import urlparse, urlunparse, quote, unquote
 from urllib.error import URLError
 import re
 import time
 import platform
+import pathlib
 from html.parser import HTMLParser
 from msvcrt import getch
 from zipfile import BadZipFile
@@ -974,6 +975,14 @@ def retrieve_uri(uri):
     encoded with iso-8859-1, and the vast majority of web pages processed which
     does not specify a charset in fact will be using iso-8859-1 anyway.
     """
+    # Allow relative file: URIs.
+    if uri.startswith('file://'):
+        uri = urlparse(uri)
+        # If there is no host, the URI may be a relative path. Resolve it.
+        if not uri.netloc:
+            # Remember that uri.path ALWAYS starts with '/', must be ignored.
+            uri = uri._replace(path=quote(str(pathlib.Path(unquote(uri.path[1:])).resolve().as_posix()), safe=':/'))
+        uri = urlunparse(uri)
     try:
         with urlopen(Request(uri, headers={'User-Agent': USER_AGENT})) as request:
             # First, check if any redirection is needed and get the charset the easy way.
