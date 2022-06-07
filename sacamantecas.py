@@ -226,7 +226,7 @@ class MantecaExcel(MantecaSource):
                 if cell.data_type != 's':
                     logging.debug('La celda «%s» no es de tipo cadena, será ignorada.', cell.coordinate)
                     continue
-                if urlparse(cell.value).scheme.startswith('http'):
+                if urlparse(cell.value).scheme.startswith(('http', 'file')):
                     logging.debug('Se encontró un URI en la celda «%s»: %s', cell.coordinate, cell.value)
                     yield cell.row, cell.value
                     break
