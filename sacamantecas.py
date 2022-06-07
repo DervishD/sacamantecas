@@ -642,17 +642,17 @@ class BaratzParser(BaseParser):  # pylint: disable=unused-variable
                 return
             for attr in attrs:
                 if attr[0] == 'class' and attr[1] == self.METADATA_MARKER:
-                    logging.debug('Se encontró una marca de metadato.')
+                    logging.debug('Se encontró una marca de metadato «%s».', attr[1])
                     self.within_meta = True
                     return
         else:  # We are now processing the key, value pairs.
             if tag == 'dt':
                 self.within_k = True
-                logging.debug('Se encontró una clave.')
+                logging.debug('Se encontró un elemento de clave «%s».', tag)
                 return
             if tag == 'dd':
                 self.within_v = True
-                logging.debug('Se encontró un valor.')
+                logging.debug('Se encontró un elemento de valor «%s».', tag)
                 return
 
     def handle_endtag(self, tag):
