@@ -840,7 +840,7 @@ def process_argv():
         dumpmode = arg.startswith(DUMPMODE_PREFIX)
         arg = arg.removeprefix(DUMPMODE_PREFIX)
         if dumpmode:
-            logging.debug('La fuente de Manteca «%s» será volcada, no procesada.')
+            logging.debug('La fuente de Manteca «%s» será volcada, no procesada.', arg)
         try:
             if re.match(r'(?:https?|file)://', arg):
                 logging.debug('La fuente es un URI.')
