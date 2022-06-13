@@ -591,8 +591,8 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
             # Metadata is only stored after getting the full key/value pair.
             if self.current_k and self.current_v:
                 self.retrieved_metadata[self.current_k] = self.current_v
-            if not self.current_k or not self.current_k:
-                logging.error('Metadato incompleto. K«%s» = V«%s».')
+            if not self.current_k or not self.current_v:
+                logging.error('Metadato incompleto. K«%s» = V«%s».', self.current_k, self.current_v)
             self.current_k = ''
             self.current_v = ''
             return
@@ -670,8 +670,8 @@ class BaratzParser(BaseParser):  # pylint: disable=unused-variable
             self.within_v = False
             if self.current_k and self.current_v:
                 self.retrieved_metadata[self.current_k] = self.current_v
-            if not self.current_k or not self.current_k:
-                logging.error('Metadato incompleto. K«%s» = V«%s».')
+            if not self.current_k or not self.current_v:
+                logging.error('Metadato incompleto. K«%s» = V«%s».', self.current_k, self.current_v)
             self.current_k = ''
             self.current_v = ''
 
