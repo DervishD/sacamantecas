@@ -22,16 +22,12 @@ def error(message):
     print(f'*** Error: {message}', flush=True, file=sys.stderr)
 
 
-def main():  # pylint: disable=too-many-branches,too-many-statements,too-many-locals,too-many-return-statements
-    """."""
-    # Name of the program, for future use.
-    program_name = os.path.basename(os.getcwd())
-
-    print(f'Building {program_name}', end='', flush=True)
+def get_version(program_name):
+    """Get the version code from program_name."""
     version = None
     reason = ''
+    script_name = program_name + '.py'
     try:
-        script_name = program_name + '.py'
         with open(script_name, encoding='utf-8') as program:
             for line in program.readlines():
                 if line.startswith('__version__'):
@@ -47,10 +43,12 @@ def main():  # pylint: disable=too-many-branches,too-many-statements,too-many-lo
     if reason:
         print()
         error(f'Unable to detect {program_name} version, {reason}.')
-        return 1
+        version = None
+    return version
 
-    print('', version)
 
+def setup_venv():
+    """Sets up virtual environment if needed."""
     # Get the virtual environment directory name.
     # IT HAS TO BE THE FIRST LINE IN THE '.gitignore' FILE.
     # IT HAS TO CONTAIN THE STRING 'venv' SOMEWHERE.
@@ -70,11 +68,11 @@ def main():  # pylint: disable=too-many-branches,too-many-statements,too-many-lo
             reason = 'missing venv directory in .gitignore'
     if reason:
         error(f'Unable to detect venv, {reason}.')
-        return 1
+        return None
 
     if os.path.exists(venv_path) and not os.path.isdir(venv_path):
         error('Venv directory name exists and it is not a directory.')
-        return 1
+        return None
 
     # Create the virtual environment if it does not exist.
     if not os.path.exists(venv_path):
@@ -98,23 +96,16 @@ def main():  # pylint: disable=too-many-branches,too-many-statements,too-many-lo
             # Restore file descriptor 1 to its original output if not DEBUG mode.
             if not DEBUG:
                 os.dup2(duplicated_stdout_fileno, 1)
+    return venv_path
 
-    # The virtual environment is guaranteed to exist below this point.
-    print(f'Venv detected at {venv_path}')
 
-    # The virtual environment does not really need to be activated, because the
-    # commands that will be run will be the ones INSIDE the virtual environment.
-    #
-    # So, the only other thing that is MAYBE needed it setting the 'VIRTUAL_ENV'
-    # environment variable so the launched programs can detect they are really
-    # running inside a virtual environment. Apparently this is not essential,
-    # but it is easy to do and will not do any harm.
-    os.environ['VIRTUAL_ENV'] = os.path.abspath(venv_path)
-    bin_path = os.path.join(venv_path, 'Scripts')  # Path for launched venv-programs.
-
+def install_packages(venv_path):
+    """Install needed packages in virtual environment."""
     # Suppress normal output for the launched programs if not DEBUG mode.
     # Error output is always shown.
     stdout = subprocess.DEVNULL if not DEBUG else None
+
+    bin_path = os.path.join(venv_path, 'Scripts')
 
     # Install needed packages.
     print('Installing needed packages.')
@@ -123,9 +114,17 @@ def main():  # pylint: disable=too-many-branches,too-many-statements,too-many-lo
         subprocess.run(cmd, check=True, stdout=stdout)
     except subprocess.CalledProcessError as exc:
         error(f'Problem calling {cmd[0]} (returned {exc.returncode}).')
-        return 1
+        return False
+    return True
 
-    # Create the executable.
+
+def build_executable(venv_path, program_name):
+    """Build the frozen executable."""
+    # Suppress normal output for the launched programs if not DEBUG mode.
+    # Error output is always shown.
+    stdout = subprocess.DEVNULL if not DEBUG else None
+
+    bin_path = os.path.join(venv_path, 'Scripts')
     build_path = os.path.join(venv_path, 'build')
     dist_path = os.path.join(venv_path, 'dist')
     executable = os.path.join(dist_path, program_name + '.exe')
@@ -136,22 +135,69 @@ def main():  # pylint: disable=too-many-branches,too-many-statements,too-many-lo
     cmd = [os.path.join(bin_path, 'pyinstaller')]
     cmd.append('--log-level=WARN')
     cmd.extend([f'--workpath={build_path}', f'--specpath={build_path}', f'--distpath={dist_path}'])
-    cmd.extend(['--onefile', script_name])
+    cmd.extend(['--onefile', program_name + '.py'])
     try:
         subprocess.run(cmd, check=True, stdout=stdout)
     except subprocess.CalledProcessError as exc:
         error(f'Problem calling {cmd[0]} (returned {exc.returncode}).')
-        return 1
+        return None
     if not os.path.exists(executable):
         error('Executable was not created.')
-        return 1
+        return None
+    return executable
 
+
+def create_zip_bundle(program_name, version, executable):
+    """Create the ZIP bundle."""
     # Executable was created, so create ZIP bundle.
     bundle_path = f'{program_name}_{version}.zip'
     print(f'Creating ZIP bundle {bundle_path}')
     with zipfile.ZipFile(bundle_path, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as bundle:
         bundle.write(executable, program_name + '.exe')
         bundle.write(program_name + '.ini')
+
+
+def main():
+    """."""
+    # Name of the program, for future use.
+    program_name = os.path.basename(os.getcwd())
+
+    print(f'Building {program_name}', end='', flush=True)
+
+    # Get version number being built.
+    version = get_version(program_name)
+    if version is None:
+        return 1
+    print('', version)
+
+    # Set up virtual environment and get its location.
+    venv_path = setup_venv()
+    if venv_path is None:
+        return 1
+    print(f'Venv detected at {venv_path}')
+
+    # The virtual environment is guaranteed to exist below this point.
+
+    # The virtual environment does not really need to be activated, because the
+    # commands that will be run will be the ones INSIDE the virtual environment.
+    #
+    # So, the only other thing that is MAYBE needed it setting the 'VIRTUAL_ENV'
+    # environment variable so the launched programs can detect they are really
+    # running inside a virtual environment. Apparently this is not essential,
+    # but it is easy to do and will not do any harm.
+    os.environ['VIRTUAL_ENV'] = os.path.abspath(venv_path)
+
+    # Install needed packages in virtual environment.
+    if not install_packages(venv_path):
+        return 1
+
+    # Build the frozen executable.
+    executable = build_executable(venv_path, program_name)
+    if executable is None:
+        return 1
+
+    # Executable was created, so create ZIP bundle.
+    create_zip_bundle(program_name, version, executable)
 
     print('Successful build.')
     return 0
