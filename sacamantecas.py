@@ -501,6 +501,19 @@ class BaseParser(HTMLParser):
             self.current_v += data
             return
 
+    def store_metadata(self):
+        """Store found metadata, handling missing parts."""
+        if not self.current_k and not self.current_v:
+            logging.error('Metadato vacío.')
+        if self.current_k and not self.current_v:
+            logging.error('Metadato «%s» incompleto, ignorando.', self.current_k)
+        if not self.current_k and self.current_v:  # Empty key, generate a name.
+            self.current_k = '[vacío]'
+        if self.current_k and self.current_v:
+            self.retrieved_metadata[self.current_k] = self.current_v
+        self.current_k = ''
+        self.current_v = ''
+
     def get_metadata(self):
         """Get retrieved metadata so far."""
         return self.retrieved_metadata
@@ -588,13 +601,7 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
             return
         if self.within_v:
             self.within_v = False
-            # Metadata is only stored after getting the full key/value pair.
-            if self.current_k and self.current_v:
-                self.retrieved_metadata[self.current_k] = self.current_v
-            if not self.current_k or not self.current_v:
-                logging.error('Metadato incompleto. K«%s» = V«%s».', self.current_k, self.current_v)
-            self.current_k = ''
-            self.current_v = ''
+            self.store_metadata()
             return
 
 
@@ -671,12 +678,8 @@ class BaratzParser(BaseParser):  # pylint: disable=unused-variable
             return
         if self.within_v and tag == 'dd':
             self.within_v = False
-            if self.current_k and self.current_v:
-                self.retrieved_metadata[self.current_k] = self.current_v
-            if not self.current_k or not self.current_v:
-                logging.error('Metadato incompleto. K«%s» = V«%s».', self.current_k, self.current_v)
-            self.current_k = ''
-            self.current_v = ''
+            self.store_metadata()
+            return
 
 
 #################################################################################################################
