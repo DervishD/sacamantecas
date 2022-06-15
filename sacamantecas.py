@@ -828,6 +828,7 @@ def setup_logging():
         'formatter': 'console',
         'filters': ['info'],
         'class': 'logging.StreamHandler',
+        'stream': sys.stdout
     }
 
     logging_configuration['loggers']['']['handlers'].append('debugfile')
