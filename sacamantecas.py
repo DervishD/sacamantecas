@@ -460,6 +460,8 @@ class BaseParser(HTMLParser):
     """Base class for catalogue parsers."""
     URI_REGEX = 'uri'
     NEEDED_KEYS = set()
+    METADATA_SEPARATOR = ' === '
+    EMPTY_KEY_LABEL = '[vacío]'
 
     @classmethod
     def is_parser_for_profile(cls, profile):
@@ -480,6 +482,7 @@ class BaseParser(HTMLParser):
         self.within_v = False
         self.current_k = ''
         self.current_v = ''
+        self.last_k = ''
         self.retrieved_metadata = {}
 
     def handle_starttag(self, tag, attrs):
@@ -497,6 +500,7 @@ class BaseParser(HTMLParser):
         if self.within_k:
             logging.debug('Se encontró la clave «%s».', data)
             self.current_k += data.rstrip(':')
+            self.last_k = self.current_k
             return
         if self.within_v:
             logging.debug('Se encontró un valor «%s».', data)
@@ -512,15 +516,22 @@ class BaseParser(HTMLParser):
         if self.current_k and not self.current_v:
             logging.error('Metadato «%s» incompleto, ignorando.', self.current_k)
         if not self.current_k and self.current_v:  # Empty key, generate a name.
-            self.current_k = '[vacío]'
+            self.current_k = self.last_k if self.last_k else BaseParser.EMPTY_KEY_LABEL
         if self.current_k and self.current_v:
-            self.retrieved_metadata[self.current_k] = self.current_v
+            if self.current_k not in self.retrieved_metadata:
+                self.retrieved_metadata[self.current_k] = []
+            # A set is not used instead of the code below, to preserve order.
+            if self.current_v not in self.retrieved_metadata[self.current_k]:
+                self.retrieved_metadata[self.current_k].append(self.current_v)
         self.current_k = ''
         self.current_v = ''
 
     def get_metadata(self):
         """Get retrieved metadata so far."""
-        return self.retrieved_metadata
+        metadata = {}
+        for key, value in self.retrieved_metadata.items():
+            metadata[key] = BaseParser.METADATA_SEPARATOR.join(value)
+        return metadata
 
     def error(self, _):
         """Override ParserBase abstract method."""
