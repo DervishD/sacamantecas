@@ -566,6 +566,12 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
     V_CLASS_REGEX = 'v_class'
     NEEDED_KEYS = {K_CLASS_REGEX, V_CLASS_REGEX}
 
+    def __init__(self, *args, **kwargs):
+        """Initialize object."""
+        super().__init__(*args, **kwargs)
+        self.current_k_tag = None  # Current tag for which a key marker was found.
+        self.current_v_tag = None  # Current tag for which a value marker was found.
+
     def handle_starttag(self, tag, attrs):
         """Handle opening tags."""
         super().handle_starttag(tag, attrs)
@@ -575,6 +581,7 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
                 logging.debug('Se encontró una marca de clave «%s».', match.group(0))
                 self.within_k = True
                 self.current_k = ''
+                self.current_k_tag = tag
                 if self.within_v:
                     # If still processing a value, notify about the nesting
                     # error but reset parser so everything starts afresh, like
@@ -582,12 +589,14 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
                     logging.error('Error de anidación (clave dentro de valor), restableciendo parser.')
                     self.within_v = False
                     self.current_v = ''
+                    self.current_v_tag = None
                 break
             if attr[0] == 'class' and (match := self.profile[self.V_CLASS_REGEX].search(attr[1])):
                 # Value mark found.
                 logging.debug('Se encontró una marca de valor «%s».', match.group(0))
                 self.within_v = True
                 self.current_v = ''
+                self.current_v_tag = tag
                 if self.within_k:
                     # If still processing a key, the nesting error can still be
                     # recovered to a certain point. If some data was obtained
@@ -595,17 +604,21 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
                     # the corresponding value. Otherwise the parser is reset.
                     logging.error('Error de anidación (valor dentro de clave), restableciendo parser.')
                     self.within_k = False
+                    self.current_k_tag = None
                     if not self.current_k:
                         self.within_v = False
+                        self.current_v_tag = None
                 break
 
     def handle_endtag(self, tag):
         """Handle closing tags."""
-        if self.within_k:
+        if self.within_k and tag == self.current_k_tag:
             self.within_k = False
+            self.current_k_tag = None
             return
-        if self.within_v:
+        if self.within_v and tag == self.current_v_tag:
             self.within_v = False
+            self.current_v_tag = None
             self.store_metadata()
             return
 
