@@ -565,7 +565,7 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
     def handle_starttag(self, tag, attrs):
         """Handle opening tags."""
         for attr in attrs:
-            if attr[0] == 'class' and (match := self.profile[self.K_CLASS_REGEX].fullmatch(attr[1])):
+            if attr[0] == 'class' and (match := self.profile[self.K_CLASS_REGEX].search(attr[1])):
                 # Key mark found.
                 logging.debug('Se encontró una marca de clave «%s».', match.group(0))
                 self.within_k = True
@@ -578,7 +578,7 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
                     self.within_v = False
                     self.current_v = ''
                 break
-            if attr[0] == 'class' and (match := self.profile[self.V_CLASS_REGEX].fullmatch(attr[1])):
+            if attr[0] == 'class' and (match := self.profile[self.V_CLASS_REGEX].search(attr[1])):
                 # Value mark found.
                 logging.debug('Se encontró una marca de valor «%s».', match.group(0))
                 self.within_v = True
