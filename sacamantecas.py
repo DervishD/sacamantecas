@@ -631,7 +631,10 @@ class BaratzParser(BaseParser):  # pylint: disable=unused-variable
     Within that list, the <dt> HTML element contains the metadata key, whereas
     the <dd> HTML element containing the metadata value.
     """
-    METADATA_MARKER = 'docu_etiq'
+    M_TAG = 'm_tag'
+    M_ATTR = 'm_attr'
+    M_VALUE = 'm_value'
+    NEEDED_KEYS = {M_TAG, M_ATTR, M_VALUE}
 
     def __init__(self, *args, **kwargs):
         """Initialize object."""
@@ -641,10 +644,10 @@ class BaratzParser(BaseParser):  # pylint: disable=unused-variable
     def handle_starttag(self, tag, attrs):
         """Handle opening tags."""
         if not self.within_meta:
-            if tag != 'dl':
+            if not self.profile[self.M_TAG].fullmatch(tag):
                 return
             for attr in attrs:
-                if attr[0] == 'class' and attr[1] == self.METADATA_MARKER:
+                if self.profile[self.M_ATTR].fullmatch(attr[0]) and self.profile[self.M_VALUE].search(attr[1]):
                     logging.debug('Se encontró una marca de metadato «%s».', attr[1])
                     self.within_meta = True
                     return
@@ -660,7 +663,7 @@ class BaratzParser(BaseParser):  # pylint: disable=unused-variable
 
     def handle_endtag(self, tag):
         """Handle closing tags."""
-        if self.within_meta and tag == 'dl':
+        if self.within_meta and self.profile[self.M_TAG].fullmatch(tag):
             self.within_meta = False
             return
         if self.within_k and tag == 'dt':
