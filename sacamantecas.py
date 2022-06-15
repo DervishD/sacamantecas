@@ -837,20 +837,22 @@ def process_argv():
     for arg in sys.argv:
         logging.debug('Procesando fuente de Manteca «%s».', arg)
         dumpmode = arg.startswith(DUMPMODE_PREFIX)
-        arg = Path(arg.removeprefix(DUMPMODE_PREFIX))
+        arg = arg.removeprefix(DUMPMODE_PREFIX)
         if dumpmode:
             logging.debug('La fuente de Manteca «%s» será volcada, no procesada.', arg)
         try:
-            if re.match(r'(?:https?|file)://', str(arg)):
+            if re.match(r'(?:https?|file)://', arg):
                 logging.debug('La fuente es un URI.')
                 source = MantecaURI(arg)
                 sink = None if dumpmode else SkimmedURI(None)
-            elif arg.suffix == '.txt':
+            elif arg.endswith('.txt'):
+                arg = Path(arg)
                 logging.debug('La fuente es un fichero de texto.')
                 source = MantecaText(arg)
                 sink = None if dumpmode else SkimmedText(arg.with_stem(arg.stem + '_out'))
-            elif arg.suffix == '.xlsx':
+            elif arg.endswith('.xlsx'):
                 logging.debug('La fuente es un fichero Excel.')
+                arg = Path(arg)
                 source = arg
                 sink = arg.with_stem(arg.stem + '_out')
                 if not dumpmode:
@@ -870,9 +872,9 @@ def process_argv():
             continue
         except PermissionError as exc:
             message = 'No hay permisos suficientes para '
-            message += 'leer ' if exc.filename == arg else 'crear '
+            message += 'leer ' if exc.filename == str(arg) else 'crear '
             message += 'el fichero de '
-            message += 'entrada.' if exc.filename == arg else 'salida.'
+            message += 'entrada.' if exc.filename == str(arg) else 'salida.'
             error(message)
             continue
         yield source, sink
