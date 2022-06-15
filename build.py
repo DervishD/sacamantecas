@@ -8,6 +8,7 @@ requirements inside and then runs the building process.
 """
 import sys
 import os
+import os.path
 import venv
 import subprocess
 import zipfile
@@ -20,6 +21,19 @@ DEBUG = False
 def error(message):
     """Pretty-print 'message' to stderr."""
     print(f'*** Error: {message}', flush=True, file=sys.stderr)
+
+
+def run_command(command):
+    """Helper for running commands and capturing output if needed."""
+    # Suppress normal output for the launched programs if not DEBUG mode.
+    # Error output is always shown.
+    stdout = subprocess.DEVNULL if not DEBUG else None
+    try:
+        subprocess.run(command, check=True, stdout=stdout)
+    except subprocess.CalledProcessError as exc:
+        error(f'Problem calling {command[0]} (returned {exc.returncode}).')
+        return exc.returncode
+    return 0
 
 
 def get_version(program_name):
@@ -101,29 +115,16 @@ def setup_venv():
 
 def install_packages(venv_path):
     """Install needed packages in virtual environment."""
-    # Suppress normal output for the launched programs if not DEBUG mode.
-    # Error output is always shown.
-    stdout = subprocess.DEVNULL if not DEBUG else None
-
     bin_path = os.path.join(venv_path, 'Scripts')
 
     # Install needed packages.
     print('Installing needed packages.')
     cmd = [os.path.join(bin_path, 'pip'), 'install', '-r', 'requirements.txt']
-    try:
-        subprocess.run(cmd, check=True, stdout=stdout)
-    except subprocess.CalledProcessError as exc:
-        error(f'Problem calling {cmd[0]} (returned {exc.returncode}).')
-        return False
-    return True
+    return not run_command(cmd)
 
 
 def build_executable(venv_path, program_name):
     """Build the frozen executable."""
-    # Suppress normal output for the launched programs if not DEBUG mode.
-    # Error output is always shown.
-    stdout = subprocess.DEVNULL if not DEBUG else None
-
     bin_path = os.path.join(venv_path, 'Scripts')
     build_path = os.path.join(venv_path, 'build')
     dist_path = os.path.join(venv_path, 'dist')
@@ -136,10 +137,7 @@ def build_executable(venv_path, program_name):
     cmd.append('--log-level=WARN')
     cmd.extend([f'--workpath={build_path}', f'--specpath={build_path}', f'--distpath={dist_path}'])
     cmd.extend(['--onefile', program_name + '.py'])
-    try:
-        subprocess.run(cmd, check=True, stdout=stdout)
-    except subprocess.CalledProcessError as exc:
-        error(f'Problem calling {cmd[0]} (returned {exc.returncode}).')
+    if run_command(cmd):
         return None
     if not os.path.exists(executable):
         error('Executable was not created.')
