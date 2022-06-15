@@ -48,7 +48,8 @@ import re
 import time
 import platform
 from html.parser import HTMLParser
-from msvcrt import getch
+from msvcrt import getch, get_osfhandle
+from ctypes import WinDLL, byref, c_uint
 from zipfile import BadZipFile
 from openpyxl import load_workbook
 from openpyxl.styles import Font, PatternFill
@@ -82,8 +83,14 @@ USER_AGENT += f' (Windows {platform.version()}; {platform.architecture()[0]}; {p
 # Prefix for 'dump mode', where input sources are dumped, not processed.
 DUMPMODE_PREFIX = 'dump://'
 
-# Wait for a keypress on program exit.
-atexit.register(lambda: (print('\nPulse cualquier tecla para continuar...', end='', flush=True), getch()))
+# Wait for a keypress on program exit, but only if sys.stdout is a real console.
+#
+# Since sys.stdout.isatty() returns True under Windows when sys.stdout is
+# redirected to NUL, another, more complicated method, is needed here.
+#
+# The oneliner below has been adapted from https://stackoverflow.com/a/33168697
+if WinDLL('kernel32').GetConsoleMode(get_osfhandle(sys.stdout.fileno()), byref(c_uint())):
+    atexit.register(lambda: (print('\nPulse cualquier tecla para continuar...', end='', flush=True), getch()))
 
 
 # Helper for pretty-printing error messages to stderr and the debug logfile.
