@@ -482,6 +482,10 @@ class BaseParser(HTMLParser):
         self.current_v = ''
         self.retrieved_metadata = {}
 
+    def handle_starttag(self, tag, attrs):
+        """Handle opening tags."""
+        logging.debug('➜ HTML <%s%s%s>', tag, ' ' * bool(attrs), ' '.join((f'{k}="{v}"' for k, v in attrs)))
+
     def handle_data(self, data):
         """Handle data."""
         if self.within_k or self.within_v:
@@ -564,6 +568,7 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
 
     def handle_starttag(self, tag, attrs):
         """Handle opening tags."""
+        super().handle_starttag(tag, attrs)
         for attr in attrs:
             if attr[0] == 'class' and (match := self.profile[self.K_CLASS_REGEX].search(attr[1])):
                 # Key mark found.
@@ -650,6 +655,7 @@ class BaratzParser(BaseParser):  # pylint: disable=unused-variable
 
     def handle_starttag(self, tag, attrs):
         """Handle opening tags."""
+        super().handle_starttag(tag, attrs)
         if not self.within_meta:
             if not self.profile[self.M_TAG].fullmatch(tag):
                 return
