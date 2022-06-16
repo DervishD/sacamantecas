@@ -161,16 +161,28 @@ def run_single_test(command, testitem):
 def run_test_suite(command):
     """Run the automated test suite."""
     tests = (
-        # pylint: disable-next=line-too-long
-        ('file URI', 'file:///./tests/http___ceres_mcu_es_pages_Main_idt_134248_inventary_DE2016_1_24_table_FMUS_museum_MOM.html'),  # noqa
-        ('TXT input, file URIs', 'test_local.txt'),
-        # ('XLSX input, file URIs', 'test_local.xlsx'),
-        ('http URI', 'http://ceres.mcu.es/pages/Main?idt=134248&inventary=DE2016/1/24&table=FMUS&museum=MOM'),
-        ('TXT input, http URIs (potentially slow)', 'test_network.txt'),
-        # ('XLSX input, http URIs (potentially slow)', 'test_network.xlsx'),
+        'file:///./tests/http___ceres_mcu_es_pages_Main_idt_134248_inventary_DE2016_1_24_table_FMUS_museum_MOM.html',
+        'test_local.txt',
+        # 'test_local.xlsx',
+        'http://ceres.mcu.es/pages/Main?idt=134248&inventary=DE2016/1/24&table=FMUS&museum=MOM',
+        'test_network.txt',
+        # 'test_network.xlsx',
     )
 
     for testname, testitem in tests:
+        testname = ''
+        if testitem.endswith('.txt'):
+            testname = 'TXT input, '
+        if testitem.endswith('.xlsx'):
+            testname = 'XLSX input, '
+        if testitem.startswith('file://'):
+            testname = 'file URI'
+        if testitem.startswith('http://'):
+            testname = 'http URI (potentially slow)'
+        if '_local' in testitem:
+            testname += 'file URIs'
+        if '_network' in testitem:
+            testname += 'http URIs (potentially slow)'
         print(f"Running test '{testname}' ", end='', flush=True)
         if output := run_single_test(command, testitem):
             print('❌\n')
