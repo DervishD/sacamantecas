@@ -8,7 +8,7 @@ requirements inside and then runs the building process.
 """
 import sys
 import os
-import os.path
+from pathlib import Path
 import venv
 import subprocess
 import zipfile
@@ -84,12 +84,13 @@ def setup_venv():
         error(f'Unable to detect venv, {reason}.')
         return None
 
-    if os.path.exists(venv_path) and not os.path.isdir(venv_path):
+    venv_path = Path(venv_path)
+    if venv_path.exists() and not venv_path.is_dir():
         error('Venv directory name exists and it is not a directory.')
         return None
 
     # Create the virtual environment if it does not exist.
-    if not os.path.exists(venv_path):
+    if not venv_path.exists():
         print(f'Creating venv at "{venv_path}".')
         with open(os.devnull, 'w', encoding='utf-8') as devnull:
             # Save a reference for the original stdout so it can be restored later.
@@ -113,9 +114,11 @@ def setup_venv():
     return venv_path
 
 
-def install_packages(venv_path):
+def install_packages(pip_path):
     """Install needed packages in virtual environment."""
-    bin_path = os.path.join(venv_path, 'Scripts')
+    print('Installing needed packages.')
+    return not run_command((pip_path, 'install', '-r', 'requirements.txt'))
+
 
     # Install needed packages.
     print('Installing needed packages.')
@@ -125,21 +128,21 @@ def install_packages(venv_path):
 
 def build_executable(venv_path, program_name):
     """Build the frozen executable."""
-    bin_path = os.path.join(venv_path, 'Scripts')
-    build_path = os.path.join(venv_path, 'build')
-    dist_path = os.path.join(venv_path, 'dist')
-    executable = os.path.join(dist_path, program_name + '.exe')
-    if os.path.exists(executable):
+    bin_path = venv_path / 'Scripts'
+    build_path = venv_path / 'build'
+    dist_path = venv_path / 'dist'
+    executable = (dist_path / program_name).with_suffix('.exe')
+    if executable.exists():
         # Remove executable produced by previous runs.
         os.remove(executable)
     print('Building executable.')
-    cmd = [os.path.join(bin_path, 'pyinstaller')]
+    cmd = [bin_path / 'pyinstaller']
     cmd.append('--log-level=WARN')
     cmd.extend([f'--workpath={build_path}', f'--specpath={build_path}', f'--distpath={dist_path}'])
     cmd.extend(['--onefile', program_name + '.py'])
     if run_command(cmd):
         return None
-    if not os.path.exists(executable):
+    if not executable.exists():
         error('Executable was not created.')
         return None
     return executable
@@ -158,7 +161,7 @@ def create_zip_bundle(program_name, version, executable):
 def main():
     """."""
     # Name of the program, for future use.
-    program_name = os.path.basename(os.getcwd())
+    program_name = Path(os.getcwd()).name
 
     print(f'Building {program_name}', end='', flush=True)
 
@@ -183,10 +186,14 @@ def main():
     # environment variable so the launched programs can detect they are really
     # running inside a virtual environment. Apparently this is not essential,
     # but it is easy to do and will not do any harm.
-    os.environ['VIRTUAL_ENV'] = os.path.abspath(venv_path)
+    os.environ['VIRTUAL_ENV'] = str(venv_path.resolve())
 
     # Install needed packages in virtual environment.
-    if not install_packages(venv_path):
+    if not install_packages(venv_path / 'Scripts' / 'pip.exe'):
+        return 1
+
+    # Run the automated test suite.
+    if not run_test_suite(venv_path, program_name):
         return 1
 
     # Build the frozen executable.
