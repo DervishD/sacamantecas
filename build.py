@@ -11,7 +11,7 @@ import os
 from pathlib import Path
 import venv
 import subprocess
-import zipfile
+from zipfile import ZipFile, ZIP_DEFLATED
 
 
 # Set to 'True' if diagnostic output is needed.
@@ -126,17 +126,17 @@ def install_packages(pip_path):
     return not run_command(cmd)
 
 
-def build_executable(venv_path, program_name):
+
+def build_executable(pyinstaller_path, program_name):
     """Build the frozen executable."""
-    bin_path = venv_path / 'Scripts'
-    build_path = venv_path / 'build'
-    dist_path = venv_path / 'dist'
+    build_path = pyinstaller_path.parent.parent / 'build'
+    dist_path = build_path.with_stem('dist')
     executable = (dist_path / program_name).with_suffix('.exe')
     if executable.exists():
         # Remove executable produced by previous runs.
         os.remove(executable)
     print('Building executable.')
-    cmd = [bin_path / 'pyinstaller']
+    cmd = [pyinstaller_path]
     cmd.append('--log-level=WARN')
     cmd.extend([f'--workpath={build_path}', f'--specpath={build_path}', f'--distpath={dist_path}'])
     cmd.extend(['--onefile', program_name + '.py'])
@@ -148,14 +148,12 @@ def build_executable(venv_path, program_name):
     return executable
 
 
-def create_zip_bundle(program_name, version, executable):
+def create_zip_bundle(bundle_path, executable):
     """Create the ZIP bundle."""
-    # Executable was created, so create ZIP bundle.
-    bundle_path = f'{program_name}_{version}.zip'
     print(f'Creating ZIP bundle {bundle_path}')
-    with zipfile.ZipFile(bundle_path, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as bundle:
-        bundle.write(executable, program_name + '.exe')
-        bundle.write(program_name + '.ini')
+    with ZipFile(bundle_path, 'w', compression=ZIP_DEFLATED, compresslevel=9) as bundle:
+        bundle.write(executable, executable.name)
+        bundle.write(executable.with_suffix('.ini').name)
 
 
 def main():
@@ -177,8 +175,8 @@ def main():
         return 1
     print(f'Venv detected at {venv_path}')
 
-    # The virtual environment is guaranteed to exist below this point.
-
+    # The virtual environment is guaranteed to exist from this point on.
+    #
     # The virtual environment does not really need to be activated, because the
     # commands that will be run will be the ones INSIDE the virtual environment.
     #
@@ -197,12 +195,12 @@ def main():
         return 1
 
     # Build the frozen executable.
-    executable = build_executable(venv_path, program_name)
+    executable = build_executable(venv_path / 'Scripts' / 'pyinstaller.exe', program_name)
     if executable is None:
         return 1
 
     # Executable was created, so create ZIP bundle.
-    create_zip_bundle(program_name, version, executable)
+    create_zip_bundle(f'{program_name}_{version}.zip', executable)
 
     print('Successful build.')
     return 0
