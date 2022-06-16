@@ -14,10 +14,6 @@ import subprocess
 from zipfile import ZipFile, ZIP_DEFLATED
 
 
-# Set to 'True' if diagnostic output is needed.
-DEBUG = False
-
-
 def error(message):
     """Pretty-print 'message' to stderr."""
     print(f'*** Error: {message}', flush=True, file=sys.stderr)
@@ -25,15 +21,12 @@ def error(message):
 
 def run_command(command):
     """Helper for running commands and capturing output if needed."""
-    # Suppress normal output for the launched programs if not DEBUG mode.
-    # Error output is always shown.
-    stdout = subprocess.DEVNULL if not DEBUG else None
     try:
-        subprocess.run(command, check=True, stdout=stdout)
+        result = subprocess.run(command, check=True, capture_output=True, text=True)
     except subprocess.CalledProcessError as exc:
         error(f'Problem calling {command[0]} (returned {exc.returncode}).')
         return exc.returncode
-    return 0
+    return result
 
 
 def get_version(program_name):
@@ -98,9 +91,8 @@ def setup_venv():
 
             # Flush buffers, because os.dup2() is not aware of them.
             sys.stdout.flush()
-            # Point file descriptor 1 to devnull if not DEBUG mode.
-            if not DEBUG:
-                os.dup2(devnull.fileno(), 1)
+            # Point file descriptor 1 to devnull to silent general output.
+            os.dup2(devnull.fileno(), 1)
 
             # The normal output for the calls below is suppressed.
             # Error output is not.
@@ -108,16 +100,20 @@ def setup_venv():
 
             # Flush buffers, because os.dup2() is not aware of them.
             sys.stdout.flush()
-            # Restore file descriptor 1 to its original output if not DEBUG mode.
-            if not DEBUG:
-                os.dup2(duplicated_stdout_fileno, 1)
+            # Restore file descriptor 1 to its original output.
+            os.dup2(duplicated_stdout_fileno, 1)
     return venv_path
 
 
 def install_packages(pip_path):
     """Install needed packages in virtual environment."""
     print('Installing needed packages.')
-    return not run_command((pip_path, 'install', '-r', 'requirements.txt'))
+    result = run_command((pip_path, 'install', '-r', 'requirements.txt'))
+    if result.returncode:
+        print(result.stderr)
+        return False
+    return True
+
 
 
     # Install needed packages.
@@ -140,9 +136,10 @@ def build_executable(pyinstaller_path, program_name):
     cmd.append('--log-level=WARN')
     cmd.extend([f'--workpath={build_path}', f'--specpath={build_path}', f'--distpath={dist_path}'])
     cmd.extend(['--onefile', program_name + '.py'])
-    if run_command(cmd):
-        return None
-    if not executable.exists():
+    result = run_command(cmd)
+    if result.returncode:
+        print(result.stderr)
+    if result.returncode or not executable.exists():
         error('Executable was not created.')
         return None
     return executable
