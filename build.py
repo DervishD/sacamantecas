@@ -8,7 +8,9 @@ requirements inside and then runs the building process.
 """
 import sys
 import os
+import re
 from pathlib import Path
+from difflib import unified_diff
 import venv
 import subprocess
 from zipfile import ZipFile, ZIP_DEFLATED
@@ -115,12 +117,67 @@ def install_packages(pip_path):
     return True
 
 
+def run_single_test(command, testitem):
+    """Run a single test from the suite."""
+    if testitem.endswith(('.txt', '.xlsx')):
+        # testitem is a text or Excel file.
+        testitem = outfile = reffile = Path(testitem)
+        testitem = 'tests' / testitem
+    else:
+        # testitem is an URI.
+        outfile = reffile = Path(re.sub(r'\W', '_', f'test_{testitem}', re.ASCII)).with_suffix('.txt')
+    outfile = ('tests' / outfile).with_stem(f'{outfile.stem}_out')
+    reffile = ('tests' / reffile).with_stem(f'{reffile.stem}_ref')
 
-    # Install needed packages.
-    print('Installing needed packages.')
-    cmd = [os.path.join(bin_path, 'pip'), 'install', '-r', 'requirements.txt']
-    return not run_command(cmd)
+    # Remove output from previous runs (outfile)
+    outfile.unlink(missing_ok=True)
+    # Run the test. Since the command will always return a 0 status,
+    # result.returncode is not checked. Failures will be handled below.
+    result = run_command((*command, testitem))
 
+    # If testitem is an URI, the test output must be written to the output file,
+    # since by default is just dumped to console.
+    if not str(testitem).endswith(('.txt', '.xlsx')):
+        with open(outfile, 'w', encoding='utf-8') as dumpfile:
+            dumpfile.write(result.stdout)
+
+    # Compare the resulting files.
+    # If any of them does not exist, consider the test failed.
+    try:
+        with open(outfile, encoding='utf-8') as ofile:
+            outlines = ofile.readlines()
+        with open(reffile, encoding='utf-8') as rfile:
+            reflines = rfile.readlines()
+    except FileNotFoundError as exc:
+        return (f'*** File {exc.filename} does not exist.\n', )
+
+    diff = list(unified_diff(outlines, reflines, str(outfile), str(reffile), n=1))
+    if diff:
+        diff.insert(0, '*** Differences found:\n')
+        return diff
+    return ()
+
+
+def run_test_suite(command):
+    """Run the automated test suite."""
+    tests = (
+        # pylint: disable-next=line-too-long
+        ('file URI', 'file:///./tests/http___ceres_mcu_es_pages_Main_idt_134248_inventary_DE2016_1_24_table_FMUS_museum_MOM.html'),  # noqa
+        ('TXT input, file URIs', 'test_local.txt'),
+        # ('XLSX input, file URIs', 'test_local.xlsx'),
+        ('http URI', 'http://ceres.mcu.es/pages/Main?idt=134248&inventary=DE2016/1/24&table=FMUS&museum=MOM'),
+        ('TXT input, http URIs (potentially slow)', 'test_network.txt'),
+        # ('XLSX input, http URIs (potentially slow)', 'test_network.xlsx'),
+    )
+
+    for testname, testitem in tests:
+        print(f"Running test '{testname}' ", end='', flush=True)
+        if output := run_single_test(command, testitem):
+            print('❌\n')
+            sys.stdout.writelines(output)
+            return False
+        print('✅')
+    return True
 
 
 def build_executable(pyinstaller_path, program_name):
@@ -188,7 +245,7 @@ def main():
         return 1
 
     # Run the automated test suite.
-    if not run_test_suite(venv_path, program_name):
+    if not run_test_suite((venv_path / 'Scripts' / 'python.exe', program_name + '.py')):
         return 1
 
     # Build the frozen executable.
