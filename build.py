@@ -6,6 +6,7 @@ Builds sacamantecas executable for Win32 in a virtual environment.
 Creates the virtual environment first if it does not exist, installs the needed
 requirements inside and then runs the building process.
 """
+import io
 import sys
 import os
 import re
@@ -144,14 +145,27 @@ def run_single_test(command, testitem):
     # Compare the resulting files.
     # If any of them does not exist, consider the test failed.
     try:
-        with open(outfile, encoding='utf-8') as ofile:
-            outlines = ofile.readlines()
-        with open(reffile, encoding='utf-8') as rfile:
-            reflines = rfile.readlines()
+        if str(outfile).endswith('txt'):
+            # For text files just read them into memory.
+            with open(outfile, encoding='utf-8') as ofile:
+                outlines = ofile.readlines()
+            with open(reffile, encoding='utf-8') as rfile:
+                reflines = rfile.readlines()
+        else:
+            # For Excel files, treat them as Zip files and compare the data
+            # inside. To wit, 'xl/worksheets/sheet1.xml' file.
+            with ZipFile(outfile, 'r') as ofile:
+                with ofile.open('xl/worksheets/sheet1.xml') as sheet:
+                    outlines = io.TextIOWrapper(sheet, encoding='utf-8').readlines()
+            with ZipFile(reffile, 'r') as rfile:
+                with rfile.open('xl/worksheets/sheet1.xml') as sheet:
+                    reflines = io.TextIOWrapper(sheet, encoding='utf-8').readlines()
     except FileNotFoundError as exc:
         return (f'*** File {exc.filename} does not exist.\n', )
 
-    diff = list(unified_diff(outlines, reflines, str(outfile), str(reffile), n=1))
+    # Get diff lines and truncate them if needed.
+    diff = unified_diff(outlines, reflines, str(outfile), str(reffile), n=1)
+    diff = [line.rstrip()[:69] + '…\n' if len(line.rstrip()) > 70 else line for line in diff]
     if diff:
         diff.insert(0, '*** Differences found:\n')
         return diff
@@ -163,13 +177,13 @@ def run_test_suite(command):
     tests = (
         'file:///./tests/http___ceres_mcu_es_pages_Main_idt_134248_inventary_DE2016_1_24_table_FMUS_museum_MOM.html',
         'test_local.txt',
-        # 'test_local.xlsx',
+        'test_local.xlsx',
         'http://ceres.mcu.es/pages/Main?idt=134248&inventary=DE2016/1/24&table=FMUS&museum=MOM',
         'test_network.txt',
-        # 'test_network.xlsx',
+        'test_network.xlsx',
     )
 
-    for testname, testitem in tests:
+    for testitem in tests:
         testname = ''
         if testitem.endswith('.txt'):
             testname = 'TXT input, '
