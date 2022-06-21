@@ -23,7 +23,7 @@ class VenvCreationError(VenvError):
     """Exception to signal error when creating virtual environment."""
 
 
-def get_venv_path():
+def get_venv_path():  # pylint: disable=unused-variable
     """
     Get the virtual environment path for this project.
     IT HAS TO BE THE FIRST LINE IN THE '.gitignore' FILE.
@@ -50,7 +50,7 @@ def get_venv_path():
     return venv_path
 
 
-def create_venv(venv_path):
+def create_venv(venv_path):  # pylint: disable=unused-variable
     """Create virtual environment at 'venv_path'."""
     if not venv_path.exists():
         with open(os.devnull, 'w', encoding='utf-8') as devnull:
