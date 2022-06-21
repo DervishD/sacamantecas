@@ -1,5 +1,8 @@
+# Version-pinned packages.
+openpyxl==3.0.10
+pyinstaller==5.1
+
+# Packages where latest version is always wanted.
 pycodestyle
 pydocstyle
 pylint
-pyinstaller
-openpyxl
