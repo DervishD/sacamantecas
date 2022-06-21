@@ -9,8 +9,8 @@ import re
 from difflib import unified_diff
 from pathlib import Path
 from zipfile import ZipFile
-from mkvenv import is_venv_active
-from utils import error, run
+from mkvenv import get_venv_path, is_venv_active
+from utils import PROGRAM_LABEL, SCRIPT_NAME, error, run
 
 
 def run_single_test(command, testitem):
@@ -103,10 +103,15 @@ def run_test_suite(command):
 
 def main():
     """."""
+    print(f'Running tests for {PROGRAM_LABEL}')
+
     if not is_venv_active():
         error('detecting virtual environment.\nVirtual environment is not active.')
+        return 1
 
-    run_test_suite((venv_path / 'Scripts' / 'python.exe', program_name + '.py'))
+    run_test_suite((get_venv_path() / 'Scripts' / 'python.exe', SCRIPT_NAME))
+
+    return 0
 
 
 if __name__ == '__main__':

@@ -8,35 +8,9 @@ requirements inside and then runs the building process.
 """
 import sys
 import os
-from pathlib import Path
 from zipfile import ZipFile, ZIP_DEFLATED
 from mkvenv import is_venv_active, mkvenv, VenvCreationError
-from utils import error, run, RunError
-
-
-def get_version(program_name):
-    """Get the version code from program_name."""
-    version = None
-    reason = ''
-    script_name = program_name + '.py'
-    try:
-        with open(script_name, encoding='utf-8') as program:
-            for line in program.readlines():
-                if line.startswith('__version__'):
-                    version = line.strip().split(' = ')[1].strip("'")
-                    break
-    except FileNotFoundError:
-        reason = f'{script_name} does not exist'
-    except PermissionError:
-        reason = f'{script_name} cannot be read'
-    else:
-        if version is None:
-            reason = 'missing version number'
-    if reason:
-        print()
-        error(f'Unable to detect {program_name} version, {reason}.')
-        version = None
-    return version
+from utils import PROGRAM_NAME, PROGRAM_VERSION, PROGRAM_LABEL, error, run, RunError
 
 
 def build_executable(pyinstaller_path, program_name):
@@ -73,16 +47,7 @@ def create_zip_bundle(bundle_path, executable):
 
 def main():
     """."""
-    # Name of the program, for future use.
-    program_name = Path(os.getcwd()).name
-
-    print(f'Building {program_name}', end='', flush=True)
-
-    # Get version number being built.
-    version = get_version(program_name)
-    if version is None:
-        return 1
-    print('', version)
+    print(f'Building {PROGRAM_LABEL}')
 
     # Create virtual environment and get its location.
     if not is_venv_active():
@@ -97,12 +62,12 @@ def main():
     # The virtual environment is guaranteed to work from this point on.
 
     # Build the frozen executable.
-    executable = build_executable(venv_path / 'Scripts' / 'pyinstaller.exe', program_name)
+    executable = build_executable(venv_path / 'Scripts' / 'pyinstaller.exe', PROGRAM_NAME)
     if executable is None:
         return 1
 
     # Executable was created, so create ZIP bundle.
-    create_zip_bundle(f'{program_name}_{version}.zip', executable)
+    create_zip_bundle(f'{PROGRAM_NAME}_{PROGRAM_VERSION}.zip', executable)
 
     print('Successful build.')
     return 0

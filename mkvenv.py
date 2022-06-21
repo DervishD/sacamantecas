@@ -8,7 +8,7 @@ import sys
 import os
 import venv
 from pathlib import Path
-from utils import error, run, RunError
+from utils import PROGRAM_LABEL, error, run, RunError
 
 
 class VenvError(Exception):
@@ -113,6 +113,8 @@ def mkvenv():  # pylint: disable=unused-variable
 
 def main():
     """."""
+    print(f'Creating virtual environment for {PROGRAM_LABEL}')
+
     if is_venv_active():
         print('Virtual environment active, exiting.')
         return 0

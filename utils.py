@@ -3,9 +3,20 @@ General utilities for helper scripts.
 """
 import sys
 import subprocess
+from pathlib import Path
 
 
-class RunError(BaseException):
+PROGRAM_NAME = Path(__file__).resolve().parent.stem  # pylint: disable=unused-variable
+SCRIPT_NAME = PROGRAM_NAME + '.py'   # pylint: disable=unused-variable
+with open(SCRIPT_NAME, encoding='utf-8') as program:
+    for line in program.readlines():
+        if line.startswith('__version__'):
+            PROGRAM_VERSION = line.strip().split(' = ')[1].strip("'")  # pylint: disable=unused-variable
+            break
+PROGRAM_LABEL = f'{PROGRAM_NAME} {PROGRAM_VERSION}'  # pylint: disable=unused-variable
+
+
+class RunError(BaseException):  # pylint: disable=unused-variable
     """Exception for errors happening when running commands."""
     def __init__(self, returncode, cmd, stdout, stderr, *args, **kwargs):
         """."""
