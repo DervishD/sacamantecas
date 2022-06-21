@@ -28,7 +28,7 @@ def run_command(command):
         result = subprocess.run(command, check=True, capture_output=True, text=True)
     except subprocess.CalledProcessError as exc:
         error(f'Problem calling {command[0]} (returned {exc.returncode}).')
-        return exc.returncode
+        return exc
     return result
 
 
