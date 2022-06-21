@@ -9,7 +9,7 @@ requirements inside and then runs the building process.
 import sys
 import os
 from zipfile import ZipFile, ZIP_DEFLATED
-from mkvenv import is_venv_active, mkvenv, VenvCreationError
+from mkvenv import get_venv_path, is_venv_active, mkvenv, VenvCreationError
 from utils import PROGRAM_NAME, PROGRAM_VERSION, PROGRAM_LABEL, error, run, RunError
 
 
@@ -18,7 +18,9 @@ def main():
     print(f'Building {PROGRAM_LABEL}')
 
     # Create virtual environment and get its location.
-    if not is_venv_active():
+    if is_venv_active():
+        venv_path = get_venv_path()
+    else:
         try:
             print('Creating virtual environment.')
             venv_path = mkvenv()
