@@ -14,7 +14,7 @@ from pathlib import Path
 from difflib import unified_diff
 from zipfile import ZipFile, ZIP_DEFLATED
 from mkvenv import mkvenv, VenvCreationError
-from utils import error, run
+from utils import error, run, RunError
 
 
 def get_version(program_name):
@@ -143,9 +143,11 @@ def build_executable(pyinstaller_path, program_name):
     cmd.append('--log-level=WARN')
     cmd.extend([f'--workpath={build_path}', f'--specpath={build_path}', f'--distpath={dist_path}'])
     cmd.extend(['--onefile', program_name + '.py'])
-    result = run(cmd)  # FIXME
-    if result.returncode:
-        print(result.stderr)
+    try:
+        result = run(cmd)
+    except RunError as exc:
+        if exc.returncode:
+            print(exc.stderr)
     if result.returncode or not executable.exists():
         error('Executable was not created.')
         return None
@@ -175,8 +177,9 @@ def main():
 
     # Create virtual environment and get its location.
     try:
-        print('Creating virtual environment at «{venv_path}».')
+        print('Creating virtual environment.')
         venv_path = mkvenv()
+        print(f'Virtual environment created at {venv_path}')
     except VenvCreationError as exc:
         error(f'creating virtual environment.\n{exc}.')
         return 1

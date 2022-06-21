@@ -8,8 +8,7 @@ import sys
 import os
 import venv
 from pathlib import Path
-from subprocess import CalledProcessError
-from utils import error, run
+from utils import error, run, RunError
 
 
 class VenvError(Exception):
@@ -82,8 +81,8 @@ def create_venv(venv_path):
     os.environ['VIRTUAL_ENV'] = str(venv_path.resolve())
 
     try:
-        run((venv_path / 'Scripts' / 'pip.exe', 'install', '-r', 'requirementso.txt'))
-    except CalledProcessError as exc:
+        run((venv_path / 'Scripts' / 'pip.exe', 'install', '-r', 'requirements.txt'))
+    except RunError as exc:
         raise VenvCreationError(f'pip: {exc.stderr}') from exc
     return venv_path
 
