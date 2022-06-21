@@ -15,21 +15,7 @@ from difflib import unified_diff
 import venv
 import subprocess
 from zipfile import ZipFile, ZIP_DEFLATED
-
-
-def error(message):
-    """Pretty-print 'message' to stderr."""
-    print(f'*** Error: {message}', flush=True, file=sys.stderr)
-
-
-def run_command(command):
-    """Helper for running commands and capturing output if needed."""
-    try:
-        result = subprocess.run(command, check=True, capture_output=True, text=True)
-    except subprocess.CalledProcessError as exc:
-        error(f'Problem calling {command[0]} (returned {exc.returncode}).')
-        return exc
-    return result
+from utils import error, run
 
 
 def get_version(program_name):
@@ -134,7 +120,7 @@ def run_single_test(command, testitem):
     outfile.unlink(missing_ok=True)
     # Run the test. Since the command will always return a 0 status,
     # result.returncode is not checked. Failures will be handled below.
-    result = run_command((*command, testitem))
+    result = run((*command, testitem))
 
     # If testitem is an URI, the test output must be written to the output file,
     # since by default is just dumped to console.
@@ -219,7 +205,7 @@ def build_executable(pyinstaller_path, program_name):
     cmd.append('--log-level=WARN')
     cmd.extend([f'--workpath={build_path}', f'--specpath={build_path}', f'--distpath={dist_path}'])
     cmd.extend(['--onefile', program_name + '.py'])
-    result = run_command(cmd)
+    result = run(cmd)  # FIXME
     if result.returncode:
         print(result.stderr)
     if result.returncode or not executable.exists():
