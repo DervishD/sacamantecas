@@ -12,9 +12,8 @@ import os
 import re
 from pathlib import Path
 from difflib import unified_diff
-import venv
-import subprocess
 from zipfile import ZipFile, ZIP_DEFLATED
+from mkvenv import mkvenv, VenvCreationError
 from utils import error, run
 
 
@@ -41,67 +40,6 @@ def get_version(program_name):
         error(f'Unable to detect {program_name} version, {reason}.')
         version = None
     return version
-
-
-def setup_venv():
-    """Sets up virtual environment if needed."""
-    # Get the virtual environment directory name.
-    # IT HAS TO BE THE FIRST LINE IN THE '.gitignore' FILE.
-    # IT HAS TO CONTAIN THE STRING 'venv' SOMEWHERE.
-    venv_path = None
-    reason = ''
-    try:
-        with open('.gitignore', encoding='utf-8') as gitignore:
-            venv_path = gitignore.readline().strip()
-            if 'venv' not in venv_path:
-                venv_path = None
-    except FileNotFoundError:
-        reason = '.gitignore does not exist'
-    except PermissionError:
-        reason = '.gitignore cannot be read'
-    else:
-        if venv_path is None:
-            reason = 'missing venv directory in .gitignore'
-    if reason:
-        error(f'Unable to detect venv, {reason}.')
-        return None
-
-    venv_path = Path(venv_path)
-    if venv_path.exists() and not venv_path.is_dir():
-        error('Venv directory name exists and it is not a directory.')
-        return None
-
-    # Create the virtual environment if it does not exist.
-    if not venv_path.exists():
-        print(f'Creating venv at "{venv_path}".')
-        with open(os.devnull, 'w', encoding='utf-8') as devnull:
-            # Save a reference for the original stdout so it can be restored later.
-            duplicated_stdout_fileno = os.dup(1)
-
-            # Flush buffers, because os.dup2() is not aware of them.
-            sys.stdout.flush()
-            # Point file descriptor 1 to devnull to silent general output.
-            os.dup2(devnull.fileno(), 1)
-
-            # The normal output for the calls below is suppressed.
-            # Error output is not.
-            venv.create(venv_path, with_pip=True, upgrade_deps=True)
-
-            # Flush buffers, because os.dup2() is not aware of them.
-            sys.stdout.flush()
-            # Restore file descriptor 1 to its original output.
-            os.dup2(duplicated_stdout_fileno, 1)
-    return venv_path
-
-
-def install_packages(pip_path):
-    """Install needed packages in virtual environment."""
-    print('Installing needed packages.')
-    result = run_command((pip_path, 'install', '-r', 'requirements.txt'))
-    if result.returncode:
-        print(result.stderr)
-        return False
-    return True
 
 
 def run_single_test(command, testitem):
@@ -235,26 +173,15 @@ def main():
         return 1
     print('', version)
 
-    # Set up virtual environment and get its location.
-    venv_path = setup_venv()
-    if venv_path is None:
+    # Create virtual environment and get its location.
+    try:
+        print('Creating virtual environment at «{venv_path}».')
+        venv_path = mkvenv()
+    except VenvCreationError as exc:
+        error(f'creating virtual environment.\n{exc}.')
         return 1
-    print(f'Venv detected at {venv_path}')
 
-    # The virtual environment is guaranteed to exist from this point on.
-    #
-    # The virtual environment does not really need to be activated, because the
-    # commands that will be run will be the ones INSIDE the virtual environment.
-    #
-    # So, the only other thing that is MAYBE needed it setting the 'VIRTUAL_ENV'
-    # environment variable so the launched programs can detect they are really
-    # running inside a virtual environment. Apparently this is not essential,
-    # but it is easy to do and will not do any harm.
-    os.environ['VIRTUAL_ENV'] = str(venv_path.resolve())
-
-    # Install needed packages in virtual environment.
-    if not install_packages(venv_path / 'Scripts' / 'pip.exe'):
-        return 1
+    # The virtual environment is guaranteed to work from this point on.
 
     # Run the automated test suite.
     if not run_test_suite((venv_path / 'Scripts' / 'python.exe', program_name + '.py')):
