@@ -13,7 +13,7 @@ import re
 from pathlib import Path
 from difflib import unified_diff
 from zipfile import ZipFile, ZIP_DEFLATED
-from mkvenv import mkvenv, VenvCreationError
+from mkvenv import is_venv_active, mkvenv, VenvCreationError
 from utils import error, run, RunError
 
 
@@ -176,13 +176,14 @@ def main():
     print('', version)
 
     # Create virtual environment and get its location.
-    try:
-        print('Creating virtual environment.')
-        venv_path = mkvenv()
-        print(f'Virtual environment created at {venv_path}')
-    except VenvCreationError as exc:
-        error(f'creating virtual environment.\n{exc}.')
-        return 1
+    if not is_venv_active():
+        try:
+            print('Creating virtual environment.')
+            venv_path = mkvenv()
+            print(f'Virtual environment created at {venv_path}')
+        except VenvCreationError as exc:
+            error(f'creating virtual environment.\n{exc}.')
+            return 1
 
     # The virtual environment is guaranteed to work from this point on.
 

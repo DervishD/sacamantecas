@@ -23,6 +23,19 @@ class VenvCreationError(VenvError):
     """Exception to signal error when creating virtual environment."""
 
 
+def is_venv_active():  # pylint: disable=unused-variable
+    """
+    Check if virtual environment is active.
+
+    This only checks if the 'VIRTUAL_ENV' environment variable is set or not,
+    which is proof that the virtual environment has been activated, but it does
+    NOT check if the virtual environment is properly set up (e.g. all needed
+    packages are installed or not.)
+
+    """
+    return 'VIRTUAL_ENV' in os.environ
+
+
 def get_venv_path():  # pylint: disable=unused-variable
     """
     Get the virtual environment path for this project.
@@ -100,6 +113,10 @@ def mkvenv():  # pylint: disable=unused-variable
 
 def main():
     """."""
+    if is_venv_active():
+        print('Virtual environment active, exiting.')
+        return 0
+
     try:
         venv_path = get_venv_path()
     except VenvNotFoundError as exc:
