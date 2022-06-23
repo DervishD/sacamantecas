@@ -19,12 +19,14 @@ PROGRAM_LABEL = f'{PROGRAM_NAME} {PROGRAM_VERSION}'  # pylint: disable=unused-va
 class RunError(BaseException):  # pylint: disable=unused-variable
     """Exception for errors happening when running commands."""
     def __init__(self, returncode, cmd, stdout, stderr, *args, **kwargs):
-        """."""
         super().__init__(*args, **kwargs)
         self.returncode = returncode
         self.cmd = cmd
         self.stdout = stdout
         self.stderr = stderr
+
+    def __str__(self):
+        return self.stderr
 
 
 def error(message):  # pylint: disable=unused-variable
