@@ -810,6 +810,9 @@ def setup_logging():
             'info': {
                 '()': lambda: lambda log_record: log_record.msg.strip() and log_record.levelno >= logging.INFO
             },
+            'console': {
+                '()': lambda: lambda log_record: log_record.msg.strip() and log_record.levelno == logging.INFO
+            },
             'warning': {
                 '()': lambda: lambda log_record: log_record.msg.strip() and log_record.levelno == logging.WARNING
             },
@@ -847,7 +850,7 @@ def setup_logging():
     logging_configuration['handlers']['console'] = {
         'level': 'NOTSET',
         'formatter': 'console',
-        'filters': ['info'],
+        'filters': ['console'],
         'class': 'logging.StreamHandler',
         'stream': sys.stdout
     }
