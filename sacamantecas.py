@@ -83,6 +83,9 @@ USER_AGENT += f' (Windows {platform.version()}; {platform.architecture()[0]}; {p
 # Prefix for 'dump mode', where input sources are dumped, not processed.
 DUMPMODE_PREFIX = 'dump://'
 
+# Failure flag, to signal that something went wrong even if execution continued.
+FAILURE = False
+
 # Wait for a keypress on program exit, but only if sys.stdout is a real console.
 #
 # Since sys.stdout.isatty() returns True under Windows when sys.stdout is
@@ -96,6 +99,8 @@ if WinDLL('kernel32').GetConsoleMode(get_osfhandle(sys.stdout.fileno()), byref(c
 # Helper for pretty-printing error messages to stderr and the debug logfile.
 def error(message):
     """Show the error 'message' on stderr and the debug logfile."""
+    global FAILURE
+    FAILURE = True
     print(f'\n*** Error en {PROGRAM_NAME}\n{message}', file=sys.stderr)
     logging.debug(message)
 
@@ -1107,6 +1112,7 @@ def saca_las_mantecas(source, sink, profiles):  # pylint: disable=too-many-branc
     retrieving the contents from each URI and then get the metadata (that is,
     skim the Manteca) using the proper parser depending on the particular URI.
     """
+    global FAILURE
     bad_metadata = []
     for row, uri in source.get_mantecas():
         logging.info('  %s', uri)
@@ -1116,7 +1122,8 @@ def saca_las_mantecas(source, sink, profiles):  # pylint: disable=too-many-branc
                 logging.debug('Perfil detectado: «%s».', profile_name)
                 break
         else:
-            logging.debug('No se detectó un perfil, ignorando «%s».', uri)
+            logging.error('No se detectó un perfil, ignorando «%s».', uri)
+            FAILURE = True
             continue
 
         for child_parser in BaseParser.__subclasses__():
@@ -1126,6 +1133,7 @@ def saca_las_mantecas(source, sink, profiles):  # pylint: disable=too-many-branc
                 break
         else:
             logging.debug('No se detectó un parser para el perfil «%s», ignorando «%s».', profile_name, uri)
+            FAILURE = True
             continue
 
         contents = None
@@ -1181,6 +1189,8 @@ def main():
     # Install the default exception hook first.
     sys.excepthook = excepthook
 
+    global FAILURE
+
     try:
         # Initialize logging system ASAP.
         setup_logging()
@@ -1203,13 +1213,15 @@ def main():
             if result is not None:
                 bad_metadata.extend(result)
         if bad_metadata:
+            FAILURE = True
             print()
             logging.info('Se encontraron problemas en los siguientes enlaces:')
             for uri, problem in bad_metadata:
                 logging.info('  [%s] %s.', uri, problem)
     except SystemExit:
-        pass
+        FAILURE = True
     except KeyboardInterrupt:
+        FAILURE = True
         print()
         logging.info('El usuario interrumpió la operación del programa.')
 
@@ -1217,6 +1229,7 @@ def main():
     logging.info('Proceso terminado.')
     logging.debug('Registro de depuración finalizado.')
     logging.shutdown()
+    return FAILURE
 
 
 if __name__ == '__main__':
