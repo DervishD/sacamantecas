@@ -105,6 +105,14 @@ def error(message):
     logging.error(message)
 
 
+# Helper for printing warning messages to stderr and the logfile.
+def warning(message):
+    """Show the warning 'message' on stderr and the logfile."""
+    global FAILURE  # pylint: disable=global-statement
+    FAILURE = True
+    logging.warning(message)
+
+
 ################################################################################################
 #                                                                                              #
 #                                                                                              #
@@ -791,12 +799,15 @@ def setup_logging():
             },
         },
         'filters': {
-            'info': {
-                '()': lambda: lambda log_record: log_record.msg.strip() and log_record.levelno == logging.INFO
-            },
             'debug': {
                 '()': lambda: lambda log_record: log_record.msg.strip() and log_record.levelno != logging.INFO
-            }
+            },
+            'info': {
+                '()': lambda: lambda log_record: log_record.msg.strip() and log_record.levelno >= logging.INFO
+            },
+            'warning': {
+                '()': lambda: lambda log_record: log_record.msg.strip() and log_record.levelno == logging.WARNING
+            },
         },
         'handlers': {},
         'loggers': {
@@ -836,9 +847,18 @@ def setup_logging():
         'stream': sys.stdout
     }
 
+    logging_configuration['handlers']['stderr'] = {
+        'level': 'NOTSET',
+        'formatter': 'console',
+        'filters': ['warning'],
+        'class': 'logging.StreamHandler',
+        'stream': sys.stderr
+    }
+
     logging_configuration['loggers']['']['handlers'].append('debugfile')
     logging_configuration['loggers']['']['handlers'].append('logfile')
     logging_configuration['loggers']['']['handlers'].append('console')
+    logging_configuration['loggers']['']['handlers'].append('stderr')
 
     dictConfig(logging_configuration)
 
@@ -1124,7 +1144,7 @@ def saca_las_mantecas(source, sink, profiles):  # pylint: disable=too-many-branc
                 logging.debug('Perfil detectado: «%s».', profile_name)
                 break
         else:
-            logging.error('No se detectó un perfil, ignorando «%s».', uri)
+            warning(f'No se detectó un perfil para «{uri}», ignorando.')
             FAILURE = True
             continue
 
@@ -1216,10 +1236,10 @@ def main():
                 bad_metadata.extend(result)
         if bad_metadata:
             FAILURE = True
-            print()
-            logging.info('Se encontraron problemas en los siguientes enlaces:')
+            print(file=sys.stderr)
+            warning('Se encontraron problemas en los siguientes enlaces:')
             for uri, problem in bad_metadata:
-                logging.info('  [%s] %s.', uri, problem)
+                warning(f'  [{uri}] {problem}.')
     except SystemExit:
         FAILURE = True
     except KeyboardInterrupt:
