@@ -236,7 +236,7 @@ class MantecaExcel(MantecaSource):
             logging.debug('Procesando fila %s.', row[0].row)
             for cell in row:
                 if cell.data_type != 's':
-                    logging.error('La celda «%s» no es de tipo cadena, será ignorada.', cell.coordinate)
+                    logging.debug('La celda «%s» no es de tipo cadena, será ignorada.', cell.coordinate)
                     continue
                 if urlparse(cell.value).scheme.startswith(('http', 'file')):
                     logging.debug('Se encontró un URI en la celda «%s»: %s', cell.coordinate, cell.value)
@@ -524,9 +524,9 @@ class BaseParser(HTMLParser):
     def store_metadata(self):
         """Store found metadata, handling missing parts."""
         if not self.current_k and not self.current_v:
-            logging.error('Metadato vacío.')
+            logging.debug('Metadato vacío.')
         if self.current_k and not self.current_v:
-            logging.error('Metadato «%s» incompleto, ignorando.', self.current_k)
+            logging.debug('Metadato «%s» incompleto, ignorando.', self.current_k)
         if not self.current_k and self.current_v:  # Empty key, generate a name.
             self.current_k = self.last_k if self.last_k else BaseParser.EMPTY_KEY_LABEL
         if self.current_k and self.current_v:
@@ -609,7 +609,7 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
                     # If still processing a value, notify about the nesting
                     # error but reset parser so everything starts afresh, like
                     # if a new key had been found.
-                    logging.error('Error de anidación (clave dentro de valor), restableciendo parser.')
+                    logging.debug('Problema de anidación (clave dentro de valor), restableciendo parser.')
                     self.within_v = False
                     self.current_v = ''
                     self.current_v_tag = None
@@ -625,7 +625,7 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
                     # recovered to a certain point. If some data was obtained
                     # for the key, the parser is put in 'within_v' mode to get
                     # the corresponding value. Otherwise the parser is reset.
-                    logging.error('Error de anidación (valor dentro de clave), restableciendo parser.')
+                    logging.debug('Problema de anidación (valor dentro de clave), restableciendo parser.')
                     self.within_k = False
                     self.current_k_tag = None
                     if not self.current_k:
@@ -1134,8 +1134,7 @@ def saca_las_mantecas(source, sink, profiles):  # pylint: disable=too-many-branc
                 logging.debug('Parser encontrado: «%s».', child_parser.__name__)
                 break
         else:
-            logging.error('No se detectó un parser para el perfil «%s», ignorando «%s».', profile_name, uri)
-            FAILURE = True
+            logging.debug('No se detectó un parser para el perfil «%s», ignorando «%s».', profile_name, uri)
             continue
 
         contents = None
@@ -1163,7 +1162,7 @@ def saca_las_mantecas(source, sink, profiles):  # pylint: disable=too-many-branc
             parser.close()
             metadata = parser.get_metadata()
             if not metadata:
-                logging.error('No se obtuvieron metadatos de «%s».', uri)
+                warning(f'No se obtuvieron metadatos de «{uri}».')
                 bad_metadata.append((uri, 'No se obtuvieron metadatos'))
             else:
                 sink.add_metadata(row, uri, metadata)
