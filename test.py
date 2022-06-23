@@ -10,7 +10,7 @@ from difflib import unified_diff
 from pathlib import Path
 from zipfile import ZipFile
 from mkvenv import get_venv_path, is_venv_active
-from utils import PROGRAM_LABEL, SCRIPT_NAME, error, run
+from utils import PROGRAM_LABEL, SCRIPT_NAME, RunError, error, run
 
 
 def run_single_test(command, testitem):
@@ -27,9 +27,12 @@ def run_single_test(command, testitem):
 
     # Remove output from previous runs (outfile)
     outfile.unlink(missing_ok=True)
-    # Run the test. Since the command will always return a 0 status,
-    # result.returncode is not checked. Failures will be handled below.
-    result = run((*command, testitem))
+
+    # Run the test.
+    try:
+        result = run((*command, testitem))
+    except RunError as exc:
+        return (exc.stderr, )
 
     # If testitem is an URI, the test output must be written to the output file,
     # since by default is just dumped to console.
