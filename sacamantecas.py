@@ -99,10 +99,10 @@ if WinDLL('kernel32').GetConsoleMode(get_osfhandle(sys.stdout.fileno()), byref(c
 # Helper for pretty-printing error messages to stderr and the debug logfile.
 def error(message):
     """Show the error 'message' on stderr and the debug logfile."""
-    global FAILURE
+    global FAILURE  # pylint: disable=global-statement
     FAILURE = True
     print(f'\n*** Error en {PROGRAM_NAME}\n{message}', file=sys.stderr)
-    logging.debug(message)
+    logging.error(message)
 
 
 ################################################################################################
@@ -236,7 +236,7 @@ class MantecaExcel(MantecaSource):
             logging.debug('Procesando fila %s.', row[0].row)
             for cell in row:
                 if cell.data_type != 's':
-                    logging.debug('La celda «%s» no es de tipo cadena, será ignorada.', cell.coordinate)
+                    logging.error('La celda «%s» no es de tipo cadena, será ignorada.', cell.coordinate)
                     continue
                 if urlparse(cell.value).scheme.startswith(('http', 'file')):
                     logging.debug('Se encontró un URI en la celda «%s»: %s', cell.coordinate, cell.value)
@@ -866,6 +866,7 @@ def process_argv():
 
     Returns a list of valid sources (can be empty).
     """
+    global FAILURE  # pylint: disable=global-statement
     sys.argv.pop(0)  # Remove program name from sys.argv.
     if len(sys.argv) == 0:
         # The input source should be provided automatically if the program is
@@ -914,7 +915,8 @@ def process_argv():
                     error('El fichero Excel de entrada es inválido.')
                     continue
             else:
-                logging.debug('La fuente «%s» es inválida.', arg)
+                FAILURE = True
+                logging.error('La fuente «%s» es inválida.', arg)
                 continue
         except FileNotFoundError:
             error('No se encontró el fichero de entrada.')
@@ -968,7 +970,7 @@ def load_profiles(filename):
         error('No se encontró el fichero de perfiles.')
     except configparser.Error as exc:
         error('Problema de sintaxis al leer el fichero de perfiles.')
-        logging.debug('Error «%s» leyendo el fichero de perfiles:\n%s.', type(exc).__name__, exc)
+        logging.error('Error «%s» leyendo el fichero de perfiles:\n%s.', type(exc).__name__, exc)
     else:
         # Translate ConfigParser contents to a better suited format.
         #
@@ -1070,7 +1072,7 @@ def retrieve_uri(uri):
                 charset = match.group(1).decode('ascii')
             else:
                 charset = 'iso-8859-1'
-                logging.debug('Usando charset por defecto.')
+                logging.error('Usando charset por defecto.')
     else:
         logging.debug('Charset detectado en las cabeceras.')
     logging.debug('Contenidos codificados con charset «%s».', charset)
@@ -1112,7 +1114,7 @@ def saca_las_mantecas(source, sink, profiles):  # pylint: disable=too-many-branc
     retrieving the contents from each URI and then get the metadata (that is,
     skim the Manteca) using the proper parser depending on the particular URI.
     """
-    global FAILURE
+    global FAILURE  # pylint: disable=global-statement
     bad_metadata = []
     for row, uri in source.get_mantecas():
         logging.info('  %s', uri)
@@ -1132,7 +1134,7 @@ def saca_las_mantecas(source, sink, profiles):  # pylint: disable=too-many-branc
                 logging.debug('Parser encontrado: «%s».', child_parser.__name__)
                 break
         else:
-            logging.debug('No se detectó un parser para el perfil «%s», ignorando «%s».', profile_name, uri)
+            logging.error('No se detectó un parser para el perfil «%s», ignorando «%s».', profile_name, uri)
             FAILURE = True
             continue
 
@@ -1140,13 +1142,13 @@ def saca_las_mantecas(source, sink, profiles):  # pylint: disable=too-many-branc
         try:
             contents, charset = retrieve_uri(uri)
         except ConnectionError:
-            logging.debug('Error de conexión accediendo a «%s».', uri)
+            logging.error('Error de conexión accediendo a «%s».', uri)
             bad_metadata.append((uri, 'No se pudo conectar'))
         except URLError as exc:
-            logging.debug('Error accediendo a «%s»: %s.', uri, exc.reason)
+            logging.error('Error accediendo a «%s»: %s.', uri, exc.reason)
             bad_metadata.append((uri, 'No se pudo acceder'))
         if not contents:
-            logging.debug('No se recibieron contenidos de «%s».', uri)
+            logging.error('No se recibieron contenidos de «%s».', uri)
             bad_metadata.append((uri, 'No se recibieron contenidos'))
             continue
 
@@ -1161,6 +1163,7 @@ def saca_las_mantecas(source, sink, profiles):  # pylint: disable=too-many-branc
             parser.close()
             metadata = parser.get_metadata()
             if not metadata:
+                logging.error('No se obtuvieron metadatos de «%s».', uri)
                 bad_metadata.append((uri, 'No se obtuvieron metadatos'))
             else:
                 sink.add_metadata(row, uri, metadata)
@@ -1189,7 +1192,7 @@ def main():
     # Install the default exception hook first.
     sys.excepthook = excepthook
 
-    global FAILURE
+    global FAILURE  # pylint: disable=global-statement
 
     try:
         # Initialize logging system ASAP.
