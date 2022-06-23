@@ -41,7 +41,7 @@ def error(message):  # pylint: disable=unused-variable
 def run(command):  # pylint: disable=unused-variable
     """Helper for running commands and capturing the output."""
     try:
-        return subprocess.run(command, check=True, capture_output=True, text=True)
+        return subprocess.run(command, check=True, capture_output=True, encoding='utf-8', text=True)
     except FileNotFoundError as exc:
         raise RunError(0, command, None, f'File not found {command[0]}\n') from exc
     except subprocess.CalledProcessError as exc:

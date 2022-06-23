@@ -86,6 +86,11 @@ DUMPMODE_PREFIX = 'dump://'
 # Failure flag, to signal that something went wrong even if execution continued.
 FAILURE = False
 
+# Reconfigure standard output streams so they use UTF-8 encoding even if they
+# are redirected to a file when running the program from a shell.
+sys.stdout.reconfigure(encoding='utf-8')
+sys.stderr.reconfigure(encoding='utf-8')
+
 # Wait for a keypress on program exit, but only if sys.stdout is a real console.
 #
 # Since sys.stdout.isatty() returns True under Windows when sys.stdout is
