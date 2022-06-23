@@ -1190,7 +1190,6 @@ def saca_las_mantecas(source, sink, profiles):  # pylint: disable=too-many-branc
             parser.close()
             metadata = parser.get_metadata()
             if not metadata:
-                warning(f'No se obtuvieron metadatos de «{uri}».')
                 bad_metadata.append((uri, 'No se obtuvieron metadatos'))
             else:
                 sink.add_metadata(row, uri, metadata)
