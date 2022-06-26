@@ -10,7 +10,7 @@ import sys
 import os
 from zipfile import ZipFile, ZIP_DEFLATED
 from mkvenv import get_venv_path, is_venv_active, mkvenv, VenvCreationError
-from utils import PROGRAM_NAME, PROGRAM_VERSION, PROGRAM_LABEL, error, run, RunError
+from utils import PROGRAM_ROOT, PROGRAM_PATH, PROGRAM_NAME, PROGRAM_LABEL, error, run, RunError
 
 
 def main():
@@ -24,7 +24,7 @@ def main():
         try:
             print('Creating virtual environment.')
             venv_path = mkvenv()
-            print(f'Virtual environment created at {venv_path}')
+            print(f'Virtual environment created at «{venv_path}».')
         except VenvCreationError as exc:
             error(f'creating virtual environment.\n{exc}.')
             return 1
@@ -43,7 +43,7 @@ def main():
     cmd = [pyinstaller_path]
     cmd.append('--log-level=WARN')
     cmd.extend([f'--workpath={build_path}', f'--specpath={build_path}', f'--distpath={dist_path}'])
-    cmd.extend(['--onefile', PROGRAM_NAME + '.py'])
+    cmd.extend(['--onefile', PROGRAM_PATH])
     try:
         result = run(cmd)
     except RunError as exc:
@@ -54,11 +54,12 @@ def main():
         return 1
 
     # Executable was created, so create ZIP bundle.
-    bundle_path = f'{PROGRAM_NAME}_{PROGRAM_VERSION}.zip'
-    print(f'Creating ZIP bundle {bundle_path}')
+    bundle_path = PROGRAM_ROOT / f'{PROGRAM_LABEL.replace(" ", "_")}.zip'
+    print(f'Creating ZIP bundle «{bundle_path}».')
     with ZipFile(bundle_path, 'w', compression=ZIP_DEFLATED, compresslevel=9) as bundle:
+        inifile = PROGRAM_PATH.with_suffix('.ini')
         bundle.write(executable, executable.name)
-        bundle.write(executable.with_suffix('.ini').name)
+        bundle.write(inifile, inifile.name)
 
     print('Successful build.')
     return 0

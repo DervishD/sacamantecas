@@ -7,8 +7,7 @@ provides a public function to get the full path for the virtual environment.
 import sys
 import os
 import venv
-from pathlib import Path
-from utils import PROGRAM_LABEL, error, run, RunError
+from utils import PROGRAM_ROOT, PROGRAM_LABEL, error, run, RunError
 
 
 class VenvError(Exception):
@@ -43,8 +42,9 @@ def get_venv_path():  # pylint: disable=unused-variable
     IT HAS TO CONTAIN THE STRING 'venv' SOMEWHERE.
     """
     venv_path = None
+    gitignore = PROGRAM_ROOT / '.gitignore'
     try:
-        with open('.gitignore', encoding='utf-8') as gitignore:
+        with open(gitignore, encoding='utf-8') as gitignore:
             venv_path = gitignore.readline().strip()
             if 'venv' not in venv_path:
                 venv_path = None
@@ -56,7 +56,7 @@ def get_venv_path():  # pylint: disable=unused-variable
     if venv_path is None:
         raise VenvNotFoundError('.gitignore does not contain a virtual environment path')
 
-    venv_path = Path(venv_path)
+    venv_path = PROGRAM_ROOT / venv_path
     if venv_path.exists() and not venv_path.is_dir():
         raise VenvNotFoundError('Virtual environment path exists but it is not a directory')
 
@@ -94,7 +94,7 @@ def create_venv(venv_path):  # pylint: disable=unused-variable
     os.environ['VIRTUAL_ENV'] = str(venv_path.resolve())
 
     try:
-        run((venv_path / 'Scripts' / 'pip.exe', 'install', '-r', 'requirements.txt'))
+        run((venv_path / 'Scripts' / 'pip.exe', 'install', '-r', PROGRAM_ROOT / 'requirements.txt'))
     except RunError as exc:
         raise VenvCreationError(f'pip: {exc.stderr}') from exc
     return venv_path

@@ -11,11 +11,11 @@ from difflib import unified_diff
 from pathlib import Path
 from zipfile import ZipFile
 from mkvenv import get_venv_path, is_venv_active
-from utils import PROGRAM_LABEL, SCRIPT_NAME, RunError, error, run
+from utils import PROGRAM_LABEL, PROGRAM_PATH, RunError, error, run
 
 
 # Command for running the script for the tests.
-COMMAND = (get_venv_path().resolve() / 'Scripts' / 'python.exe', Path(SCRIPT_NAME).resolve())
+COMMAND = (get_venv_path() / 'Scripts' / 'python.exe', PROGRAM_PATH)
 # Directory containing the tests.
 TESTS_PATH = Path('tests').resolve()
 

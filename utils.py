@@ -5,10 +5,10 @@ import sys
 import subprocess
 from pathlib import Path
 
-
-PROGRAM_NAME = Path(__file__).resolve().parent.stem  # pylint: disable=unused-variable
-SCRIPT_NAME = PROGRAM_NAME + '.py'   # pylint: disable=unused-variable
-with open(SCRIPT_NAME, encoding='utf-8') as program:
+PROGRAM_ROOT = Path(__file__).parent
+PROGRAM_PATH = (PROGRAM_ROOT / PROGRAM_ROOT.stem).with_suffix('.py')
+PROGRAM_NAME = PROGRAM_PATH.stem  # pylint: disable=unused-variable
+with open(PROGRAM_PATH, encoding='utf-8') as program:
     for line in program.readlines():
         if line.startswith('__version__'):
             PROGRAM_VERSION = line.strip().split(' = ')[1].strip("'")  # pylint: disable=unused-variable
