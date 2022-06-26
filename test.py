@@ -138,7 +138,7 @@ def main():
             else:
                 some_test_failed = True
                 print('❌')
-                sys.stdout.writelines((f'\n*** {test.reason[0]}',) + tuple(f'  {line}' for line in test.reason[1:]))
+                sys.stdout.writelines((f'  *** {test.reason[0]}',) + tuple(f'  {line}' for line in test.reason[1:]))
     except KeyboardInterrupt:
         pass
     return some_test_failed
