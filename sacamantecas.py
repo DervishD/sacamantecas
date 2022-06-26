@@ -440,6 +440,11 @@ class MantecaURI(MantecaSource):
 
 class SkimmedURI(SkimmedSink):
     """A class to represent Skimmed (with 0% Manteca) single URIs."""
+    def __init__(self, *args, **kwargs):
+        """Create the output text file."""
+        super().__init__(*args, **kwargs)
+        self.file = open(self.sink, 'w', encoding='utf-8')  # pylint: disable=consider-using-with
+
     def add_metadata(self, row, uri, metadata):
         """
         Print specified 'metadata' to stdout.
@@ -450,12 +455,16 @@ class SkimmedURI(SkimmedSink):
         pretty-printed after the URI itself.
         """
         logging.debug('Añadiendo metadatos para «%s».', uri)
-        print(f'  Metadatos obtenidos para {uri}:')
+        self.file.write(f'{uri}\n')
         for key, value in metadata.items():
-            print(f'    {key}: {value}')
+            message = f'    {key}: {value}'
+            print(message)
+            self.file.write(f'{message}\n')
 
     def close(self):
-        """NOP"""
+        """Close the file."""
+        self.file.close()
+        logging.debug('Fichero sin Manteca cerrado.')
 
 
 ##############################################################
@@ -916,29 +925,29 @@ def process_argv():
         logging.debug('Procesando fuente de Manteca «%s».', arg)
         dumpmode = arg.startswith(DUMPMODE_PREFIX)
         arg = arg.removeprefix(DUMPMODE_PREFIX)
+        source = Path(arg)
+        sink = None if dumpmode else source.with_stem(source.stem + '_out')
         if dumpmode:
             logging.debug('La fuente de Manteca «%s» será volcada, no procesada.', arg)
         try:
             if re.match(r'(?:https?|file)://', arg):
                 logging.debug('La fuente es un URI.')
+                sink = Path(re.sub(r'\W', '_', arg, re.ASCII) + '_out.txt')
                 source = MantecaURI(arg)
-                sink = None if dumpmode else SkimmedURI(None)
+                sink = SkimmedURI(sink) if sink else None
             elif arg.endswith('.txt'):
                 arg = Path(arg)
                 logging.debug('La fuente es un fichero de texto.')
-                source = MantecaText(arg)
-                sink = None if dumpmode else SkimmedText(arg.with_stem(arg.stem + '_out'))
+                source = MantecaText(source)
+                sink = SkimmedText(sink) if sink else None
             elif arg.endswith('.xlsx'):
                 logging.debug('La fuente es un fichero Excel.')
-                arg = Path(arg)
-                source = arg
-                sink = arg.with_stem(arg.stem + '_out')
                 if not dumpmode:
                     logging.debug('Copiando workbook a «%s».', sink)
                     copy2(source, sink)
                 try:
                     source = MantecaExcel(source)
-                    sink = None if dumpmode else SkimmedExcel(sink)
+                    sink = SkimmedExcel(sink)
                 except (InvalidFileException, SheetTitleException, BadZipFile):
                     error('El fichero Excel de entrada es inválido.')
                     continue
