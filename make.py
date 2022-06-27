@@ -8,9 +8,100 @@ requirements inside and then runs the building process.
 """
 import sys
 import os
+import re
+import io
 import venv
+from pathlib import Path
+from difflib import unified_diff
 from zipfile import ZipFile, ZIP_DEFLATED
 from utils import PROGRAM_ROOT, PROGRAM_PATH, PROGRAM_NAME, PROGRAM_LABEL, error, run, RunError
+
+
+class TestBase():
+    """Base class for all tests."""
+    def __init__(self, testname, testitem):
+        self.testname = testname
+        self.testitem = testitem  # Item under test.
+        self.basename = Path(testitem)  # For computing needed filenames.
+        self.outfile = None  # File produced as output of the test.
+        self.reffile = None  # Reference file to check if the output file is correct or not.
+        self.reason = ()  # Reason of test failure, a tuple of lines.
+
+    def run(self, command):
+        """
+        Run the test.
+
+        Returns True if the test passed, False if it failed.
+
+        If a test fails, details are in 'self.reason', a tuple of lines.
+        """
+        # Build the needed filenames.
+        self.outfile = self.basename.with_stem(f'{self.basename.stem}_out')
+        self.reffile = self.basename.with_stem(f'{self.basename.stem}_ref')
+
+        # Run the script
+        try:
+            run((*command, self.testitem))
+        except RunError as exc:
+            self.reason = exc.stderr.lstrip().splitlines(keepends=True)
+            return False
+
+        # Load the filename's contents to be compared.
+        # Usually redefined in derived classes.
+        olines, rlines = self.readfiles()
+
+        # Get diff lines and truncate them if needed.
+        diff = unified_diff(olines, rlines, 'test output', 'reference', n=1)
+        diff = [line.rstrip()[:99] + '…\n' if len(line.rstrip()) > 100 else line for line in diff]
+        if diff:
+            diff.insert(0, 'Differences found:\n')
+            self.reason = diff
+            return False
+
+        # Files are identical so remove output file and return success.
+        self.outfile.unlink(missing_ok=True)
+        return True
+
+    def readfiles(self):
+        """Load output and reference files contents into instance attributes."""
+        with open(self.outfile, encoding='utf-8') as ofile:
+            olines = ofile.readlines()
+        with open(self.reffile, encoding='utf-8') as rfile:
+            rlines = rfile.readlines()
+        return (olines, rlines)
+
+
+class TestUri(TestBase):
+    """Class for single URI tests."""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.basename = Path(re.sub(r'\W', '_', self.testitem, re.ASCII)).with_suffix('.txt')
+
+
+class TestTxt(TestBase):
+    """Class for text input file tests."""
+
+
+class TestXls(TestBase):
+    """Class for xlsx input file tests."""
+    def readfiles(self):
+        # Excel files are really Zip files and for comparing the data inside
+        # only the 'xl/worksheets/sheet1.xml' file has to be read.
+        #
+        # Since usually the XML file will consist in a single line, some crude
+        # formatting is done so the differences shown make a bit of sense in
+        # order to check the output Excel file later. The line is broken at XML
+        # tags and newline characters are added.
+        rep = {r'<': '\n<', r'>': '>\n'}
+        with ZipFile(self.outfile, 'r') as ofile:
+            with ofile.open('xl/worksheets/sheet1.xml') as sheet:
+                olines = io.TextIOWrapper(sheet, encoding='utf-8').read()
+                olines = re.sub(r'|'.join(rep.keys()), lambda m: rep[m.group(0)], olines).splitlines(keepends=True)
+        with ZipFile(self.reffile, 'r') as rfile:
+            with rfile.open('xl/worksheets/sheet1.xml') as sheet:
+                rlines = io.TextIOWrapper(sheet, encoding='utf-8').read()
+                rlines = re.sub(r'|'.join(rep.keys()), lambda m: rep[m.group(0)], rlines).splitlines(keepends=True)
+        return (olines, rlines)
 
 
 def is_venv_active():
@@ -135,8 +226,37 @@ def build_frozen_executable(venv_path):
     return True
 
 
-def run_unit_tests(arg):
+TESTS = (
+    # pylint: disable-next=line-too-long
+    TestUri('single file URI', 'file:///./html/http___ceres_mcu_es_pages_Main_idt_134248_inventary_DE2016_1_24_table_FMUS_museum_MOM.html'),  # noqa for pycodestyle.
+    TestTxt('text input with file URIs', 'local.txt'),
+    TestXls('xlsx input with file URIs', 'local.xlsx'),
+    # # pylint: disable-next=line-too-long
+    TestUri('single http URI (potentially slow)', 'http://ceres.mcu.es/pages/Main?idt=134248&inventary=DE2016/1/24&table=FMUS&museum=MOM'),  # noqa for pycodestyle.
+    TestTxt('text input with http URIs (potentially slow)', 'network.txt'),
+    TestXls('xlsx input with http URIs (potentially slow)', 'network.xlsx'),
+)
+
+
+def run_unit_tests(venv_path):
     """Run the automated unit test suite."""
+    command = (venv_path / 'Scripts' / 'python.exe', PROGRAM_PATH)
+
+    # Get into 'tests' directory.
+    previous_working_directory = os.getcwd()
+    os.chdir(Path('tests').resolve())
+
+    some_test_failed = False
+    for test in TESTS:
+        print(f'Testing {test.testname} ', end='', flush=True)
+        if test.run(command):
+            print('✅')
+        else:
+            some_test_failed = True
+            print('❌')
+            sys.stdout.writelines((f'  *** {test.reason[0]}',) + tuple(f'  {line}' for line in test.reason[1:]))
+    os.chdir(previous_working_directory)
+    return some_test_failed
 
 
 def main():
@@ -153,18 +273,21 @@ def main():
         # Create virtual environment.
         if not create_virtual_environment(venv_path):
             return 1
+    else:
+        print(f'Virtual environment active at «{venv_path}».\n')
 
     # The virtual environment is guaranteed to work from this point on.
 
-    # If creating and activating the virtual environment was the only operation
-    # requested, then everything is done.
-    if len(sys.argv) < 2 or sys.argv[1].lower() in ('v', 'venv'):
-        return 1
-
-    # A different operation was requested.
-    if len(sys.argv) >= 2 and sys.argv[1].lower() in ('e', 'exe'):
-        # Build the frozen executable.
-        return not build_frozen_executable(venv_path)
+    if len(sys.argv) >= 2:
+        match sys.argv[1].lower():
+            case ('v' | 'venv'):  # Create virtual environment (already done.)
+                # If virtual environment creation and activation was the
+                # requested operation, then everything is done, just pass.
+                pass
+            case ('e' | 'exe'):  # Build the frozen executable.
+                return not build_frozen_executable(venv_path)
+            case ('t' | 'test'):  # Run automated unit tests suite.
+                return not run_unit_tests(venv_path)
 
     return 0
 
