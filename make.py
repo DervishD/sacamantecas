@@ -11,12 +11,105 @@ import os
 import re
 import io
 import venv
+from subprocess import run, CalledProcessError
 from pathlib import Path
 from difflib import unified_diff
 from zipfile import ZipFile, ZIP_DEFLATED
-from utils import PROGRAM_ROOT, PROGRAM_PATH, PROGRAM_NAME, PROGRAM_LABEL, error, run, RunError
 
 
+#################################################################################
+#                                                                               #
+#                                                                               #
+#    888    888          888                                                    #
+#    888    888          888                                                    #
+#    888    888          888                                                    #
+#    8888888888  .d88b.  888 88888b.   .d88b.  888d888                          #
+#    888    888 d8P  Y8b 888 888 "88b d8P  Y8b 888P"                            #
+#    888    888 88888888 888 888  888 88888888 888                              #
+#    888    888 Y8b.     888 888 d88P Y8b.     888                              #
+#    888    888  "Y8888  888 88888P"   "Y8888  888                              #
+#                            888                                                #
+#                            888                                                #
+#                            888                                                #
+#     .d888                            888    d8b                               #
+#    d88P"                             888    Y8P                               #
+#    888                               888                                      #
+#    888888 888  888 88888b.   .d8888b 888888 888  .d88b.  88888b.  .d8888b     #
+#    888    888  888 888 "88b d88P"    888    888 d88""88b 888 "88b 88K         #
+#    888    888  888 888  888 888      888    888 888  888 888  888 "Y8888b.    #
+#    888    Y88b 888 888  888 Y88b.    Y88b.  888 Y88..88P 888  888      X88    #
+#    888     "Y88888 888  888  "Y8888P  "Y888 888  "Y88P"  888  888  88888P'    #
+#                                                                               #
+#                                                                               #
+#################################################################################
+def error(message):
+    """Pretty-print 'message' to sys.stderr."""
+    message = message.splitlines()
+    message[0] = f'*** Error {message[0]}\n'
+    message[1:] = [f'    {line}\n' for line in message[1:]]
+    sys.stderr.writelines(message)
+    sys.stderr.flush()
+
+
+def run_command(command):
+    """Helper for running commands and capturing the output."""
+    try:
+        return run(command, check=True, capture_output=True, encoding='utf-8', text=True)
+    except FileNotFoundError as exc:
+        raise CalledProcessError(0, command, None, f"Command '{command[0]}' not found.\n") from exc
+
+
+def get_venv_path(gitignore):
+    """
+    Get the virtual environment path for this project.
+    IT HAS TO BE THE FIRST LINE IN THE 'gitignore' FILE.
+    IT HAS TO CONTAIN THE STRING 'venv' SOMEWHERE.
+    """
+    venv_path = None
+    message = None
+    try:
+        with open(gitignore, encoding='utf-8') as gitignoref:
+            venv_path = gitignoref.readline().strip()
+            if 'venv' not in venv_path:
+                venv_path = None
+    except FileNotFoundError:
+        message = '.gitignore does not exist'
+    except PermissionError:
+        message = '.gitignore cannot be read'
+    else:
+        if venv_path is None:
+            message = '.gitignore does not contain a virtual environment path'
+        else:
+            # The virtual environment path is relative, by definition, to the
+            # directory where the .gitignore file resides.
+            venv_path = gitignore.parent / venv_path
+            if venv_path.exists() and not venv_path.is_dir():
+                message = 'Virtual environment path exists but it is not a directory'
+
+    if message:
+        error(f'finding virtual environment path.\n{message}.')
+        return None
+
+    return venv_path
+
+
+#####################################################################################################
+#                                                                                                   #
+#                                                                                                   #
+#    d8b 888                     888    d8b      888                                      888       #
+#    88P 888                     888    88P      888                                      888       #
+#    8P  888                     888    8P       888                                      888       #
+#    "   888888 .d88b.  .d8888b  888888 "        888888  8888b.  888d888 .d88b.   .d88b.  888888    #
+#        888   d8P  Y8b 88K      888             888        "88b 888P"  d88P"88b d8P  Y8b 888       #
+#        888   88888888 "Y8888b. 888             888    .d888888 888    888  888 88888888 888       #
+#        Y88b. Y8b.          X88 Y88b.           Y88b.  888  888 888    Y88b 888 Y8b.     Y88b.     #
+#         "Y888 "Y8888   88888P'  "Y888           "Y888 "Y888888 888     "Y88888  "Y8888   "Y888    #
+#                                                                            888                    #
+#                                                                       Y8b d88P                    #
+#                                                                        "Y88P"                     #
+#                                                                                                   #
+#                                                                                                   #
+#####################################################################################################
 class TestBase():
     """Base class for all tests."""
     def __init__(self, testname, testitem):
@@ -41,8 +134,8 @@ class TestBase():
 
         # Run the script
         try:
-            run((*command, self.testitem))
-        except RunError as exc:
+            run_command((*command, self.testitem))
+        except CalledProcessError as exc:
             self.reason = exc.stderr.lstrip().splitlines(keepends=True)
             return False
 
@@ -104,55 +197,58 @@ class TestXls(TestBase):
         return (olines, rlines)
 
 
-def is_venv_active():
-    """
-    Check if virtual environment is active.
+def run_unit_tests(venv_path, program_path):
+    """Run the automated unit test suite."""
+    print('\nRunning unit tests.')
+    tests = (
+        # pylint: disable-next=line-too-long
+        TestUri('single file URI', 'file:///./html/http___ceres_mcu_es_pages_Main_idt_134248_inventary_DE2016_1_24_table_FMUS_museum_MOM.html'),  # noqa for pycodestyle.
+        TestTxt('text input with file URIs', 'local.txt'),
+        TestXls('xlsx input with file URIs', 'local.xlsx'),
+        # # pylint: disable-next=line-too-long
+        TestUri('single http URI (potentially slow)', 'http://ceres.mcu.es/pages/Main?idt=134248&inventary=DE2016/1/24&table=FMUS&museum=MOM'),  # noqa for pycodestyle.
+        TestTxt('text input with http URIs (potentially slow)', 'network.txt'),
+        TestXls('xlsx input with http URIs (potentially slow)', 'network.xlsx'),
+    )
+    command = (venv_path / 'Scripts' / 'python.exe', program_path)
 
-    This only checks if the 'VIRTUAL_ENV' environment variable is set or not,
-    which is proof that the virtual environment has been activated, but it does
-    NOT check if the virtual environment is properly set up (e.g. all needed
-    packages are installed or not.)
+    # Get into 'tests' directory.
+    previous_working_directory = os.getcwd()
+    os.chdir(Path('tests').resolve())
 
-    """
-    return 'VIRTUAL_ENV' in os.environ
-
-
-def get_venv_path():  # pylint: disable=unused-variable
-    """
-    Get the virtual environment path for this project.
-    IT HAS TO BE THE FIRST LINE IN THE '.gitignore' FILE.
-    IT HAS TO CONTAIN THE STRING 'venv' SOMEWHERE.
-    """
-    venv_path = None
-    gitignore = PROGRAM_ROOT / '.gitignore'
-    message = None
-    try:
-        with open(gitignore, encoding='utf-8') as gitignore:
-            venv_path = gitignore.readline().strip()
-            if 'venv' not in venv_path:
-                venv_path = None
-    except FileNotFoundError:
-        message = '.gitignore does not exist'
-    except PermissionError:
-        message = '.gitignore cannot be read'
-    else:
-        if venv_path is None:
-            message = '.gitignore does not contain a virtual environment path'
+    some_test_failed = False
+    for test in tests:
+        print(f'Testing {test.testname} ', end='', flush=True)
+        if test.run(command):
+            print('✅')
         else:
-            venv_path = PROGRAM_ROOT / venv_path
-            if venv_path.exists() and not venv_path.is_dir():
-                message = 'Virtual environment path exists but it is not a directory'
-
-    if message:
-        error(f'finding virtual environment path.\n{message}.')
-        return None
-
-    return venv_path
+            some_test_failed = True
+            print('❌')
+            sys.stdout.writelines((f'  *** {test.reason[0]}',) + tuple(f'  {line}' for line in test.reason[1:]))
+    os.chdir(previous_working_directory)
+    return some_test_failed
 
 
+#########################################################################################################
+#                                                                                                       #
+#                                                                                                       #
+#    d8b                                    d8b      888                                      888       #
+#    88P                                    88P      888                                      888       #
+#    8P                                     8P       888                                      888       #
+#    "  888  888  .d88b.  88888b.  888  888 "        888888  8888b.  888d888 .d88b.   .d88b.  888888    #
+#       888  888 d8P  Y8b 888 "88b 888  888          888        "88b 888P"  d88P"88b d8P  Y8b 888       #
+#       Y88  88P 88888888 888  888 Y88  88P          888    .d888888 888    888  888 88888888 888       #
+#        Y8bd8P  Y8b.     888  888  Y8bd8P           Y88b.  888  888 888    Y88b 888 Y8b.     Y88b.     #
+#         Y88P    "Y8888  888  888   Y88P             "Y888 "Y888888 888     "Y88888  "Y8888   "Y888    #
+#                                                                                888                    #
+#                                                                           Y8b d88P                    #
+#                                                                            "Y88P"                     #
+#                                                                                                       #
+#                                                                                                       #
+#########################################################################################################
 def create_virtual_environment(venv_path):
     """Create virtual environment."""
-    print(f'Creating virtual environment at «{venv_path}».')
+    print(f"Creating virtual environment at '{venv_path}'.")
     if not venv_path.exists():
         with open(os.devnull, 'w', encoding='utf-8') as devnull:
             # Save a reference for the original stdout so it can be restored later.
@@ -182,8 +278,8 @@ def create_virtual_environment(venv_path):
     os.environ['VIRTUAL_ENV'] = str(venv_path.resolve())
 
     try:
-        run((venv_path / 'Scripts' / 'pip.exe', 'install', '-r', PROGRAM_ROOT / 'requirements.txt'))
-    except RunError as exc:
+        run_command((venv_path / 'Scripts' / 'pip.exe', 'install', '-r', venv_path.parent / 'requirements.txt'))
+    except CalledProcessError as exc:
         error(f'creating virtual environment.\npip: {exc.stderr}.')
         return False
 
@@ -191,90 +287,103 @@ def create_virtual_environment(venv_path):
     return True
 
 
-def build_frozen_executable(venv_path):
+##############################################################################################
+#                                                                                            #
+#                                                                                            #
+#    d8b                         d8b      888                                      888       #
+#    88P                         88P      888                                      888       #
+#    8P                          8P       888                                      888       #
+#    "  .d88b.  888  888  .d88b. "        888888  8888b.  888d888 .d88b.   .d88b.  888888    #
+#      d8P  Y8b `Y8bd8P' d8P  Y8b         888        "88b 888P"  d88P"88b d8P  Y8b 888       #
+#      88888888   X88K   88888888         888    .d888888 888    888  888 88888888 888       #
+#      Y8b.     .d8""8b. Y8b.             Y88b.  888  888 888    Y88b 888 Y8b.     Y88b.     #
+#       "Y8888  888  888  "Y8888           "Y888 "Y888888 888     "Y88888  "Y8888   "Y888    #
+#                                                                     888                    #
+#                                                                Y8b d88P                    #
+#                                                                 "Y88P"                     #
+#                                                                                            #
+#                                                                                            #
+##############################################################################################
+def build_frozen_executable(venv_path, program_path, bundle_path):
     """Build frozen executable."""
-    print('Building frozen executable.')
+    print('\nBuilding frozen executable.')
     pyinstaller_path = venv_path / 'Scripts' / 'pyinstaller.exe'
-    build_path = pyinstaller_path.parent.parent / 'build'
-    dist_path = build_path.with_stem('dist')
-    executable = (dist_path / PROGRAM_NAME).with_suffix('.exe')
+    build_path = venv_path / 'build'
+    dist_path = venv_path / 'dist'
+    executable = dist_path / program_path.with_suffix('.exe').name
+
     if executable.exists():
         # Remove executable produced by previous runs.
         os.remove(executable)
-    print('Building executable.')
+
     cmd = [pyinstaller_path]
     cmd.append('--log-level=WARN')
     cmd.extend([f'--workpath={build_path}', f'--specpath={build_path}', f'--distpath={dist_path}'])
-    cmd.extend(['--onefile', PROGRAM_PATH])
+    cmd.extend(['--onefile', program_path])
     try:
-        result = run(cmd)
-    except RunError as exc:
-        if exc.returncode:
-            print(exc.stderr)
-    if result.returncode or not executable.exists():
-        error('creating executable.')
+        run_command(cmd)
+    except CalledProcessError as exc:
+        error(f'creating executable.\n{exc.stderr}.')
         return False
 
     # Executable was created, so create ZIP bundle.
-    bundle_path = PROGRAM_ROOT / f'{PROGRAM_LABEL.replace(" ", "_")}.zip'
-    print(f'Creating ZIP bundle «{bundle_path}».')
+    print(f"Creating ZIP bundle '{bundle_path}'.")
     with ZipFile(bundle_path, 'w', compression=ZIP_DEFLATED, compresslevel=9) as bundle:
-        inifile = PROGRAM_PATH.with_suffix('.ini')
+        inifile = program_path.with_suffix('.ini')
         bundle.write(executable, executable.name)
         bundle.write(inifile, inifile.name)
     print('Frozen executable built successfully.')
     return True
 
 
-TESTS = (
-    # pylint: disable-next=line-too-long
-    TestUri('single file URI', 'file:///./html/http___ceres_mcu_es_pages_Main_idt_134248_inventary_DE2016_1_24_table_FMUS_museum_MOM.html'),  # noqa for pycodestyle.
-    TestTxt('text input with file URIs', 'local.txt'),
-    TestXls('xlsx input with file URIs', 'local.xlsx'),
-    # # pylint: disable-next=line-too-long
-    TestUri('single http URI (potentially slow)', 'http://ceres.mcu.es/pages/Main?idt=134248&inventary=DE2016/1/24&table=FMUS&museum=MOM'),  # noqa for pycodestyle.
-    TestTxt('text input with http URIs (potentially slow)', 'network.txt'),
-    TestXls('xlsx input with http URIs (potentially slow)', 'network.xlsx'),
-)
-
-
-def run_unit_tests(venv_path):
-    """Run the automated unit test suite."""
-    command = (venv_path / 'Scripts' / 'python.exe', PROGRAM_PATH)
-
-    # Get into 'tests' directory.
-    previous_working_directory = os.getcwd()
-    os.chdir(Path('tests').resolve())
-
-    some_test_failed = False
-    for test in TESTS:
-        print(f'Testing {test.testname} ', end='', flush=True)
-        if test.run(command):
-            print('✅')
-        else:
-            some_test_failed = True
-            print('❌')
-            sys.stdout.writelines((f'  *** {test.reason[0]}',) + tuple(f'  {line}' for line in test.reason[1:]))
-    os.chdir(previous_working_directory)
-    return some_test_failed
-
-
+###########################################################
+#                                                         #
+#                                                         #
+#                           d8b            .d88 88b.      #
+#                           Y8P           d88P" "Y88b     #
+#                                        d88P     Y88b    #
+#    88888b.d88b.   8888b.  888 88888b.  888       888    #
+#    888 "888 "88b     "88b 888 888 "88b 888       888    #
+#    888  888  888 .d888888 888 888  888 Y88b     d88P    #
+#    888  888  888 888  888 888 888  888  Y88b. .d88P     #
+#    888  888  888 "Y888888 888 888  888   "Y88 88P"      #
+#                                                         #
+#                                                         #
+###########################################################
 def main():
     """."""
-    print(f'Making {PROGRAM_LABEL}\n')
+
+    program_root = Path(__file__).parent
+    program_path = (program_root / program_root.stem).with_suffix('.py')
+
+    # Get the program version directly from the source file at PROGRAM_PATH.
+    with open(program_path, encoding='utf-8') as program:
+        for line in program.readlines():
+            if line.startswith('__version__'):
+                program_version = line.strip().split(' = ')[1].strip("'")
+                break
+
+    print(f'Making {program_path.stem} {program_version}\n')
 
     # No matter the operation (the 'make target'), the first thing to check is
     # if the virtual environment is active. If the virtual environment is not
     # active it will be activated, if it does not exist it has to be created.
-    if (venv_path := get_venv_path()) is None:
+    gitignore = program_root / '.gitignore'
+    if (venv_path := get_venv_path(gitignore)) is None:
         return 1
 
-    if not is_venv_active():
+    # Check if virtual environment is active.
+    #
+    # This is done by checking if the 'VIRTUAL_ENV' environment variable is set.
+    # By itself, this is good enough proof that the virtual environment has been
+    # activated, but it does NOT check if it has been properly set up, like if
+    # all needed packages have been correctly installed or not.
+    if 'VIRTUAL_ENV' not in os.environ:
         # Create virtual environment.
         if not create_virtual_environment(venv_path):
             return 1
     else:
-        print(f'Virtual environment active at «{venv_path}».\n')
+        print(f"Virtual environment active at '{venv_path}'.\n")
 
     # The virtual environment is guaranteed to work from this point on.
 
@@ -285,9 +394,10 @@ def main():
                 # requested operation, then everything is done, just pass.
                 pass
             case ('e' | 'exe'):  # Build the frozen executable.
-                return not build_frozen_executable(venv_path)
+                bundle_path = venv_path.parent / f'{program_path.stem}_{program_version}.zip'
+                return not build_frozen_executable(venv_path, program_path, bundle_path)
             case ('t' | 'test'):  # Run automated unit tests suite.
-                return not run_unit_tests(venv_path)
+                return not run_unit_tests(venv_path, program_path)
 
     return 0
 
