@@ -353,8 +353,9 @@ def build_frozen_executable(venv_path, program_path, bundle_path):
 def main():
     """."""
 
-    program_root = Path(__file__).parent
-    program_path = (program_root / program_root.stem).with_suffix('.py')
+    # Get path for the main program to be made, not this script.
+    program_path = Path(__file__)
+    program_path = program_path.with_stem(program_path.parent.stem)
 
     # Get the program version directly from the source file at PROGRAM_PATH.
     with open(program_path, encoding='utf-8') as program:
@@ -368,8 +369,7 @@ def main():
     # No matter the operation (the 'make target'), the first thing to check is
     # if the virtual environment is active. If the virtual environment is not
     # active it will be activated, if it does not exist it has to be created.
-    gitignore = program_root / '.gitignore'
-    if (venv_path := get_venv_path(gitignore)) is None:
+    if (venv_path := get_venv_path(program_path.parent / '.gitignore')) is None:
         return 1
 
     # Check if virtual environment is active.
