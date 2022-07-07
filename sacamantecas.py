@@ -440,11 +440,6 @@ class MantecaURI(MantecaSource):
 
 class SkimmedURI(SkimmedSink):
     """A class to represent Skimmed (with 0% Manteca) single URIs."""
-    def __init__(self, *args, **kwargs):
-        """Create the output text file."""
-        super().__init__(*args, **kwargs)
-        self.file = open(self.sink, 'w', encoding='utf-8')  # pylint: disable=consider-using-with
-
     def add_metadata(self, row, uri, metadata):
         """
         Print specified 'metadata' to stdout.
@@ -453,18 +448,20 @@ class SkimmedURI(SkimmedSink):
 
         The 'row' parameter is ignored, the rest of the metatata is somewhat
         pretty-printed after the URI itself.
+
+        In addition to this, the metadata is dumped to the output file, too.
         """
         logging.debug('Añadiendo metadatos para «%s».', uri)
-        self.file.write(f'{uri}\n')
-        for key, value in metadata.items():
-            message = f'    {key}: {value}'
-            print(message)
-            self.file.write(f'{message}\n')
+        with open(self.sink, 'w', encoding='utf-8') as sink:
+            logging.debug('Volcando metadatos a «%s».', self.sink)
+            sink.write(f'{uri}\n')
+            for key, value in metadata.items():
+                message = f'    {key}: {value}'
+                print(message)
+                sink.write(f'{message}\n')
 
     def close(self):
-        """Close the file."""
-        self.file.close()
-        logging.debug('Fichero sin Manteca cerrado.')
+        """NOP"""
 
 
 ##############################################################
