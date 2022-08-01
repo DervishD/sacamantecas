@@ -170,7 +170,7 @@ def create_virtual_environment(venv_path):
 ##############################################################################################
 def build_frozen_executable(venv_path, program_path, bundle_path):
     """Build frozen executable."""
-    print('\nBuilding frozen executable.')
+    print('Building frozen executable.')
     pyinstaller_path = venv_path / 'Scripts' / 'pyinstaller.exe'
     build_path = venv_path / 'build'
     dist_path = venv_path / 'dist'
@@ -306,7 +306,7 @@ class TestXls(TestBase):
 
 def run_unit_tests(venv_path, program_path):
     """Run the automated unit test suite."""
-    print('\nRunning unit tests.')
+    print('Running unit tests.')
     tests = (
         # pylint: disable-next=line-too-long
         TestUri('single file URI', 'file:///./html/http___ceres_mcu_es_pages_Main_idt_134248_inventary_DE2016_1_24_table_FMUS_museum_MOM.html'),  # noqa for pycodestyle.
@@ -383,7 +383,7 @@ def main():
         if not create_virtual_environment(venv_path):
             return 1
     else:
-        print(f"Virtual environment active at '{venv_path}'.\n")
+        print(f"Virtual environment already active at '{venv_path}'.")
 
     # The virtual environment is guaranteed to work from this point on.
 
