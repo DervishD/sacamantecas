@@ -93,6 +93,113 @@ def get_venv_path(gitignore):
     return venv_path
 
 
+#########################################################################################################
+#                                                                                                       #
+#                                                                                                       #
+#    d8b                                    d8b      888                                      888       #
+#    88P                                    88P      888                                      888       #
+#    8P                                     8P       888                                      888       #
+#    "  888  888  .d88b.  88888b.  888  888 "        888888  8888b.  888d888 .d88b.   .d88b.  888888    #
+#       888  888 d8P  Y8b 888 "88b 888  888          888        "88b 888P"  d88P"88b d8P  Y8b 888       #
+#       Y88  88P 88888888 888  888 Y88  88P          888    .d888888 888    888  888 88888888 888       #
+#        Y8bd8P  Y8b.     888  888  Y8bd8P           Y88b.  888  888 888    Y88b 888 Y8b.     Y88b.     #
+#         Y88P    "Y8888  888  888   Y88P             "Y888 "Y888888 888     "Y88888  "Y8888   "Y888    #
+#                                                                                888                    #
+#                                                                           Y8b d88P                    #
+#                                                                            "Y88P"                     #
+#                                                                                                       #
+#                                                                                                       #
+#########################################################################################################
+def create_virtual_environment(venv_path):
+    """Create virtual environment."""
+    print(f"Creating virtual environment at '{venv_path}'.")
+    if not venv_path.exists():
+        with open(os.devnull, 'w', encoding='utf-8') as devnull:
+            # Save a reference for the original stdout so it can be restored later.
+            duplicated_stdout_fileno = os.dup(1)
+
+            # Flush buffers, because os.dup2() is not aware of them.
+            sys.stdout.flush()
+            # Point file descriptor 1 to devnull to silent general output.
+            os.dup2(devnull.fileno(), 1)
+
+            # The normal output for the calls below is suppressed.
+            # Error output is not.
+            venv.create(venv_path, with_pip=True, upgrade_deps=True)
+
+            # Flush buffers, because os.dup2() is not aware of them.
+            sys.stdout.flush()
+            # Restore file descriptor 1 to its original output.
+            os.dup2(duplicated_stdout_fileno, 1)
+
+    # The virtual environment does not really need to be activated, because the
+    # commands that will be run will be the ones INSIDE the virtual environment.
+    #
+    # So, the only other thing that is MAYBE needed it setting the 'VIRTUAL_ENV'
+    # environment variable so the launched programs can detect they are really
+    # running inside a virtual environment. Apparently this is not essential,
+    # but it is easy to do and will not do any harm.
+    os.environ['VIRTUAL_ENV'] = str(venv_path.resolve())
+
+    try:
+        run_command((venv_path / 'Scripts' / 'pip.exe', 'install', '-r', venv_path.parent / 'requirements.txt'))
+    except CalledProcessError as exc:
+        error(f'creating virtual environment.\npip: {exc.stderr}.')
+        return False
+
+    print('Virtual environment created successfully.')
+    return True
+
+
+##############################################################################################
+#                                                                                            #
+#                                                                                            #
+#    d8b                         d8b      888                                      888       #
+#    88P                         88P      888                                      888       #
+#    8P                          8P       888                                      888       #
+#    "  .d88b.  888  888  .d88b. "        888888  8888b.  888d888 .d88b.   .d88b.  888888    #
+#      d8P  Y8b `Y8bd8P' d8P  Y8b         888        "88b 888P"  d88P"88b d8P  Y8b 888       #
+#      88888888   X88K   88888888         888    .d888888 888    888  888 88888888 888       #
+#      Y8b.     .d8""8b. Y8b.             Y88b.  888  888 888    Y88b 888 Y8b.     Y88b.     #
+#       "Y8888  888  888  "Y8888           "Y888 "Y888888 888     "Y88888  "Y8888   "Y888    #
+#                                                                     888                    #
+#                                                                Y8b d88P                    #
+#                                                                 "Y88P"                     #
+#                                                                                            #
+#                                                                                            #
+##############################################################################################
+def build_frozen_executable(venv_path, program_path, bundle_path):
+    """Build frozen executable."""
+    print('\nBuilding frozen executable.')
+    pyinstaller_path = venv_path / 'Scripts' / 'pyinstaller.exe'
+    build_path = venv_path / 'build'
+    dist_path = venv_path / 'dist'
+    executable = dist_path / program_path.with_suffix('.exe').name
+
+    if executable.exists():
+        # Remove executable produced by previous runs.
+        os.remove(executable)
+
+    cmd = [pyinstaller_path]
+    cmd.append('--log-level=WARN')
+    cmd.extend([f'--workpath={build_path}', f'--specpath={build_path}', f'--distpath={dist_path}'])
+    cmd.extend(['--onefile', program_path])
+    try:
+        run_command(cmd)
+    except CalledProcessError as exc:
+        error(f'creating executable.\n{exc.stderr}.')
+        return False
+
+    # Executable was created, so create ZIP bundle.
+    print(f"Creating ZIP bundle '{bundle_path}'.")
+    with ZipFile(bundle_path, 'w', compression=ZIP_DEFLATED, compresslevel=9) as bundle:
+        inifile = program_path.with_suffix('.ini')
+        bundle.write(executable, executable.name)
+        bundle.write(inifile, inifile.name)
+    print('Frozen executable built successfully.')
+    return True
+
+
 #####################################################################################################
 #                                                                                                   #
 #                                                                                                   #
@@ -227,113 +334,6 @@ def run_unit_tests(venv_path, program_path):
             sys.stdout.writelines((f'  *** {test.reason[0]}',) + tuple(f'  {line}' for line in test.reason[1:]))
     os.chdir(previous_working_directory)
     return some_test_failed
-
-
-#########################################################################################################
-#                                                                                                       #
-#                                                                                                       #
-#    d8b                                    d8b      888                                      888       #
-#    88P                                    88P      888                                      888       #
-#    8P                                     8P       888                                      888       #
-#    "  888  888  .d88b.  88888b.  888  888 "        888888  8888b.  888d888 .d88b.   .d88b.  888888    #
-#       888  888 d8P  Y8b 888 "88b 888  888          888        "88b 888P"  d88P"88b d8P  Y8b 888       #
-#       Y88  88P 88888888 888  888 Y88  88P          888    .d888888 888    888  888 88888888 888       #
-#        Y8bd8P  Y8b.     888  888  Y8bd8P           Y88b.  888  888 888    Y88b 888 Y8b.     Y88b.     #
-#         Y88P    "Y8888  888  888   Y88P             "Y888 "Y888888 888     "Y88888  "Y8888   "Y888    #
-#                                                                                888                    #
-#                                                                           Y8b d88P                    #
-#                                                                            "Y88P"                     #
-#                                                                                                       #
-#                                                                                                       #
-#########################################################################################################
-def create_virtual_environment(venv_path):
-    """Create virtual environment."""
-    print(f"Creating virtual environment at '{venv_path}'.")
-    if not venv_path.exists():
-        with open(os.devnull, 'w', encoding='utf-8') as devnull:
-            # Save a reference for the original stdout so it can be restored later.
-            duplicated_stdout_fileno = os.dup(1)
-
-            # Flush buffers, because os.dup2() is not aware of them.
-            sys.stdout.flush()
-            # Point file descriptor 1 to devnull to silent general output.
-            os.dup2(devnull.fileno(), 1)
-
-            # The normal output for the calls below is suppressed.
-            # Error output is not.
-            venv.create(venv_path, with_pip=True, upgrade_deps=True)
-
-            # Flush buffers, because os.dup2() is not aware of them.
-            sys.stdout.flush()
-            # Restore file descriptor 1 to its original output.
-            os.dup2(duplicated_stdout_fileno, 1)
-
-    # The virtual environment does not really need to be activated, because the
-    # commands that will be run will be the ones INSIDE the virtual environment.
-    #
-    # So, the only other thing that is MAYBE needed it setting the 'VIRTUAL_ENV'
-    # environment variable so the launched programs can detect they are really
-    # running inside a virtual environment. Apparently this is not essential,
-    # but it is easy to do and will not do any harm.
-    os.environ['VIRTUAL_ENV'] = str(venv_path.resolve())
-
-    try:
-        run_command((venv_path / 'Scripts' / 'pip.exe', 'install', '-r', venv_path.parent / 'requirements.txt'))
-    except CalledProcessError as exc:
-        error(f'creating virtual environment.\npip: {exc.stderr}.')
-        return False
-
-    print('Virtual environment created successfully.')
-    return True
-
-
-##############################################################################################
-#                                                                                            #
-#                                                                                            #
-#    d8b                         d8b      888                                      888       #
-#    88P                         88P      888                                      888       #
-#    8P                          8P       888                                      888       #
-#    "  .d88b.  888  888  .d88b. "        888888  8888b.  888d888 .d88b.   .d88b.  888888    #
-#      d8P  Y8b `Y8bd8P' d8P  Y8b         888        "88b 888P"  d88P"88b d8P  Y8b 888       #
-#      88888888   X88K   88888888         888    .d888888 888    888  888 88888888 888       #
-#      Y8b.     .d8""8b. Y8b.             Y88b.  888  888 888    Y88b 888 Y8b.     Y88b.     #
-#       "Y8888  888  888  "Y8888           "Y888 "Y888888 888     "Y88888  "Y8888   "Y888    #
-#                                                                     888                    #
-#                                                                Y8b d88P                    #
-#                                                                 "Y88P"                     #
-#                                                                                            #
-#                                                                                            #
-##############################################################################################
-def build_frozen_executable(venv_path, program_path, bundle_path):
-    """Build frozen executable."""
-    print('\nBuilding frozen executable.')
-    pyinstaller_path = venv_path / 'Scripts' / 'pyinstaller.exe'
-    build_path = venv_path / 'build'
-    dist_path = venv_path / 'dist'
-    executable = dist_path / program_path.with_suffix('.exe').name
-
-    if executable.exists():
-        # Remove executable produced by previous runs.
-        os.remove(executable)
-
-    cmd = [pyinstaller_path]
-    cmd.append('--log-level=WARN')
-    cmd.extend([f'--workpath={build_path}', f'--specpath={build_path}', f'--distpath={dist_path}'])
-    cmd.extend(['--onefile', program_path])
-    try:
-        run_command(cmd)
-    except CalledProcessError as exc:
-        error(f'creating executable.\n{exc.stderr}.')
-        return False
-
-    # Executable was created, so create ZIP bundle.
-    print(f"Creating ZIP bundle '{bundle_path}'.")
-    with ZipFile(bundle_path, 'w', compression=ZIP_DEFLATED, compresslevel=9) as bundle:
-        inifile = program_path.with_suffix('.ini')
-        bundle.write(executable, executable.name)
-        bundle.write(inifile, inifile.name)
-    print('Frozen executable built successfully.')
-    return True
 
 
 ###########################################################
