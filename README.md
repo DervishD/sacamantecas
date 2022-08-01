@@ -17,8 +17,13 @@ output file will be another text file containing the retrieved metadata for each
 entry.
 
 - a list of Manteca URIs provided as command line arguments. In this case the
-metadata is directly written to the console (it can be redirected and written
-into a text file if desired.)
+metadata is directly written to the console and dumped to an output file.
+
+In addition to this, if any of the sources is prepended with the fake URI scheme
+`dump://`, then the contents are not processed, but dumped to files so they can
+be used as testing sources in the future.
+
+A Manteca can be ANY kind of URI scheme supported by `urllib`.
 
 The Mantecas are processed according to profiles, which indicate how to properly
 process the retrieved contents from the URIs, depending on the bibliographic
