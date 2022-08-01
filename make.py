@@ -44,10 +44,12 @@ from zipfile import ZipFile, ZIP_DEFLATED
 #################################################################################
 def error(message):
     """Pretty-print 'message' to sys.stderr."""
-    message = message.splitlines()
-    message[0] = f'*** Error {message[0]}\n'
-    message[1:] = [f'    {line}\n' for line in message[1:]]
-    sys.stderr.writelines(message)
+    lines = message.splitlines()
+    lines[0] = f'*** Error {lines[0]}\n'
+    lines[1:] = [f'    {line}\n' for line in lines[1:]]
+    sys.stderr.writelines(lines)
+    if message.endswith('\n'):
+        sys.stderr.write('\n')
     sys.stderr.flush()
 
 
