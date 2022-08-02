@@ -11,6 +11,7 @@ import os
 import re
 import io
 import venv
+import inspect
 from types import SimpleNamespace
 from subprocess import run, CalledProcessError
 from pathlib import Path
@@ -98,6 +99,76 @@ def get_venv_path():
     return venv_path
 
 
+def process_argv():
+    """
+    Process command line arguments.
+
+    Check that there is just ONE target provided and that is is valid.
+
+    Return the target, a tuple containing the canonical name and the handler.
+    """
+    error_message = None
+    if len(sys.argv) > 2:  # Too many targets provided.
+        error_message = f'too many targets provided {*sys.argv[1:],}'
+
+    if len(sys.argv) < 2:  # No target provided.
+        error_message = 'no target provided'
+
+    if len(sys.argv) == 2:  # Single target provided, check if it is valid.
+        target = sys.argv[1]
+        found_targets = []
+        for possible_target in CONFIG.targets:
+            if possible_target[0].startswith(target):
+                found_targets.append(possible_target)
+        if not found_targets:
+            error_message = f"target '{target}' does not exist"
+        if len(found_targets) > 1:
+            error_message = f"target '{target}' is ambiguous, can be {*found_targets,}"
+        target = found_targets[0]
+
+    if error_message:  # Some problem with command line, signal the error and show usage.
+        error(f'in command line, {error_message}.\n')
+        print_usage()
+        return None
+
+    # Single target provided, return it.
+    return target
+
+
+def print_usage():
+    """Print the usage instructions to stdout."""
+    valid_targets = [target[0] for target in CONFIG.targets]
+    print(f'Usage: python {Path(__file__).name} ({" | ".join(valid_targets)})\n')
+    maxlen = len(max(valid_targets, key=len)) + 2
+    for target in CONFIG.targets:
+        print(f'  {target[0]:{maxlen}} {target[1].__doc__}')
+    print()
+    print('Target names can be abbreviated.')
+
+
+####################################################################################################
+#                                                                                                  #
+#                                                                                                  #
+#    d8b 888               888         d8b      888                                      888       #
+#    88P 888               888         88P      888                                      888       #
+#    8P  888               888         8P       888                                      888       #
+#    "   88888b.   .d88b.  888 88888b. "        888888  8888b.  888d888 .d88b.   .d88b.  888888    #
+#        888 "88b d8P  Y8b 888 888 "88b         888        "88b 888P"  d88P"88b d8P  Y8b 888       #
+#        888  888 88888888 888 888  888         888    .d888888 888    888  888 88888888 888       #
+#        888  888 Y8b.     888 888 d88P         Y88b.  888  888 888    Y88b 888 Y8b.     Y88b.     #
+#        888  888  "Y8888  888 88888P"           "Y888 "Y888888 888     "Y88888  "Y8888   "Y888    #
+#                              888                                          888                    #
+#                              888                                     Y8b d88P                    #
+#                              888                                      "Y88P"                     #
+#                                                                                                  #
+#                                                                                                  #
+####################################################################################################
+def target_help():  # pylint: disable=unused-variable
+    """Show this help."""
+    # Cannot be simpler than that…
+    print_usage()
+
+
 #########################################################################################################
 #                                                                                                       #
 #                                                                                                       #
@@ -115,7 +186,7 @@ def get_venv_path():
 #                                                                                                       #
 #                                                                                                       #
 #########################################################################################################
-def create_virtual_environment():
+def target_venv():
     """Create virtual environment."""
     # First, check if virtual environment is already active.
     #
@@ -123,7 +194,6 @@ def create_virtual_environment():
     # By itself, this is good enough proof that the virtual environment has been
     # activated, but it does NOT check if it has been properly set up, like if
     # all needed packages have been correctly installed or not.
-
     if 'VIRTUAL_ENV' in os.environ:
         print(f"Virtual environment already active at '{CONFIG.venv_path}'.")
         return True
@@ -184,8 +254,8 @@ def create_virtual_environment():
 #                                                                                            #
 #                                                                                            #
 ##############################################################################################
-def build_frozen_executable():
-    """Build frozen executable."""
+def target_executable():  # pylint: disable=unused-variable
+    """Build and bundle frozen executable."""
     print('Building frozen executable.')
     pyinstaller_path = CONFIG.venv_path / 'Scripts' / 'pyinstaller.exe'
     build_path = CONFIG.venv_path / 'build'
@@ -248,7 +318,7 @@ class TestBase():
         """
         Run the test.
 
-        Returns True if the test passed, False if it failed.
+        Return True if the test passed, False if it failed.
 
         If a test fails, details are in 'self.reason', a tuple of lines.
         """
@@ -321,7 +391,7 @@ class TestXls(TestBase):
         return (olines, rlines)
 
 
-def run_unit_tests():
+def target_test():  # pylint: disable=unused-variable
     """Run the automated unit test suite."""
     print('Running unit tests.')
     tests = (
@@ -373,6 +443,8 @@ def main():
     CONFIG.root_path = Path(__file__).parent  # Full path of root directory for finding and accessing files.
     CONFIG.program_path = Path(__file__).with_stem(Path(__file__).parent.stem)
     CONFIG.venv_path = get_venv_path()
+    if CONFIG.venv_path is None:  # Exit early if venv_path could not be determined.
+        return 1
 
     # Get the program version directly from the program's source file.
     with open(CONFIG.program_path, encoding='utf-8') as program:
@@ -381,40 +453,35 @@ def main():
                 CONFIG.program_version = line.strip().split(' = ')[1].strip("'")
                 break
 
-    print(f'Making {program_path.stem} {program_version}\n')
+    # Get list of targets.
+    CONFIG.targets = inspect.getmembers(sys.modules['__main__'], inspect.isfunction)
+    CONFIG.targets = [(target, inspect.getsourcelines(target[1])[1]) for target in CONFIG.targets]
+    CONFIG.targets = [target[0] for target in sorted(CONFIG.targets, key=lambda target: target[1])]
+    CONFIG.targets = filter(lambda t: t[0].startswith('target_'), CONFIG.targets)
+    CONFIG.targets = map(lambda t: (t[0].removeprefix('target_'), t[1]), CONFIG.targets)
+    CONFIG.targets = list(CONFIG.targets)
 
-    # No matter the operation (the 'make target'), the first thing to check is
-    # if the virtual environment is active. If the virtual environment is not
-    # active it will be activated, if it does not exist it has to be created.
-    if (venv_path := get_venv_path(program_path.parent / '.gitignore')) is None:
+    # Get the provided target, if any.
+    target = process_argv()
+    if target is None:  # No valid target, exit.
         return 1
 
-    # Check if virtual environment is active.
-    #
-    # This is done by checking if the 'VIRTUAL_ENV' environment variable is set.
-    # By itself, this is good enough proof that the virtual environment has been
-    # activated, but it does NOT check if it has been properly set up, like if
-    # all needed packages have been correctly installed or not.
-    if 'VIRTUAL_ENV' not in os.environ:
-        # Create virtual environment.
-        if not create_virtual_environment(venv_path):
-            return 1
-    else:
-        print(f"Virtual environment already active at '{venv_path}'.")
+    print(f'Making {CONFIG.program_path.stem} {CONFIG.program_version}\n')
+
+    # No matter the target, the first thing to do is creating (if it does not
+    # exist) or activate (if it exists) the virtual environment. This is done by
+    # ALWAYS running the 'venv' target.
+    if not target_venv():
+        return 1
+
+    if target[0] == 'venv':
+        # The only operation required by the user was creating/activating the
+        # virtual environment, so everything is done.
+        return 0
 
     # The virtual environment is guaranteed to work from this point on.
-
-    if len(sys.argv) >= 2:
-        match sys.argv[1].lower():
-            case ('v' | 'venv'):  # Create virtual environment (already done.)
-                # If virtual environment creation and activation was the
-                # requested operation, then everything is done, just pass.
-                pass
-            case ('e' | 'exe'):  # Build the frozen executable.
-                bundle_path = venv_path.parent / f'{program_path.stem}_{program_version}.zip'
-                return not build_frozen_executable(venv_path, program_path, bundle_path)
-            case ('t' | 'test'):  # Run automated unit tests suite.
-                return not run_unit_tests(venv_path, program_path)
+    # Run the required target.
+    target[1]()
 
     return 0
 
