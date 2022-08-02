@@ -11,10 +11,14 @@ import os
 import re
 import io
 import venv
+from types import SimpleNamespace
 from subprocess import run, CalledProcessError
 from pathlib import Path
 from difflib import unified_diff
 from zipfile import ZipFile, ZIP_DEFLATED
+
+
+CONFIG = SimpleNamespace()  # Global configuration object.
 
 
 #################################################################################
@@ -61,7 +65,7 @@ def run_command(command):
         raise CalledProcessError(0, command, None, f"Command '{command[0]}' not found.\n") from exc
 
 
-def get_venv_path(gitignore):
+def get_venv_path():
     """
     Get the virtual environment path for this project.
     IT HAS TO BE THE FIRST LINE IN THE 'gitignore' FILE.
@@ -70,8 +74,8 @@ def get_venv_path(gitignore):
     venv_path = None
     message = None
     try:
-        with open(gitignore, encoding='utf-8') as gitignoref:
-            venv_path = gitignoref.readline().strip()
+        with open(CONFIG.root_path / '.gitignore', encoding='utf-8') as gitignore:
+            venv_path = gitignore.readline().strip()
             if 'venv' not in venv_path:
                 venv_path = None
     except FileNotFoundError:
@@ -82,9 +86,8 @@ def get_venv_path(gitignore):
         if venv_path is None:
             message = '.gitignore does not contain a virtual environment path'
         else:
-            # The virtual environment path is relative, by definition, to the
-            # directory where the .gitignore file resides.
-            venv_path = gitignore.parent / venv_path
+            # The virtual environment path is relative to the 'root_path'.
+            venv_path = CONFIG.root_path / venv_path
             if venv_path.exists() and not venv_path.is_dir():
                 message = 'Virtual environment path exists but it is not a directory'
 
@@ -112,10 +115,21 @@ def get_venv_path(gitignore):
 #                                                                                                       #
 #                                                                                                       #
 #########################################################################################################
-def create_virtual_environment(venv_path):
+def create_virtual_environment():
     """Create virtual environment."""
-    print(f"Creating virtual environment at '{venv_path}'.")
-    if not venv_path.exists():
+    # First, check if virtual environment is already active.
+    #
+    # This is done by checking if the 'VIRTUAL_ENV' environment variable is set.
+    # By itself, this is good enough proof that the virtual environment has been
+    # activated, but it does NOT check if it has been properly set up, like if
+    # all needed packages have been correctly installed or not.
+
+    if 'VIRTUAL_ENV' in os.environ:
+        print(f"Virtual environment already active at '{CONFIG.venv_path}'.")
+        return True
+
+    print(f"Creating virtual environment at '{CONFIG.venv_path}'.")
+    if not CONFIG.venv_path.exists():
         with open(os.devnull, 'w', encoding='utf-8') as devnull:
             # Save a reference for the original stdout so it can be restored later.
             duplicated_stdout_fileno = os.dup(1)
@@ -127,7 +141,7 @@ def create_virtual_environment(venv_path):
 
             # The normal output for the calls below is suppressed.
             # Error output is not.
-            venv.create(venv_path, with_pip=True, upgrade_deps=True)
+            venv.create(CONFIG.venv_path, with_pip=True, upgrade_deps=True)
 
             # Flush buffers, because os.dup2() is not aware of them.
             sys.stdout.flush()
@@ -141,10 +155,10 @@ def create_virtual_environment(venv_path):
     # environment variable so the launched programs can detect they are really
     # running inside a virtual environment. Apparently this is not essential,
     # but it is easy to do and will not do any harm.
-    os.environ['VIRTUAL_ENV'] = str(venv_path.resolve())
+    os.environ['VIRTUAL_ENV'] = str(CONFIG.venv_path.resolve())
 
     try:
-        run_command((venv_path / 'Scripts' / 'pip.exe', 'install', '-r', venv_path.parent / 'requirements.txt'))
+        run_command((CONFIG.venv_path / 'Scripts' / 'pip.exe', 'install', '-r', CONFIG.root_path / 'requirements.txt'))
     except CalledProcessError as exc:
         error(f'creating virtual environment.\npip: {exc.stderr}.')
         return False
@@ -170,13 +184,14 @@ def create_virtual_environment(venv_path):
 #                                                                                            #
 #                                                                                            #
 ##############################################################################################
-def build_frozen_executable(venv_path, program_path, bundle_path):
+def build_frozen_executable():
     """Build frozen executable."""
     print('Building frozen executable.')
-    pyinstaller_path = venv_path / 'Scripts' / 'pyinstaller.exe'
-    build_path = venv_path / 'build'
-    dist_path = venv_path / 'dist'
-    executable = dist_path / program_path.with_suffix('.exe').name
+    pyinstaller_path = CONFIG.venv_path / 'Scripts' / 'pyinstaller.exe'
+    build_path = CONFIG.venv_path / 'build'
+    dist_path = CONFIG.venv_path / 'dist'
+    executable = dist_path / CONFIG.program_path.with_suffix('.exe').name
+    bundle_path = CONFIG.root_path / f'{CONFIG.program_path.stem}_{CONFIG.program_version}.zip'
 
     if executable.exists():
         # Remove executable produced by previous runs.
@@ -185,7 +200,7 @@ def build_frozen_executable(venv_path, program_path, bundle_path):
     cmd = [pyinstaller_path]
     cmd.append('--log-level=WARN')
     cmd.extend([f'--workpath={build_path}', f'--specpath={build_path}', f'--distpath={dist_path}'])
-    cmd.extend(['--onefile', program_path])
+    cmd.extend(['--onefile', CONFIG.program_path])
     try:
         run_command(cmd)
     except CalledProcessError as exc:
@@ -195,7 +210,7 @@ def build_frozen_executable(venv_path, program_path, bundle_path):
     # Executable was created, so create ZIP bundle.
     print(f"Creating ZIP bundle '{bundle_path}'.")
     with ZipFile(bundle_path, 'w', compression=ZIP_DEFLATED, compresslevel=9) as bundle:
-        inifile = program_path.with_suffix('.ini')
+        inifile = CONFIG.program_path.with_suffix('.ini')
         bundle.write(executable, executable.name)
         bundle.write(inifile, inifile.name)
     print('Frozen executable built successfully.')
@@ -306,7 +321,7 @@ class TestXls(TestBase):
         return (olines, rlines)
 
 
-def run_unit_tests(venv_path, program_path):
+def run_unit_tests():
     """Run the automated unit test suite."""
     print('Running unit tests.')
     tests = (
@@ -319,7 +334,7 @@ def run_unit_tests(venv_path, program_path):
         TestTxt('text input with http URIs (potentially slow)', 'network.txt'),
         TestXls('xlsx input with http URIs (potentially slow)', 'network.xlsx'),
     )
-    command = (venv_path / 'Scripts' / 'python.exe', program_path)
+    command = (CONFIG.venv_path / 'Scripts' / 'python.exe', CONFIG.program_path)
 
     # Get into 'tests' directory.
     previous_working_directory = os.getcwd()
@@ -354,16 +369,16 @@ def run_unit_tests(venv_path, program_path):
 ###########################################################
 def main():
     """."""
+    # Set up global configuration.
+    CONFIG.root_path = Path(__file__).parent  # Full path of root directory for finding and accessing files.
+    CONFIG.program_path = Path(__file__).with_stem(Path(__file__).parent.stem)
+    CONFIG.venv_path = get_venv_path()
 
-    # Get path for the main program to be made, not this script.
-    program_path = Path(__file__)
-    program_path = program_path.with_stem(program_path.parent.stem)
-
-    # Get the program version directly from the source file at PROGRAM_PATH.
-    with open(program_path, encoding='utf-8') as program:
+    # Get the program version directly from the program's source file.
+    with open(CONFIG.program_path, encoding='utf-8') as program:
         for line in program.readlines():
             if line.startswith('__version__'):
-                program_version = line.strip().split(' = ')[1].strip("'")
+                CONFIG.program_version = line.strip().split(' = ')[1].strip("'")
                 break
 
     print(f'Making {program_path.stem} {program_version}\n')
