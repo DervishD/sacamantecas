@@ -34,7 +34,7 @@ itself and resides in the configuration file (sacamantecas.ini).
 """
 
 # Current version…
-__version__ = 'v4.1'
+__version__ = 'v4.2'
 
 # Imports
 import configparser
