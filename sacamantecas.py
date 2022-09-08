@@ -54,7 +54,7 @@ import time
 import platform
 from html.parser import HTMLParser
 from msvcrt import getch, get_osfhandle
-from ctypes import WinDLL, byref, c_uint
+from ctypes import WinDLL, byref, c_uint, create_unicode_buffer, wintypes
 from zipfile import BadZipFile
 from openpyxl import load_workbook
 from openpyxl.styles import Font, PatternFill
@@ -96,14 +96,56 @@ FAILURE = False
 sys.stdout.reconfigure(encoding='utf-8')
 sys.stderr.reconfigure(encoding='utf-8')
 
-# Wait for a keypress on program exit, but only if sys.stdout is a real console.
+
+# Wait for a keypress on program exit.
 #
-# Since sys.stdout.isatty() returns True under Windows when sys.stdout is
-# redirected to NUL, another, more complicated method, is needed here.
-#
-# The oneliner below has been adapted from https://stackoverflow.com/a/33168697
-if WinDLL('kernel32').GetConsoleMode(get_osfhandle(sys.stdout.fileno()), byref(c_uint())):
-    atexit.register(lambda: (print('\nPulse cualquier tecla para continuar...', end='', flush=True), getch()))
+# Only waits if sys.stdout is a real console AND the console is transient.
+def wait_for_keypress():
+    """Wait for a keypress to continue, under certain circumstances."""
+    # If no console is attached, then the program must NOT pause.
+    #
+    # Since sys.stdout.isatty() returns True under Windows when sys.stdout is
+    # redirected to NUL, another, more complicated method, is needed here.
+    # The test below has been adapted from https://stackoverflow.com/a/33168697
+    if not WinDLL('kernel32').GetConsoleMode(get_osfhandle(sys.stdout.fileno()), byref(c_uint())):
+        # No console present, so don't wait for a keypress.
+        return
+
+    # If there is a console attached, the program must pause ONLY if that
+    # console will automatically close when the program finishes, hiding any
+    # messages printed by the program. In other words, pause only if the
+    # console is transient.
+    #
+    # Determining if a console is transient is not easy as there is no
+    # bulletproof method available for every possible circumstance.
+    #
+    # There are TWO main scenarios: a frozen executable and a .py file.
+    # In both cases, the console title has to be obtained.
+    buffer_size = wintypes.MAX_PATH + 1
+    console_title = create_unicode_buffer(buffer_size)
+    if not WinDLL('kernel32').GetConsoleTitleW(console_title, buffer_size):
+        # A console title has not NOT been obtained, it is better not to pause.
+        return
+    console_title = console_title.value
+
+    # If the console is not transient, return, do not pause.
+    #
+    # For a frozen executable, it is more or less easy: if the console title
+    # is not equal to sys.executable, then the console is NOT transient.
+    #
+    # For a .py file, it's a bit more complex, but in most cases if the console
+    # title ends with the name of the .py file, the console is NOT transient.
+    if getattr(sys, 'frozen', False):
+        if console_title != sys.executable:
+            return
+    elif console_title.endswith(PROGRAM_PATH.name):
+        return
+
+    print('\nPulse cualquier tecla para continuar...', end='', flush=True)
+    getch()
+
+
+atexit.register(wait_for_keypress)
 
 
 # Helper for pretty-printing error messages to stderr and the debug logfile.
