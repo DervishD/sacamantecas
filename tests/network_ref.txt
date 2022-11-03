@@ -34,8 +34,9 @@
     Numeración: Suspendida entre el 9 ag. y el 30 nov. de 1932; entre el 20 jul. 1936 y el 28 marzo 1939 y se publica en su lugar: ABC: diario republicano de izquierdas.
     Índices: Indice mensual a partir de 1983.
     N. al tit. y men. res.: Variaciones en el subtit. -- Variaciones en el formato-- Publica ed. de la noche y ed. semanal aérea a partir de 1951.-
+    ISSN: 1136-0143
     Materias: Información general-Periódicos-Publicaciones periódicas
-    Es suplemento: Gente Menuda; Los Domingos de A B C; A B C: Doble Diario de la Guerra Civil; Blanco y Negro; ABC cultural; Blanco y Negro mujer; Suplemento Semanal continuado por: XL Semanal / Mujer Hoy / Mujer Hoy Moda / Alfa y omega / XL semanal ABC (Madrid. 2005) / ABC Cultural / Corazón tve / Plan B / La Segunda Guerra Mundial (Madrid. 1989) / La Mujer y la casa (Madrid. 1906)
+    Es suplemento: Gente Menuda; Los Domingos de A B C; Blanco y Negro; ABC cultural; Blanco y Negro mujer; Suplemento Semanal continuado por: XL Semanal / A B C: doble diario de la Guerra Civil / Mujer Hoy / Mujer Hoy Moda / Alfa y omega / XL semanal ABC (Madrid. 2005) / ABC Cultural / Corazón tve / Plan B / La Segunda Guerra Mundial (Madrid. 1989) / La Mujer y la casa (Madrid. 1906) / ABC: informática / (Madrid. 1996) ISSN 1136-5684
     Otra edición: ABC (Madrid. 1950. Ed. especial aérea) / . ISSN 1136-0194 / ABC (Madrid. 1981. Ed. Internacional) / . ISSN 1136-0232
     Absorbió a: Ecos (Madrid. 1912) / ISSN 1889-8742
     Colecciones: 1903-2021
@@ -176,7 +177,7 @@
     Signatura: AVM SEC - 2 - 158 - 20
     Condiciones de acceso: Libre
     Bibliografia: Edit. Millares Carlo, A. y Varela Hervias, E. Documentos del Archivo de Villa de Madrid. Segunda Serie. Madrid; Ayuntamiento, 1932. 2 vol. I, p.17-20.
-    Notas de descripción: Original / 225x315 milímetros / Letra gótica / Sello de placa al dorso
+    Notas de descripción: Original 225x315 milímetros Letra gótica Sello de placa al dorso
     Personas: Juan II (1405-1454, rey de Castilla)
     Materias: PROVISIONES DE CHANCILLERÍA
     Lugares: Illescas (Toledo, España)
@@ -188,7 +189,7 @@
     Signatura: AVM SEC - 2 - 158 - 21
     Condiciones de acceso: Libre
     Bibliografia: Edit. Millares Carlo, A. y Varela Hervias, E. Documentos del Archivo de Villa de Madrid. Segunda Serie. Madrid; Ayuntamiento, 1932. 2 vol. II, p. 39-40
-    Notas de descripción: Original / Letra gótica. / 185 x 335 milímetros / Huella de sello de placa
+    Notas de descripción: Original Letra gótica. 185 x 335 milímetros Huella de sello de placa
     Materias: PROVISIONES === REGIDORES === ALGUACILES
     Lugares: Illescas (Toledo, España)
     Instituciones: Alcalde
@@ -199,7 +200,7 @@
     Signatura: AVM SEC - 2 - 91 - 15
     Condiciones de acceso: Libre
     Bibliografia: Edit. Millares Carlo, A. y Varela Hervias, E. Documentos del Archivo de Villa de Madrid. Segunda serie. Madrid; Ayuntamiento, 1932. 2 vol. II, p. 41-43 ; En: Revista de la Biblioteca Archivo y Museo de Madrid. IX y X (1981), p. 206-208
-    Notas de descripción: Original / letra gótica. / 200 x 340 milímetros / Sello de placa al dorso.
+    Notas de descripción: Original letra gótica. 200 x 340 milímetros Sello de placa al dorso.
     Personas: Rodriguez de Neira, Gonzalo (ca. 1414)
     Materias: PROVISIONES === PANES
     Lugares: Illescas (Toledo, España) === Madrid (España)
