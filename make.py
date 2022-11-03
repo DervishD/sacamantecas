@@ -22,6 +22,12 @@ from zipfile import ZipFile, ZIP_DEFLATED
 CONFIG = SimpleNamespace()  # Global configuration object.
 
 
+# Reconfigure standard output streams so they use UTF-8 encoding even if they
+# are redirected to a file when running the program from a shell.
+sys.stdout.reconfigure(encoding='utf-8')
+sys.stderr.reconfigure(encoding='utf-8')
+
+
 def error(message):
     """Pretty-print 'message' to sys.stderr."""
     lines = message.splitlines()
