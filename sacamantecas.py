@@ -665,9 +665,10 @@ def setup_logging():
             """Format multiline records so they look like multiple records."""
             message = super().format(record)  # Default formatting first.
 
-            if record.message.strip() == '':  # Should not happen, ever, but…
-                # Ignore empty messages.
-                return ''
+            # For empty messages return the message as-is, but stripped.
+            if record.message.strip() == '':
+                return message.strip()
+
             # Get the preamble so it can be reproduced on each line.
             preamble = message.split(record.message)[0]
             # Return cleaned message: no multiple newlines, no trailing spaces,
