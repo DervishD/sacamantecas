@@ -19,11 +19,11 @@ from difflib import unified_diff
 from zipfile import ZipFile, ZIP_DEFLATED
 
 
-CONFIG = SimpleNamespace()  # Global configuration object.
+CONFIG = SimpleNamespace()
 
 
-# Reconfigure standard output streams so they use UTF-8 encoding even if they
-# are redirected to a file when running the program from a shell.
+# Reconfigure standard output streams so they use UTF-8 encoding, no matter if
+# they are redirected to a file when running the program from a shell.
 sys.stdout.reconfigure(encoding='utf-8')
 sys.stderr.reconfigure(encoding='utf-8')
 
@@ -68,7 +68,6 @@ def get_venv_path():
         if venv_path is None:
             message = '.gitignore does not contain a virtual environment path'
         else:
-            # The virtual environment path is relative to the 'root_path'.
             venv_path = CONFIG.root_path / venv_path
             if venv_path.exists() and not venv_path.is_dir():
                 message = 'Virtual environment path exists but it is not a directory'
@@ -89,13 +88,13 @@ def process_argv():
     Return the target, a tuple containing the canonical name and the handler.
     """
     error_message = None
-    if len(sys.argv) > 2:  # Too many targets provided.
+    if len(sys.argv) > 2:
         error_message = f'too many targets provided {*sys.argv[1:],}'
 
-    if len(sys.argv) < 2:  # No target provided.
+    if len(sys.argv) < 2:
         error_message = 'no target provided'
 
-    if len(sys.argv) == 2:  # Single target provided, check if it is valid.
+    if len(sys.argv) == 2:
         target = sys.argv[1]
         found_targets = []
         for possible_target in CONFIG.targets:
@@ -107,7 +106,7 @@ def process_argv():
             found_targets = [target.__name__.removeprefix('target_') for target in found_targets]
             error_message = f"target '{target}' is ambiguous, can be {*found_targets,}"
 
-    if error_message:  # Some problem with command line, signal the error and show usage.
+    if error_message:
         error(f'in command line, {error_message}.\n')
         print_usage()
         return None
@@ -133,12 +132,15 @@ def target_help():  # pylint: disable=unused-variable
 
 def target_venv():
     """Create virtual environment."""
-    # First, check if virtual environment is already active.
+    # In order to check if the virtual environment is ALREADY active the
+    # environment is checked for the existence of the 'VIRTUAL_ENV' var.
     #
-    # This is done by checking if the 'VIRTUAL_ENV' environment variable is set.
-    # By itself, this is good enough proof that the virtual environment has been
-    # activated, but it does NOT check if it has been properly set up, like if
-    # all needed packages have been correctly installed or not.
+    # This is maybe not the best method, because of course there is no guarantee
+    # that the virtual environment has been correctly activated, whether it has
+    # been properly set up, if all needed packages are correctly installed…
+    #
+    # This method works well enough for the needs of this building program, and
+    # a more exhaustive check would be unnecessary complex and expensive.
     if 'VIRTUAL_ENV' in os.environ:
         print(f"Virtual environment already active at '{CONFIG.venv_path}'.")
         return True
@@ -146,22 +148,17 @@ def target_venv():
     print(f"Creating virtual environment at '{CONFIG.venv_path}'.")
     if not CONFIG.venv_path.exists():
         with open(os.devnull, 'w', encoding='utf-8') as devnull:
-            # Save a reference for the original stdout so it can be restored later.
-            duplicated_stdout_fileno = os.dup(1)
-
-            # Flush buffers, because os.dup2() is not aware of them.
+            saved_stdout = os.dup(1)
             sys.stdout.flush()
-            # Point file descriptor 1 to devnull to silent general output.
+
             os.dup2(devnull.fileno(), 1)
 
-            # The normal output for the calls below is suppressed.
+            # The normal output for the call below is suppressed.
             # Error output is not.
             venv.create(CONFIG.venv_path, with_pip=True, upgrade_deps=True)
 
-            # Flush buffers, because os.dup2() is not aware of them.
             sys.stdout.flush()
-            # Restore file descriptor 1 to its original output.
-            os.dup2(duplicated_stdout_fileno, 1)
+            os.dup2(saved_stdout, 1)
 
     # The virtual environment does not really need to be activated, because the
     # commands that will be run will be the ones INSIDE the virtual environment.
@@ -192,7 +189,6 @@ def target_executable():  # pylint: disable=unused-variable
     bundle_path = CONFIG.root_path / f'{CONFIG.program_path.stem}_{CONFIG.program_version}.zip'
 
     if executable.exists():
-        # Remove executable produced by previous runs.
         os.remove(executable)
 
     cmd = [pyinstaller_path]
@@ -217,12 +213,16 @@ def target_executable():  # pylint: disable=unused-variable
 class TestBase():
     """Base class for all tests."""
     def __init__(self, testname, testitem):
+        """
+        Initialize a test unit with name 'testname',
+        with 'testitem' as the item to be tested.
+        """
         self.testname = testname
-        self.testitem = testitem  # Item under test.
-        self.basename = Path(testitem)  # For computing needed filenames.
-        self.outfile = None  # File produced as output of the test.
-        self.reffile = None  # Reference file to check if the output file is correct or not.
-        self.reason = ()  # Reason of test failure, a tuple of lines.
+        self.testitem = testitem
+        self.basename = Path(self.testitem)
+        self.outfile = None
+        self.reffile = None
+        self.error_details = ()
 
     def run(self, command):
         """
@@ -230,32 +230,27 @@ class TestBase():
 
         Return True if the test passed, False if it failed.
 
-        If a test fails, details are in 'self.reason', a tuple of lines.
+        If a test fails, details are in 'self.error_details', a tuple of lines.
         """
         # Build the needed filenames.
         self.outfile = self.basename.with_stem(f'{self.basename.stem}_out')
         self.reffile = self.basename.with_stem(f'{self.basename.stem}_ref')
 
-        # Run the script
         try:
             run_command((*command, self.testitem))
         except CalledProcessError as exc:
-            self.reason = exc.stderr.lstrip().splitlines(keepends=True)
+            self.error_details = exc.stderr.lstrip().splitlines(keepends=True)
             return False
 
-        # Load the filename's contents to be compared.
-        # Usually redefined in derived classes.
         olines, rlines = self.readfiles()
 
-        # Get diff lines and truncate them if needed.
         diff = unified_diff(olines, rlines, 'test output', 'reference', n=1)
         diff = [line.rstrip()[:99] + '…\n' if len(line.rstrip()) > 100 else line for line in diff]
         if diff:
             diff.insert(0, 'Differences found:\n')
-            self.reason = diff
+            self.error_details = diff
             return False
 
-        # Files are identical so remove output file and return success.
         self.outfile.unlink(missing_ok=True)
         return True
 
@@ -314,13 +309,12 @@ def target_test():  # pylint: disable=unused-variable
         TestTxt('text input with http URIs (potentially slow)', 'network.txt'),
         TestXls('xlsx input with http URIs (potentially slow)', 'network.xlsx'),
     )
-    command = (CONFIG.venv_path / 'Scripts' / 'python.exe', CONFIG.program_path)
 
-    # Get into 'tests' directory.
     previous_working_directory = os.getcwd()
     os.chdir(Path('tests').resolve())
 
     some_test_failed = False
+    command = (CONFIG.venv_path / 'Scripts' / 'python.exe', CONFIG.program_path)
     for test in tests:
         print(f'Testing {test.testname} ', end='', flush=True)
         if test.run(command):
@@ -328,7 +322,8 @@ def target_test():  # pylint: disable=unused-variable
         else:
             some_test_failed = True
             print('❌')
-            sys.stdout.writelines((f'  *** {test.reason[0]}',) + tuple(f'  {line}' for line in test.reason[1:]))
+            error_details = (f'  *** {test.error_details[0]}',) + tuple(f'  {line}' for line in test.error_details[1:])
+            sys.stdout.writelines(error_details)
     os.chdir(previous_working_directory)
     return some_test_failed
 
@@ -345,17 +340,15 @@ def get_targets():
 
 def main():
     """."""
-    # Set up global configuration.
-    CONFIG.root_path = Path(__file__).parent  # Full path of root directory for finding and accessing files.
+    CONFIG.root_path = Path(__file__).parent
     CONFIG.program_path = Path(__file__).with_stem(Path(__file__).parent.stem)
 
     CONFIG.targets = get_targets()
 
     CONFIG.venv_path = get_venv_path()
-    if CONFIG.venv_path is None:  # Exit early if venv_path could not be determined.
+    if CONFIG.venv_path is None:
         return 1
 
-    # Get the program version directly from the program's source file.
     with open(CONFIG.program_path, encoding='utf-8') as program:
         for line in program.readlines():
             if line.startswith('__version__'):
@@ -371,9 +364,10 @@ def main():
 
     print(f'Making {CONFIG.program_path.stem} {CONFIG.program_version}\n')
 
-    # No matter the target, the first thing to do is creating (if it does not
-    # exist) or activate (if it exists) the virtual environment. This is done by
-    # ALWAYS running the 'venv' target.
+    # No matter the provided target, the 'venv' target is always run first.
+    # This is needed in order to create (if it does not exist) or activate
+    # (if it exists) the virtual environment, because it is needed by all
+    # other targets.
     if not target_venv():
         return 1
 
