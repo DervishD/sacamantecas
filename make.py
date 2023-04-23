@@ -99,37 +99,35 @@ def process_argv():
         target = sys.argv[1]
         found_targets = []
         for possible_target in CONFIG.targets:
-            if possible_target[0].startswith(target):
+            if possible_target.__name__.removeprefix('target_').startswith(target):
                 found_targets.append(possible_target)
         if not found_targets:
             error_message = f"target '{target}' does not exist"
         if len(found_targets) > 1:
+            found_targets = [target.__name__.removeprefix('target_') for target in found_targets]
             error_message = f"target '{target}' is ambiguous, can be {*found_targets,}"
-        target = found_targets[0]
 
     if error_message:  # Some problem with command line, signal the error and show usage.
         error(f'in command line, {error_message}.\n')
         print_usage()
         return None
 
-    # Single target provided, return it.
-    return target
+    return found_targets[0]
 
 
 def print_usage():
     """Print the usage instructions to stdout."""
-    valid_targets = [target[0] for target in CONFIG.targets]
-    print(f'Usage: python {Path(__file__).name} ({" | ".join(valid_targets)})\n')
-    maxlen = len(max(valid_targets, key=len)) + 2
-    for target in CONFIG.targets:
-        print(f'  {target[0]:{maxlen}} {target[1].__doc__}')
+    target_names = [target.__name__.removeprefix('target_') for target in CONFIG.targets]
+    print(f'Usage: python {Path(__file__).name} ({" | ".join(target_names)})\n')
+    maxlen = len(max(target_names, key=len)) + 2
+    for target_name, target in zip(target_names, CONFIG.targets):
+        print(f'  {target_name:{maxlen}} {target.__doc__}')
     print()
     print('Target names can be abbreviated.')
 
 
 def target_help():  # pylint: disable=unused-variable
     """Show this help."""
-    # Cannot be simpler than that…
     print_usage()
 
 
@@ -207,7 +205,6 @@ def target_executable():  # pylint: disable=unused-variable
         error(f'creating executable.\n{exc.stderr}.')
         return False
 
-    # Executable was created, so create ZIP bundle.
     print(f"Creating ZIP bundle '{bundle_path}'.")
     with ZipFile(bundle_path, 'w', compression=ZIP_DEFLATED, compresslevel=9) as bundle:
         inifile = CONFIG.program_path.with_suffix('.ini')
@@ -336,11 +333,24 @@ def target_test():  # pylint: disable=unused-variable
     return some_test_failed
 
 
+def get_targets():
+    """Gets the list of defined targets, as function objects, sorted by definition order."""
+    targets = inspect.getmembers(sys.modules['__main__'], inspect.isfunction)
+    targets = filter(lambda t: t[0].startswith('target_'), targets)
+    targets = [(target, inspect.getsourcelines(target[1])[1]) for target in targets]
+    targets = [target[0][1] for target in sorted(targets, key=lambda target: target[1])]
+
+    return list(targets)
+
+
 def main():
     """."""
     # Set up global configuration.
     CONFIG.root_path = Path(__file__).parent  # Full path of root directory for finding and accessing files.
     CONFIG.program_path = Path(__file__).with_stem(Path(__file__).parent.stem)
+
+    CONFIG.targets = get_targets()
+
     CONFIG.venv_path = get_venv_path()
     if CONFIG.venv_path is None:  # Exit early if venv_path could not be determined.
         return 1
@@ -352,18 +362,12 @@ def main():
                 CONFIG.program_version = line.strip().split(' = ')[1].strip("'")
                 break
 
-    # Get list of targets.
-    CONFIG.targets = inspect.getmembers(sys.modules['__main__'], inspect.isfunction)
-    CONFIG.targets = [(target, inspect.getsourcelines(target[1])[1]) for target in CONFIG.targets]
-    CONFIG.targets = [target[0] for target in sorted(CONFIG.targets, key=lambda target: target[1])]
-    CONFIG.targets = filter(lambda t: t[0].startswith('target_'), CONFIG.targets)
-    CONFIG.targets = map(lambda t: (t[0].removeprefix('target_'), t[1]), CONFIG.targets)
-    CONFIG.targets = list(CONFIG.targets)
-
-    # Get the provided target, if any.
-    target = process_argv()
-    if target is None:  # No valid target, exit.
+    if (target := process_argv()) is None:
         return 1
+
+    if target.__name__ == 'target_help':
+        target_help()
+        return 0
 
     print(f'Making {CONFIG.program_path.stem} {CONFIG.program_version}\n')
 
@@ -373,14 +377,13 @@ def main():
     if not target_venv():
         return 1
 
-    if target[0] == 'venv':
-        # The only operation required by the user was creating/activating the
-        # virtual environment, so everything is done.
+    if target.__name__ == 'target_venv':
+        # The only operation required by the user was creating/activating the virtual environment.
         return 0
 
     # The virtual environment is guaranteed to work from this point on.
-    # Run the required target.
-    target[1]()
+
+    target()
 
     return 0
 
