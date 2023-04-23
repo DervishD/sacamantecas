@@ -33,10 +33,8 @@ catalogue which is being processed. The proper profile is inferred from the URI
 itself and resides in the configuration file (sacamantecas.ini).
 """
 
-# Current version…
 __version__ = 'v4.2'
 
-# Imports
 import configparser
 import sys
 from pathlib import Path
@@ -62,9 +60,6 @@ from openpyxl.utils.exceptions import SheetTitleException, InvalidFileException
 from openpyxl.utils.cell import get_column_letter
 
 
-# sys.modules[__name__].__file__ is used to determine the program's fully
-# qualified directory and filename, so if it's not defined for some reason
-# (which may happen...) it's better to break execution here.
 try:
     if getattr(sys, 'frozen', False):
         PROGRAM_PATH = sys.executable
@@ -77,44 +72,36 @@ except NameError:
     sys.exit('Error de inicialización del programa.')
 
 
-# Check if platform is win32 or not.
 if sys.platform != 'win32':
     sys.exit(f'{PROGRAM_NAME} solo funciona en la plataforma Win32.')
 
-# Create a sane User-Agent.
 USER_AGENT = f'{PROGRAM_NAME.replace(" v", "/")} +https://github.com/DervishD/sacamantecas'
 USER_AGENT += f' (Windows {platform.version()}; {platform.architecture()[0]}; {platform.machine()})'
 
-# Prefix for 'dump mode', where input sources are dumped, not processed.
 DUMPMODE_PREFIX = 'dump://'
 
-# Failure flag, to signal that something went wrong even if execution continued.
-FAILURE = False
+SOMETHING_WENT_WRONG = False
 
-# Reconfigure standard output streams so they use UTF-8 encoding even if they
-# are redirected to a file when running the program from a shell.
+# Reconfigure standard output streams so they use UTF-8 encoding, no matter if
+# they are redirected to a file when running the program from a shell.
 sys.stdout.reconfigure(encoding='utf-8')
 sys.stderr.reconfigure(encoding='utf-8')
 
 
-# Wait for a keypress on program exit.
-#
-# Only waits if sys.stdout is a real console AND the console is transient.
 def wait_for_keypress():
-    """Wait for a keypress to continue, under certain circumstances."""
+    """Wait for a keypress to continue if sys.stdout is a real console AND the console is transient."""
     # If no console is attached, then the program must NOT pause.
     #
     # Since sys.stdout.isatty() returns True under Windows when sys.stdout is
     # redirected to NUL, another, more complicated method, is needed here.
     # The test below has been adapted from https://stackoverflow.com/a/33168697
     if not WinDLL('kernel32').GetConsoleMode(get_osfhandle(sys.stdout.fileno()), byref(c_uint())):
-        # No console present, so don't wait for a keypress.
         return
 
     # If there is a console attached, the program must pause ONLY if that
-    # console will automatically close when the program finishes, hiding any
-    # messages printed by the program. In other words, pause only if the
-    # console is transient.
+    # console will automatically close when the program finishes, hiding
+    # any messages printed by the program. In other words, pause only if
+    # the console is transient.
     #
     # Determining if a console is transient is not easy as there is no
     # bulletproof method available for every possible circumstance.
@@ -124,7 +111,6 @@ def wait_for_keypress():
     buffer_size = wintypes.MAX_PATH + 1
     console_title = create_unicode_buffer(buffer_size)
     if not WinDLL('kernel32').GetConsoleTitleW(console_title, buffer_size):
-        # A console title has not NOT been obtained, it is better not to pause.
         return
     console_title = console_title.value
 
@@ -148,29 +134,25 @@ def wait_for_keypress():
 atexit.register(wait_for_keypress)
 
 
-# Helper for pretty-printing error messages to stderr and the debug logfile.
 def error(message):
     """Show the error 'message' on stderr and the debug logfile."""
-    global FAILURE  # pylint: disable=global-statement
-    FAILURE = True
+    global SOMETHING_WENT_WRONG  # pylint: disable=global-statement
+    SOMETHING_WENT_WRONG = True
     print(f'\n*** Error en {PROGRAM_NAME}\n{message}', file=sys.stderr)
     logging.error(message)
 
 
-# Helper for printing warning messages to stderr and the logfile.
 def warning(message):
     """Show the warning 'message' on stderr and the logfile."""
-    global FAILURE  # pylint: disable=global-statement
-    FAILURE = True
+    global SOMETHING_WENT_WRONG  # pylint: disable=global-statement
+    SOMETHING_WENT_WRONG = True
     logging.warning(message)
 
 
-# Define the default exception hook.
 def excepthook(exc_type, exc_value, exc_traceback):
     """Handle unhandled exceptions, default exception hook."""
     message = '✱ '
     if isinstance(exc_value, OSError):
-        # Handle OSError differently by giving more details.
         message += f'Error inesperado del sistema operativo.\n{exc_type.__name__}'
         if exc_value.errno is not None:
             message += f'/{errno.errorcode[exc_value.errno]}'
@@ -195,7 +177,7 @@ def excepthook(exc_type, exc_value, exc_traceback):
         message += f'  Línea {frame.lineno} ['
         message += PROGRAM_PATH.name if frame.name == '<module>' else frame.name
         message += ']'
-        message += f': {frame.line}' if frame.line else ''  # No source content when frozen…
+        message += f': {frame.line}' if frame.line else ''
         message += '\n'
     error(message.rstrip())
 
@@ -270,9 +252,7 @@ class SkimmedExcel(SkimmedSink):
         """Load the output Excel workbook."""
         super().__init__(*args, **kwargs)
         self.workbook = load_workbook(self.sink)
-        # Keys are metadata names, values are the column where that metadata is stored.
         self.metadata_columns = {}
-        # Style for cells on the header row.
         self.heading_style = {
             'font': Font(name='Calibri'),
             'fill': PatternFill(start_color='baddad', fill_type='solid'),
@@ -282,7 +262,7 @@ class SkimmedExcel(SkimmedSink):
         self.sheet = self.workbook.worksheets[0]
         logging.debug('La hoja con la que se trabajará es «%s»".', self.sheet.title)
         logging.debug('Insertando fila de cabeceras.')
-        self.sheet.insert_rows(1, 1)  # Insert one row before first row.
+        self.sheet.insert_rows(1, 1)
 
     def add_metadata(self, row, uri, metadata):
         """
@@ -329,7 +309,6 @@ class SkimmedExcel(SkimmedSink):
                 # of that column affects ALL the following ones whose index is
                 # less than 'max'… So, it's better to fix that field.
                 self.sheet.column_dimensions[get_column_letter(column)].max = column
-            # Add the value to the proper column.
             logging.debug('Añadiendo metadato «%s» con valor «%s».', key, value)
             # Since a heading row is inserted, the rows where metadata has to go
             # have now an +1 offset, as they have been displaced.
@@ -358,7 +337,7 @@ class MantecaText(MantecaSource):
         """
         for row, uri in enumerate(self.file.readlines(), start=1):
             uri = uri.strip()
-            if uri:  # Do not return empty Mantecas.
+            if uri:
                 yield row, uri
 
     def close(self):
@@ -477,7 +456,7 @@ class BaseParser(HTMLParser):
             # Clean up the received data by removing superfluous whitespace
             # characters, including newlines, carriage returns, etc.
             data = ' '.join(data.split())
-            if not data:  # Ignore empty data
+            if not data:
                 return
         if self.within_k:
             logging.debug('Se encontró la clave «%s».', data)
@@ -497,7 +476,7 @@ class BaseParser(HTMLParser):
             logging.debug('Metadato vacío.')
         if self.current_k and not self.current_v:
             logging.debug('Metadato «%s» incompleto, ignorando.', self.current_k)
-        if not self.current_k and self.current_v:  # Empty key, generate a name.
+        if not self.current_k and self.current_v:
             self.current_k = self.last_k if self.last_k else BaseParser.EMPTY_KEY_LABEL
         if self.current_k and self.current_v:
             if self.current_k not in self.retrieved_metadata:
@@ -536,30 +515,28 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
     def __init__(self, *args, **kwargs):
         """Initialize object."""
         super().__init__(*args, **kwargs)
-        self.current_k_tag = None  # Current tag for which a key marker was found.
-        self.current_v_tag = None  # Current tag for which a value marker was found.
+        self.current_k_tag = None
+        self.current_v_tag = None
 
     def handle_starttag(self, tag, attrs):
         """Handle opening tags."""
         super().handle_starttag(tag, attrs)
         for attr in attrs:
             if attr[0] == 'class' and (match := self.profile[self.K_CLASS_REGEX].search(attr[1])):
-                # Key mark found.
                 logging.debug('Se encontró una marca de clave «%s».', match.group(0))
                 self.within_k = True
                 self.current_k = ''
                 self.current_k_tag = tag
                 if self.within_v:
-                    # If still processing a value, notify about the nesting
-                    # error but reset parser so everything starts afresh, like
-                    # if a new key had been found.
+                    # If still processing a value, notify about the nesting error
+                    # but reset parser so everything starts afresh, like if a new
+                    # key had been found.
                     logging.debug('Problema de anidación (clave dentro de valor), restableciendo parser.')
                     self.within_v = False
                     self.current_v = ''
                     self.current_v_tag = None
                 break
             if attr[0] == 'class' and (match := self.profile[self.V_CLASS_REGEX].search(attr[1])):
-                # Value mark found.
                 logging.debug('Se encontró una marca de valor «%s».', match.group(0))
                 self.within_v = True
                 self.current_v = ''
@@ -622,7 +599,7 @@ class BaratzParser(BaseParser):  # pylint: disable=unused-variable
                     logging.debug('Se encontró una marca de metadato «%s».', attr[1])
                     self.within_meta = True
                     return
-        else:  # We are now processing the key, value pairs.
+        else:
             if tag == 'dt':
                 self.within_k = True
                 logging.debug('Se encontró un elemento de clave «%s».', tag)
@@ -654,7 +631,6 @@ def setup_logging():
     file, logging.INFO messages are sent to the log file (timestamped), and the
     console (but not timestamped in this case).
     """
-    # Get timestamp as soon as possible.
     timestamp = time.strftime('%Y%m%d_%H%M%S')
     debugfile = f'{PROGRAM_PATH.with_suffix("")}_debug_{timestamp}.txt'
     logfile = f'{PROGRAM_PATH.with_suffix("")}_log_{timestamp}.txt'
@@ -663,15 +639,13 @@ def setup_logging():
         """Simple multiline formatter for logging messages."""
         def format(self, record):
             """Format multiline records so they look like multiple records."""
-            message = super().format(record)  # Default formatting first.
+            message = super().format(record)
 
-            # For empty messages return the message as-is, but stripped.
             if record.message.strip() == '':
                 return message.strip()
 
-            # Get the preamble so it can be reproduced on each line.
             preamble = message.split(record.message)[0]
-            # Return cleaned message: no multiple newlines, no trailing spaces,
+            # Return cleaned up message: no multiple newlines, no trailing spaces,
             # and the preamble is inserted at the beginning of each line.
             return f'\n{preamble}'.join([line.rstrip() for line in message.splitlines() if line.strip()])
 
@@ -712,7 +686,7 @@ def setup_logging():
         },
         'handlers': {},
         'loggers': {
-            '': {  # root logger.
+            '': {
                 'level': 'NOTSET',
                 'handlers': [],
                 'propagate': False,
@@ -773,16 +747,16 @@ def process_argv():
 
     Returns a list of valid sources (can be empty).
     """
-    global FAILURE  # pylint: disable=global-statement
-    sys.argv.pop(0)  # Remove program name from sys.argv.
+    global SOMETHING_WENT_WRONG  # pylint: disable=global-statement
+    sys.argv.pop(0)
     if len(sys.argv) == 0:
         # The input source should be provided automatically if the program is
-        # used as a drag'n'drop target, which is in fact the intended method of
-        # operation.
+        # used as a drag'n'drop target, which is in fact the intended method
+        # of operation.
         #
         # But the program can be also run by hand from a command prompt, so it
-        # is better to give the end user a warning (well, error...) if the input
-        # source is missing.
+        # is better to give the end user a warning (well, an error...) if the
+        # input source is missing.
         error(
             'No se ha especificado un fichero de entrada para ser procesado.\n'
             '\n'
@@ -822,7 +796,7 @@ def process_argv():
                     error('El fichero Excel de entrada es inválido.')
                     continue
             else:
-                FAILURE = True
+                SOMETHING_WENT_WRONG = True
                 logging.error('La fuente «%s» es inválida.', arg)
                 continue
         except FileNotFoundError:
@@ -864,8 +838,8 @@ def load_profiles(filename):
     else:
         # Translate ConfigParser contents to a better suited format.
         #
-        # To wit, a REAL dictionary whose keys are profile names and the values
-        # are dictionaries containing the profile configuration.
+        # To wit, a REAL dictionary whose keys are profile names and the
+        # values are dictionaries containing the profile configuration.
         for profile in parser.sections():
             profiles[profile] = {}
             for key, value in parser[profile].items():
@@ -903,10 +877,8 @@ def retrieve_uri(uri):
     encoded with iso-8859-1, and the vast majority of web pages processed which
     does not specify a charset in fact will be using iso-8859-1 anyway.
     """
-    # Allow relative file: URIs.
     if uri.startswith('file://'):
         uri = urlparse(uri)
-        # If there is no host, the URI may be a relative path. Resolve it.
         if not uri.netloc:
             # Remember that uri.path ALWAYS starts with '/', must be ignored.
             uri = uri._replace(path=quote(str(Path(unquote(uri.path[1:])).resolve().as_posix()), safe=':/'))
@@ -967,7 +939,7 @@ def saca_las_mantecas(source, sink, profiles):  # pylint: disable=too-many-branc
     retrieving the contents from each URI and then get the metadata (that is,
     skim the Manteca) using the proper parser depending on the particular URI.
     """
-    global FAILURE  # pylint: disable=global-statement
+    global SOMETHING_WENT_WRONG  # pylint: disable=global-statement
     bad_metadata = []
     for row, uri in source.get_mantecas():
         logging.info('  %s', uri)
@@ -978,7 +950,7 @@ def saca_las_mantecas(source, sink, profiles):  # pylint: disable=too-many-branc
                 break
         else:
             warning(f'No se detectó un perfil para «{uri}», ignorando.')
-            FAILURE = True
+            SOMETHING_WENT_WRONG = True
             continue
 
         for child_parser in BaseParser.__subclasses__():
@@ -1026,13 +998,11 @@ def saca_las_mantecas(source, sink, profiles):  # pylint: disable=too-many-branc
 
 def main():
     """."""
-    # Install the default exception hook first.
     sys.excepthook = excepthook
 
-    global FAILURE  # pylint: disable=global-statement
+    global SOMETHING_WENT_WRONG  # pylint: disable=global-statement
 
     try:
-        # Initialize logging system ASAP.
         setup_logging()
         logging.debug(PROGRAM_NAME)
         logging.debug('Registro de depuración iniciado.')
@@ -1044,7 +1014,6 @@ def main():
         if not profiles:
             raise SystemExit
 
-        # Loop over the sources and skim them.
         print()
         logging.info('Sacando las mantecas:')
         bad_metadata = []
@@ -1053,15 +1022,15 @@ def main():
             if result is not None:
                 bad_metadata.extend(result)
         if bad_metadata:
-            FAILURE = True
+            SOMETHING_WENT_WRONG = True
             print(file=sys.stderr)
             warning('Se encontraron problemas en los siguientes enlaces:')
             for uri, problem in bad_metadata:
                 warning(f'  [{uri}] {problem}.')
     except SystemExit:
-        FAILURE = True
+        SOMETHING_WENT_WRONG = True
     except KeyboardInterrupt:
-        FAILURE = True
+        SOMETHING_WENT_WRONG = True
         print()
         logging.info('El usuario interrumpió la operación del programa.')
 
@@ -1069,7 +1038,7 @@ def main():
     logging.info('Proceso terminado.')
     logging.debug('Registro de depuración finalizado.')
     logging.shutdown()
-    return FAILURE
+    return SOMETHING_WENT_WRONG
 
 
 if __name__ == '__main__':
