@@ -1,5 +1,5 @@
 http://catalogo.bne.es/uhtbin/cgisirsi/x/0/0/57/5/3?searchdata1=1935433{CKEY}&searchfield1=GENERAL^SUBJECT^GENERAL^^&user_id=WEBSERVER
-http://catalogo.bne.es/uhtbin/cgisirsi/x/0/0/57/5/3?searchdata1=4517155{CKEY}&searchfield1=GENERAL^SUBJECT^GENERAL^^&user_id=WEBSERVER          
+http://catalogo.bne.es/uhtbin/cgisirsi/x/0/0/57/5/3?searchdata1=4517155{CKEY}&searchfield1=GENERAL^SUBJECT^GENERAL^^&user_id=WEBSERVER
 http://catalogo.bne.es/uhtbin/cgisirsi/x/0/0/57/5/3?searchdata1=5430888{CKEY}&searchfield1=GENERAL^SUBJECT^GENERAL^^&user_id=WEBSERVER
 http://catalogo.bne.es/uhtbin/cgisirsi/x/0/0/57/5/3?searchdata1=553803{CKEY}&searchfield1=GENERAL^SUBJECT^GENERAL^^&user_id=WEBSERVER
 http://catalogos.munimadrid.es/cgi-bin/hemeroteca?TITN=19245
@@ -13,9 +13,9 @@ http://catalogos.munimadrid.es/cgi-bin/opacmusical?TITN=85931
 http://ceres.mcu.es/pages/Main?idt=134248&inventary=DE2016/1/24&table=FMUS&museum=MOM
 http://ceres.mcu.es/pages/Main?idt=134254&inventary=DE2016/1/26&table=FMUS&museum=MOM
 http://ceres.mcu.es/pages/Main?idt=134256&inventary=DE2016/1/31&table=FMUS&museum=MOM
-https://catalogoarchivo.madrid.es/ms-opac/doc?q=recordIdentifier:1@433461
-https://catalogoarchivo.madrid.es/ms-opac/doc?q=recordIdentifier:1@433505
-https://catalogoarchivo.madrid.es/ms-opac/doc?q=recordIdentifier:1@433521
+http://catalogoarchivo.madrid.es/ms-opac/permalink/4@oai_villa_baratz_es_villa_471497
+http://catalogoarchivo.madrid.es/ms-opac/permalink/4@oai_villa_baratz_es_villa_471664
+http://catalogoarchivo.madrid.es/ms-opac/permalink/4@oai_villa_baratz_es_villa_471665
 https://catalogos.madrid.es/cgi-bin/hemeroteca?TITN=421918
 https://catalogos.madrid.es/cgi-bin/historica?TITN=358445
 https://catalogos.madrid.es/cgi-bin/opacmusical?TITN=217501

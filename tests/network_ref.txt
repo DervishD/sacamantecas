@@ -20,10 +20,10 @@
     Descripción física: 1 estampa : aguafuerte ; huella de la plancha 285 x 192 mm en hoja de 310 x 219 mm
     Información de ejemplar: 1 ejemplar disponible en Sede de Recoletos.
 [4] http://catalogo.bne.es/uhtbin/cgisirsi/x/0/0/57/5/3?searchdata1=553803{CKEY}&searchfield1=GENERAL^SUBJECT^GENERAL^^&user_id=WEBSERVER
-    Título: Al celebre aeronauta Don Vicente Lunardi [Texto impreso] : cancion
-    Editor: s.n.
-    Fecha de pub.: s.a.]
-    Descripción física: VIII p.; 21 cm
+    Título: Al celebre aeronauta Don Vicente Lunardi : cancion
+    Editor: [s.n.]
+    Fecha de pub.: [1792 o posterior]
+    Descripción física: VIII p.; 4º
     Información de ejemplar: 1 ejemplar disponible en Sede de Recoletos.
 [5] http://catalogos.munimadrid.es/cgi-bin/hemeroteca?TITN=19245
     Título uniforme: ABC (Madrid. 1903)
@@ -36,11 +36,11 @@
     N. al tit. y men. res.: Variaciones en el subtit. -- Variaciones en el formato-- Publica ed. de la noche y ed. semanal aérea a partir de 1951.-
     ISSN: 1136-0143
     Materias: Información general-Periódicos-Publicaciones periódicas
-    Es suplemento: Gente Menuda; Los Domingos de A B C; Blanco y Negro; ABC cultural; Blanco y Negro mujer; Suplemento Semanal continuado por: XL Semanal / A B C: doble diario de la Guerra Civil / Mujer Hoy / Mujer Hoy Moda / Alfa y omega / XL semanal ABC (Madrid. 2005) / ABC Cultural / Corazón tve / Plan B / La Segunda Guerra Mundial (Madrid. 1989) / La Mujer y la casa (Madrid. 1906) / ABC: informática / (Madrid. 1996) ISSN 1136-5684
+    Es suplemento: Gente Menuda; Los Domingos de A B C; Blanco y Negro; ABC cultural; Blanco y Negro mujer; Suplemento Semanal continuado por: XL Semanal / A B C: doble diario de la Guerra Civil / Mujer Hoy / Mujer Hoy Moda / Alfa y omega / Los Domingos de ABC (Madrid. 1968) / . ISSN 1136-0216 / XL semanal ABC (Madrid. 2005) / ABC Cultural / Corazón tve / Plan B / La Segunda Guerra Mundial (Madrid. 1989) / La Mujer y la casa (Madrid. 1906) / ABC: informática / (Madrid. 1996) ISSN 1136-5684
     Otra edición: ABC (Madrid. 1950. Ed. especial aérea) / . ISSN 1136-0194 / ABC (Madrid. 1981. Ed. Internacional) / . ISSN 1136-0232
     Absorbió a: Ecos (Madrid. 1912) / ISSN 1889-8742
-    Colecciones: 1903-2021
-    Existencias: Hemeroteca Municipal de Madrid / 1903(n.1en)-2021(n.38718,31dic)
+    Colecciones: 1903-2021,(2022)
+    Existencias: Hemeroteca Municipal de Madrid / 1903(n.1en)-2022(n.38899,30jun)
 [6] http://catalogos.munimadrid.es/cgi-bin/hemeroteca?TITN=339474
     Título uniforme: El Motín (Madrid. 1881)
     Título: El Motín : periódico satírico semanal
@@ -170,40 +170,37 @@
     Clasificación Razonada: El estudio de los fragmentos de celosía calada confirmó la existencia de paneles con diferentes geometrías con una altura de 73,8 cm. En el caso que nos ocupa, cada módulo calado configura una forma de flor de cuatro pétalos con los extremos apuntados cuya repetición encaja con las dimensiones de la luz obtenida para el arco de perfil B, por lo que su posición en el piso superior del claustro queda atestiguada. / BIBLIOGRAFÍA: / CIRUJANO GUTIÉRREZ, Concepción. Restauración y estudio geométrico y compositivo del claustro gótico del monasterio de los Jerónimos de Madrid. Bienes culturales: revista del Instituto del Patrimonio Histórico Español. Madrid (m): Ministerio de Educación Cultura y Deporte: Subdirección General de Documentación y Publicaciones, 2006. págs. 35-52.
     Fecha de Ingreso: 02/11/2016
     Catalogación: González Alonso, Alberto
-[16] https://catalogoarchivo.madrid.es/ms-opac/doc?q=recordIdentifier:1@433461
+[16] http://catalogoarchivo.madrid.es/ms-opac/permalink/4@oai_villa_baratz_es_villa_471497
     [vacío]: Provisión de la Chancillería de Juan II disponiendo que el Concejo de Madrid dirigiese en lo sucesivo sus peticiones a los consejeros residentes en la Villa de Illescas, designados por los tutores del Rey, y acudiesen a sus emplazamientos.
+    Fecha documento: 11-12-1413
+    Notas de alcance y contenido: Sin desarrollar
+    Signatura: AVM SEC - 2 - 158 - 20 === Ver descripción para AVM SEC - 2 - 158 - 20
+    Condiciones de acceso al documento: Libre
     Fecha inicial: 20-12-1413
-    Fecha final: 20-12-1413
-    Signatura: AVM SEC - 2 - 158 - 20
-    Condiciones de acceso: Libre
-    Bibliografia: Edit. Millares Carlo, A. y Varela Hervias, E. Documentos del Archivo de Villa de Madrid. Segunda Serie. Madrid; Ayuntamiento, 1932. 2 vol. I, p.17-20.
-    Notas de descripción: Original 225x315 milímetros Letra gótica Sello de placa al dorso
-    Personas: Juan II (1405-1454, rey de Castilla)
-    Materias: PROVISIONES DE CHANCILLERÍA
-    Lugares: Illescas (Toledo, España)
-    Instituciones: Hermandad de ciudades y villas, Concejo de === Chancilleria === Consejeros === Tutores del Rey === Audiencia de Valladolid
-[17] https://catalogoarchivo.madrid.es/ms-opac/doc?q=recordIdentifier:1@433505
+    Descriptores de instituciones: Ver descripción para Hermandad de ciudades y villas, Concejo de === Ver descripción para Chancilleria === Ver descripción para Consejeros === Ver descripción para Tutores del Rey === Ver descripción para Audiencia de Valladolid
+    Personas: Ver descripción para Juan II (1405-1454, rey de Castilla)
+    Lugares: Ver descripción para Illescas (Toledo, España)
+    Materias: Ver descripción para PROVISIONES DE CHANCILLERÍA
+[17] http://catalogoarchivo.madrid.es/ms-opac/permalink/4@oai_villa_baratz_es_villa_471664
     [vacío]: Provisión del Consejo ordenando que dos Alcaldes, el alguacil y dos regidores de la Villa de Madrid se presenten en Illescas para tratar varios asuntos con los miembros de dicho organismo.
+    Fecha documento: 07-02-1414
+    Notas de alcance y contenido: Sin desarrollar
+    Signatura: AVM SEC - 2 - 158 - 21 === Ver descripción para AVM SEC - 2 - 158 - 21
+    Condiciones de acceso al documento: Libre
     Fecha inicial: 16-02-1414
-    Fecha final: 16-02-1414
-    Signatura: AVM SEC - 2 - 158 - 21
-    Condiciones de acceso: Libre
-    Bibliografia: Edit. Millares Carlo, A. y Varela Hervias, E. Documentos del Archivo de Villa de Madrid. Segunda Serie. Madrid; Ayuntamiento, 1932. 2 vol. II, p. 39-40
-    Notas de descripción: Original Letra gótica. 185 x 335 milímetros Huella de sello de placa
-    Materias: PROVISIONES === REGIDORES === ALGUACILES
-    Lugares: Illescas (Toledo, España)
-    Instituciones: Alcalde
-[18] https://catalogoarchivo.madrid.es/ms-opac/doc?q=recordIdentifier:1@433521
+    Descriptores de instituciones: Ver descripción para Alcalde
+    Lugares: Ver descripción para Illescas (Toledo, España)
+    Materias: Ver descripción para PROVISIONES === Ver descripción para REGIDORES === Ver descripción para ALGUACILES
+[18] http://catalogoarchivo.madrid.es/ms-opac/permalink/4@oai_villa_baratz_es_villa_471665
     [vacío]: Provisión del Consejo por la que se ordena a Madrid provea a don Gonzalo Rodríguez de Neira de sesenta fanegas de pan.
+    Fecha documento: 15-02-1414
+    Notas de alcance y contenido: Sin desarrollar
+    Signatura: AVM SEC - 2 - 91 - 15 === Ver descripción para AVM SEC - 2 - 91 - 15
+    Condiciones de acceso al documento: Libre
     Fecha inicial: 24-02-1414
-    Fecha final: 24-02-1414
-    Signatura: AVM SEC - 2 - 91 - 15
-    Condiciones de acceso: Libre
-    Bibliografia: Edit. Millares Carlo, A. y Varela Hervias, E. Documentos del Archivo de Villa de Madrid. Segunda serie. Madrid; Ayuntamiento, 1932. 2 vol. II, p. 41-43 ; En: Revista de la Biblioteca Archivo y Museo de Madrid. IX y X (1981), p. 206-208
-    Notas de descripción: Original letra gótica. 200 x 340 milímetros Sello de placa al dorso.
-    Personas: Rodriguez de Neira, Gonzalo (ca. 1414)
-    Materias: PROVISIONES === PANES
-    Lugares: Illescas (Toledo, España) === Madrid (España)
+    Personas: Ver descripción para Rodriguez de Neira, Gonzalo (ca. 1414)
+    Lugares: Ver descripción para Illescas (Toledo, España) === Ver descripción para Madrid (España)
+    Materias: Ver descripción para PROVISIONES === Ver descripción para PANES
 [19] https://catalogos.madrid.es/cgi-bin/hemeroteca?TITN=421918
     Título: Gente Menuda :dibujos de un gran suplemento infantil: del 3 de diciembre de 2012 al 3 de marzo de 2013
     Lugar/Ed./Año: [Madrid] : Fundación Colección ABC, D.L.2012.
