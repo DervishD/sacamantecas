@@ -33,7 +33,7 @@ catalogue which is being processed. The proper profile is inferred from the URI
 itself and resides in the configuration file (sacamantecas.ini).
 """
 
-__version__ = 'v4.2'
+__version__ = 'v4.3'
 
 import configparser
 import sys
