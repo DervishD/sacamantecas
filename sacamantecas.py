@@ -47,6 +47,7 @@ from shutil import copy2
 from urllib.request import urlopen, Request
 from urllib.parse import urlparse, urlunparse, quote, unquote
 from urllib.error import URLError
+from http.client import HTTPException
 import re
 import time
 import platform
@@ -928,7 +929,7 @@ def retrieve_uri(uri):
     return contents.decode(charset), charset
 
 
-def saca_las_mantecas(source, sink, profiles):  # pylint: disable=too-many-branches,too-many-locals
+def saca_las_mantecas(source, sink, profiles):  # pylint: disable=too-many-branches,too-many-locals,too-many-statements
     """
     Saca las Mantecas (skims) from each 'source' dumping metadata to 'sink'.
 
@@ -968,9 +969,16 @@ def saca_las_mantecas(source, sink, profiles):  # pylint: disable=too-many-branc
         except ConnectionError:
             logging.error('Error de conexión accediendo a «%s».', uri)
             bad_metadata.append((uri, 'No se pudo conectar'))
+            continue
         except URLError as exc:
             logging.error('Error accediendo a «%s»: %s.', uri, exc.reason)
             bad_metadata.append((uri, 'No se pudo acceder'))
+            continue
+        except HTTPException as exc:
+            logging.error('Error de descarga accediendo a «%s»: %s.', uri, type(exc).__name__)
+            bad_metadata.append((uri, 'No se pudo descargar'))
+            continue
+
         if not contents:
             logging.error('No se recibieron contenidos de «%s».', uri)
             bad_metadata.append((uri, 'No se recibieron contenidos'))
