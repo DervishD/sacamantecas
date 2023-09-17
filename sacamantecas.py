@@ -1009,8 +1009,6 @@ def saca_las_mantecas(source, sink, profiles):  # pylint: disable=too-many-branc
 
 def main():
     """."""
-    sys.excepthook = excepthook
-
     global SOMETHING_WENT_WRONG  # pylint: disable=global-statement
 
     try:
