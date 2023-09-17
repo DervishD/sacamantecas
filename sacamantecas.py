@@ -1051,5 +1051,6 @@ def main():
     return SOMETHING_WENT_WRONG
 
 
+sys.excepthook = excepthook
 if __name__ == '__main__':
     sys.exit(main())
