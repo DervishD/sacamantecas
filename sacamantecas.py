@@ -168,7 +168,9 @@ def excepthook(exc_type, exc_value, exc_traceback):
             else:
                 message += f': «{exc_value.filename}».\n'
     else:
-        message += f'Excepción sin gestionar.\n«{exc_type.__name__}»: {exc_value}.\n'
+        message += f'Excepción sin gestionar.\n«{exc_type.__name__}»'
+        message += f': {exc_value}.' if str(exc_value) else ''
+        message += '\n'
     message += '\n'
     current_filename = None
     for frame in tb.extract_tb(exc_traceback):
