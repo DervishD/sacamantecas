@@ -42,7 +42,6 @@ import errno
 import logging
 import atexit
 from logging.config import dictConfig
-from logging import basicConfig as loggingBasicConfig
 import traceback as tb
 from shutil import copy2
 from urllib.request import urlopen, Request
@@ -83,7 +82,7 @@ if sys.platform != 'win32':
 
 
 # Needed for having VERY basic logging when the code is imported rather than run.
-loggingBasicConfig(level=logging.NOTSET, format='%(message)s', force=True)
+logging.basicConfig(level=logging.NOTSET, format='%(message)s', force=True)
 
 
 # Reconfigure standard output streams so they use UTF-8 encoding, no matter if
