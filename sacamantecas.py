@@ -1015,6 +1015,7 @@ def main():
     global SOMETHING_WENT_WRONG  # pylint: disable=global-statement
 
     try:
+        atexit.register(wait_for_keypress)
         setup_logging()
         logging.debug(PROGRAM_NAME)
         logging.debug('Registro de depuración iniciado.')
