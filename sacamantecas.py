@@ -1026,8 +1026,7 @@ def main():
         if not profiles:
             raise SystemExit
 
-        print()
-        logging.info('Sacando las mantecas:')
+        logging.info('\nSacando las mantecas:')
         bad_metadata = []
         for source, sink in process_argv():
             result = saca_las_mantecas(source, sink, profiles)
@@ -1043,11 +1042,9 @@ def main():
         SOMETHING_WENT_WRONG = True
     except KeyboardInterrupt:
         SOMETHING_WENT_WRONG = True
-        print()
-        logging.info('El usuario interrumpió la operación del programa.')
+        logging.info('\nEl usuario interrumpió la operación del programa.')
 
-    print()
-    logging.info('Proceso terminado.')
+    logging.info('\nProceso terminado.')
     logging.debug('Registro de depuración finalizado.')
     logging.shutdown()
     return SOMETHING_WENT_WRONG
