@@ -120,12 +120,13 @@ def wait_for_keypress():
     # For a frozen executable, it is more or less easy: if the console title
     # is not equal to sys.executable, then the console is NOT transient.
     #
-    # For a .py file, it's a bit more complex, but in most cases if the console
-    # title ends with the name of the .py file, the console is NOT transient.
+    # For a .py file, it's a bit more complicated, but in most cases if the
+    # console title contains the name of the .py file, the console is NOT a
+    # transient console.
     if getattr(sys, 'frozen', False):
         if console_title != sys.executable:
             return
-    elif console_title.endswith(PROGRAM_PATH.name):
+    elif console_title.find(PROGRAM_PATH.name) != -1:
         return
 
     print('\nPulse cualquier tecla para continuar...', end='', flush=True)
