@@ -67,11 +67,15 @@ try:
         PROGRAM_PATH = sys.executable
     else:
         PROGRAM_PATH = __file__
-    PROGRAM_PATH = Path(PROGRAM_PATH).resolve()
-    PROGRAM_NAME = PROGRAM_PATH.stem + ' ' + __version__
-    INIFILE_PATH = PROGRAM_PATH.with_suffix('.ini')
 except NameError:
     sys.exit('Error de inicialización del programa.')
+PROGRAM_PATH = Path(PROGRAM_PATH).resolve()
+PROGRAM_NAME = PROGRAM_PATH.stem + ' ' + __version__
+INIFILE_PATH = PROGRAM_PATH.with_suffix('.ini')
+USER_AGENT = f'{PROGRAM_NAME.replace(" v", "/")} +https://github.com/DervishD/sacamantecas'
+USER_AGENT += f' (Windows {platform.version()}; {platform.architecture()[0]}; {platform.machine()})'
+DUMPMODE_PREFIX = 'dump://'
+SOMETHING_WENT_WRONG = False
 
 
 if sys.platform != 'win32':
@@ -81,13 +85,6 @@ if sys.platform != 'win32':
 # Needed for having VERY basic logging when the code is imported rather than run.
 loggingBasicConfig(level=logging.NOTSET, format='%(message)s', force=True)
 
-
-USER_AGENT = f'{PROGRAM_NAME.replace(" v", "/")} +https://github.com/DervishD/sacamantecas'
-USER_AGENT += f' (Windows {platform.version()}; {platform.architecture()[0]}; {platform.machine()})'
-
-DUMPMODE_PREFIX = 'dump://'
-
-SOMETHING_WENT_WRONG = False
 
 # Reconfigure standard output streams so they use UTF-8 encoding, no matter if
 # they are redirected to a file when running the program from a shell.
