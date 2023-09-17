@@ -42,6 +42,7 @@ import errno
 import logging
 import atexit
 from logging.config import dictConfig
+from logging import basicConfig as loggingBasicConfig
 import traceback as tb
 from shutil import copy2
 from urllib.request import urlopen, Request
@@ -75,6 +76,11 @@ except NameError:
 
 if sys.platform != 'win32':
     sys.exit(f'{PROGRAM_NAME} solo funciona en la plataforma Win32.')
+
+
+# Needed for having VERY basic logging when the code is imported rather than run.
+loggingBasicConfig(level=logging.NOTSET, format='%(message)s', force=True)
+
 
 USER_AGENT = f'{PROGRAM_NAME.replace(" v", "/")} +https://github.com/DervishD/sacamantecas'
 USER_AGENT += f' (Windows {platform.version()}; {platform.architecture()[0]}; {platform.machine()})'
