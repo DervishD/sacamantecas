@@ -135,9 +135,6 @@ def wait_for_keypress():
     getch()
 
 
-atexit.register(wait_for_keypress)
-
-
 def error(message):
     """Show the error 'message' on stderr and the debug logfile."""
     global SOMETHING_WENT_WRONG  # pylint: disable=global-statement
