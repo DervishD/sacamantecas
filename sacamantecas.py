@@ -74,7 +74,6 @@ INIFILE_PATH = PROGRAM_PATH.with_suffix('.ini')
 USER_AGENT = f'{PROGRAM_NAME.replace(" v", "/")} +https://github.com/DervishD/sacamantecas'
 USER_AGENT += f' (Windows {platform.version()}; {platform.architecture()[0]}; {platform.machine()})'
 DUMPMODE_PREFIX = 'dump://'
-SOMETHING_WENT_WRONG = False
 
 
 if sys.platform != 'win32':
@@ -137,16 +136,12 @@ def wait_for_keypress():
 
 def error(message):
     """Show the error 'message' on stderr and the debug logfile."""
-    global SOMETHING_WENT_WRONG  # pylint: disable=global-statement
-    SOMETHING_WENT_WRONG = True
     print(f'\n*** Error en {PROGRAM_NAME}\n{message}', file=sys.stderr)
     logging.error(message)
 
 
 def warning(message):
     """Show the warning 'message' on stderr and the logfile."""
-    global SOMETHING_WENT_WRONG  # pylint: disable=global-statement
-    SOMETHING_WENT_WRONG = True
     logging.warning(message)
 
 
@@ -750,7 +745,6 @@ def process_argv():
 
     Returns a list of valid sources (can be empty).
     """
-    global SOMETHING_WENT_WRONG  # pylint: disable=global-statement
     sys.argv.pop(0)
     if len(sys.argv) == 0:
         # The input source should be provided automatically if the program is
@@ -799,8 +793,7 @@ def process_argv():
                     error('El fichero Excel de entrada es inválido.')
                     continue
             else:
-                SOMETHING_WENT_WRONG = True
-                logging.error('La fuente «%s» es inválida.', arg)
+                error(f'La fuente «{arg}» es inválida.')
                 continue
         except FileNotFoundError:
             error('No se encontró el fichero de entrada.')
@@ -942,7 +935,6 @@ def saca_las_mantecas(source, sink, profiles):  # pylint: disable=too-many-branc
     retrieving the contents from each URI and then get the metadata (that is,
     skim the Manteca) using the proper parser depending on the particular URI.
     """
-    global SOMETHING_WENT_WRONG  # pylint: disable=global-statement
     bad_metadata = []
     for row, uri in source.get_mantecas():
         logging.info('  %s', uri)
@@ -953,7 +945,7 @@ def saca_las_mantecas(source, sink, profiles):  # pylint: disable=too-many-branc
                 break
         else:
             warning(f'No se detectó un perfil para «{uri}», ignorando.')
-            SOMETHING_WENT_WRONG = True
+            bad_metadata.append((uri, 'No existe perfil'))
             continue
 
         for child_parser in BaseParser.__subclasses__():
@@ -1008,8 +1000,7 @@ def saca_las_mantecas(source, sink, profiles):  # pylint: disable=too-many-branc
 
 def main():
     """."""
-    global SOMETHING_WENT_WRONG  # pylint: disable=global-statement
-
+    exitcode = 0
     try:
         atexit.register(wait_for_keypress)
         setup_logging()
@@ -1030,21 +1021,18 @@ def main():
             if result is not None:
                 bad_metadata.extend(result)
         if bad_metadata:
-            SOMETHING_WENT_WRONG = True
+            exitcode = 1
             print(file=sys.stderr)
             warning('Se encontraron problemas en los siguientes enlaces:')
             for uri, problem in bad_metadata:
                 warning(f'  [{uri}] {problem}.')
-    except SystemExit:
-        SOMETHING_WENT_WRONG = True
     except KeyboardInterrupt:
-        SOMETHING_WENT_WRONG = True
+        exitcode = 1
         logging.info('\nEl usuario interrumpió la operación del programa.')
-
     logging.info('\nProceso terminado.')
     logging.debug('Registro de depuración finalizado.')
     logging.shutdown()
-    return SOMETHING_WENT_WRONG
+    return exitcode
 
 
 sys.excepthook = excepthook
