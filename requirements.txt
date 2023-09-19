@@ -1,3 +1,4 @@
 # Latest versions which worked.
 openpyxl>=3.1.2
 pyinstaller>=5.13.2
+pytest>=7.4.2
