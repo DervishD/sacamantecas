@@ -74,6 +74,8 @@ INIFILE_PATH = PROGRAM_PATH.with_suffix('.ini')
 USER_AGENT = f'{PROGRAM_NAME.replace(" v", "/")} +https://github.com/DervishD/sacamantecas'
 USER_AGENT += f' (Windows {platform.version()}; {platform.architecture()[0]}; {platform.machine()})'
 DUMPMODE_PREFIX = 'dump://'
+EXITCODE_FAILURE = 1
+EXITCODE_SUCCESS = 0
 
 
 if sys.platform != 'win32':
@@ -88,6 +90,19 @@ logging.basicConfig(level=logging.NOTSET, format='%(message)s', force=True)
 # they are redirected to a file when running the program from a shell.
 sys.stdout.reconfigure(encoding='utf-8')
 sys.stderr.reconfigure(encoding='utf-8')
+
+
+# Custom errors.
+class MissingProfilesError(Exception):
+    """Raise when profiles configuration file is missing."""
+    def __init__ (self, filename):
+        self.filename = filename
+
+class ProfilesSyntaxError(Exception):
+    """Raise when profiles configuration file has syntax errors."""
+    def __init__ (self, errortype, details):
+        self.error = errortype
+        self.details = details
 
 
 def wait_for_keypress():
@@ -812,47 +827,39 @@ def load_profiles(filename):
     """
     Load the profiles from 'filename'.
 
-    Returns the preprocessed list of profiles as a dictionary whose keys are the
-    found profiles and the values are dictionaries containing the corresponding
-    profile configuration items as key-value pairs.
+    Returns the preprocessed list of profiles as a dictionary whose keys
+    are the found profiles and the values are dictionaries containing the
+    corresponding profile configuration items as key-value pairs.
 
-    The returned list can be empty.
+    Raises MissingProfilesError if 'filename' cannot be opened or read.
+
+    Raises ProfilesSyntaxError if there is any syntax error in 'filename'.
+
+    The returned dictionary will be empty if no profiles are present in
+    'filename' OR if only empty profiles are present.
     """
-    profiles = {}
     parser = configparser.ConfigParser()
     logging.debug('Obteniendo perfiles desde «%s».', filename)
     try:
         with open(filename, encoding='utf-8') as inifile:
             parser.read_file(inifile)
-    except FileNotFoundError as exc:
-        if exc.filename != filename:
-            raise
-        error('No se encontró el fichero de perfiles.')
+    except (FileNotFoundError, PermissionError) as exc:
+        raise MissingProfilesError(exc.filename) from exc
     except configparser.Error as exc:
-        error('Problema de sintaxis al leer el fichero de perfiles.')
-        logging.error('Error «%s» leyendo el fichero de perfiles:\n%s.', type(exc).__name__, exc)
-    else:
-        # Translate ConfigParser contents to a better suited format.
-        #
-        # To wit, a REAL dictionary whose keys are profile names and the
-        # values are dictionaries containing the profile configuration.
-        for profile in parser.sections():
-            profiles[profile] = {}
-            for key, value in parser[profile].items():
-                try:
-                    profiles[profile][key] = re.compile(value, re.IGNORECASE) if value else None
-                except re.error as exc:
-                    message = 'Problema de sintaxis al leer el fichero de perfiles.\n'
-                    message += f'Perfil «{profile}»: {exc.msg[0].upper() + exc.msg[1:]}.\n'
-                    message += f'  {key} = {exc.pattern}\n'
-                    message += '  ' + '_' * (exc.pos + len(key) + len(' = ')) + '^'
-                    error(message)
-                    return None
-        if not profiles:
-            error('No hay perfiles definidos en el fichero de perfiles.')
-        else:
-            logging.debug('Se obtuvieron los siguientes perfiles: %s.', list(profiles.keys()))
-    return profiles
+        raise ProfilesSyntaxError(type(exc).__name__.removesuffix('Error'), exc) from exc
+
+    profiles = {}
+    for profile in parser.sections():
+        profiles[profile] = {}
+        for key, value in parser[profile].items():
+            try:
+                profiles[profile][key] = re.compile(value, re.IGNORECASE) if value else None
+            except re.error as exc:
+                message = f'Perfil «{profile}»: {exc.msg[0].upper() + exc.msg[1:]}.\n'
+                message += f'  {key} = {exc.pattern}\n'
+                message += '  ' + '_' * (exc.pos + len(key) + len(' = ')) + '^'
+                raise ProfilesSyntaxError('BadRegex', message) from exc
+    return {key: value for key, value in profiles.items() if value}
 
 
 def retrieve_uri(uri):
@@ -1000,7 +1007,6 @@ def saca_las_mantecas(source, sink, profiles):  # pylint: disable=too-many-branc
 
 def main():
     """."""
-    exitcode = 0
     try:
         atexit.register(wait_for_keypress)
         setup_logging()
@@ -1010,9 +1016,18 @@ def main():
 
         logging.info(PROGRAM_NAME)
 
-        profiles = load_profiles(INIFILE_PATH)
-        if not profiles:
-            raise SystemExit
+        try:
+            profiles = load_profiles(INIFILE_PATH)
+            if not profiles:
+                error('No hay perfiles definidos en el fichero de perfiles «{exc.filename}».')
+                return EXITCODE_FAILURE
+            logging.debug('Se obtuvieron los siguientes perfiles: %s.', list(profiles.keys()))
+        except MissingProfilesError as exc:
+            error(f'No se encontró o no se pudo leer el fichero de perfiles «{exc.filename}».')
+            return EXITCODE_FAILURE
+        except ProfilesSyntaxError as exc:
+            error(f'Error de sintaxis «{exc.error}» leyendo el fichero de perfiles.\n{exc.details}')
+            return EXITCODE_FAILURE
 
         logging.info('\nSacando las mantecas:')
         bad_metadata = []
@@ -1027,12 +1042,13 @@ def main():
             for uri, problem in bad_metadata:
                 warning(f'  [{uri}] {problem}.')
     except KeyboardInterrupt:
-        exitcode = 1
         logging.info('\nEl usuario interrumpió la operación del programa.')
+        return EXITCODE_FAILURE
     logging.info('\nProceso terminado.')
     logging.debug('Registro de depuración finalizado.')
     logging.shutdown()
-    return exitcode
+
+    return EXITCODE_SUCCESS
 
 
 sys.excepthook = excepthook
