@@ -155,11 +155,6 @@ def error(message):
     logging.error(message)
 
 
-def warning(message):
-    """Show the warning message on stderr and the logfile."""
-    logging.warning(message)
-
-
 def excepthook(exc_type, exc_value, exc_traceback):
     """Handle unhandled exceptions, default exception hook."""
     message = '✱ '
@@ -938,7 +933,7 @@ def saca_las_mantecas(source, sink, profiles):  # pylint: disable=too-many-branc
                 logging.debug('Perfil detectado: «%s».', profile_name)
                 break
         else:
-            warning(f'No se detectó un perfil para «{uri}», ignorando.')
+            logging.warning('No se detectó un perfil para «%s», ignorando.', uri)
             bad_metadata.append((uri, 'No existe perfil'))
             continue
 
@@ -1031,20 +1026,12 @@ def main():
             return EXITCODE_FAILURE
         except ProfilesSyntaxError as exc:
             error(f'Error de sintaxis «{exc.error}» leyendo el fichero de perfiles.\n{exc.details}')
-            return EXITCODE_FAILURE
+                    logging.warning('  [{%s}] {%s}.', uri, problem)
 
-        logging.info('\nSacando las mantecas:')
-        bad_metadata = []
-        for source, sink in process_argv():
-            result = saca_las_mantecas(source, sink, profiles)
-            if result is not None:
-                bad_metadata.extend(result)
-        if bad_metadata:
-            exitcode = 1
-            print(file=sys.stderr)
-            warning('Se encontraron problemas en los siguientes enlaces:')
-            for uri, problem in bad_metadata:
-                warning(f'  [{uri}] {problem}.')
+
+            logging.warning('Se encontraron problemas en los siguientes enlaces:')
+    #         for uri, problem in bad_metadata:
+                logging.warning(f'  [{uri}] {problem}.')
     except KeyboardInterrupt:
         logging.info('\nEl usuario interrumpió la operación del programa.')
         return EXITCODE_FAILURE
