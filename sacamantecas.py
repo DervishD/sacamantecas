@@ -753,7 +753,7 @@ def setup_logging():
     dictConfig(logging_configuration)
 
 
-def process_argv():
+def process_argv(argv):
     """
     Process arguments contained in the argv list.
 
@@ -1000,6 +1000,23 @@ def main():
         logging.debug(PROGRAM_NAME)
         logging.debug('Registro de depuración iniciado.')
         logging.debug('User-Agent: «%s».', USER_AGENT)
+
+        sys.argv.pop(0)
+        if len(sys.argv) == 0:
+            # The input source should be provided automatically if the program
+            # is used as a drag'n'drop target which is, in fact, the intended
+            # method of operation.
+            #
+            # But the program can be also run by hand from a command prompt, so
+            # it is better to signal the end user with an error and explanation
+            # if the input source is missing, as soon as possible.
+            error(
+                'No se ha especificado un fichero de entrada para ser procesado.\n'
+                '\n'
+                'Arrastre y suelte un fichero de entrada sobre el icono del programa, '
+                'o proporcione el nombre del fichero como argumento.'
+            )
+            return EXITCODE_FAILURE
 
         logging.info(PROGRAM_NAME)
 
