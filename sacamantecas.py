@@ -150,13 +150,13 @@ def wait_for_keypress():
 
 
 def error(message):
-    """Show the error 'message' on stderr and the debug logfile."""
+    """Show the error message on stderr and the debug logfile."""
     print(f'\n*** Error en {PROGRAM_NAME}\n{message}', file=sys.stderr)
     logging.error(message)
 
 
 def warning(message):
-    """Show the warning 'message' on stderr and the logfile."""
+    """Show the warning message on stderr and the logfile."""
     logging.warning(message)
 
 
@@ -239,8 +239,9 @@ class MantecaExcel(MantecaSource):
         """
         Get the Mantecas found in the default worksheet.
 
-        Returns a generator of (row, URI) tuples. Only the FIRST URI found in
-        each row is considered and returned.
+        Returns a generator of (row, URI) tuples.
+
+        Only the FIRST URI found in each row is considered and returned.
         """
         for row in self.sheet.rows:
             logging.debug('Procesando fila %s.', row[0].row)
@@ -279,12 +280,12 @@ class SkimmedExcel(SkimmedSink):
 
     def add_metadata(self, row, uri, metadata):
         """
-        Add all specified 'metadata' to the default worksheet, at 'row'.
+        Add all specified metadata to the default worksheet, at row.
 
-        The 'metadata' is a list of 'key'-'value' pairs.
+        The metadata is a list of key-value pairs.
 
-        Each 'value' will be added in a new column if the 'key' doesn't already
-        exists on the sheet, at the specified 'row'. The 'uri' is not used.
+        Each value will be added in a new column if the key doesn't already
+        exists on the sheet, at the specified row. The uri is not used.
 
         Adds the header and styles it, also, if it doesn't exist.
 
@@ -346,7 +347,7 @@ class MantecaText(MantecaSource):
         """
         Get the Mantecas found in the text file.
 
-        Returns a generator of (row, URI) tuples, one per non empty file line.
+        Yield (row, URI) tuples, one per non empty file line.
         """
         for row, uri in enumerate(self.file.readlines(), start=1):
             uri = uri.strip()
@@ -368,15 +369,16 @@ class SkimmedText(SkimmedSink):
 
     def add_metadata(self, row, uri, metadata):
         """
-        Add all specified 'metadata' to this Skimmed text file.
+        Add all specified metadata to this Skimmed text file.
 
-        The 'metadata' is a list of 'key'-'value' pairs.
+        The metadata is a list of key-value pairs.
 
-        The 'row' parameter is not used as a location where the 'data' will be
+        The row parameter is not used as a location where the data will be
         added, since those are the file lines, and will be consecutive anyway.
-        The 'row' parameter will be added at the beginning of each line as a
-        reference only, followed by 'uri'. Then, the metadata will be more or
-        less pretty-printed.
+        The row parameter will be added at the beginning of each line as a
+        reference only, followed by uri.
+
+        Then, more or less pretty-print the metadata.
         """
         logging.debug('Añadiendo metadatos para «%s».', uri)
         self.file.write(f'[{row}] {uri}\n')
@@ -395,8 +397,8 @@ class MantecaURI(MantecaSource):
         """
         Get the Mantecas found in the URI, that is… the URI itself.
 
-        Returns a generator of (row, URI) tuples, but 'row' is always 1 and the
-        generator stops after only one iteration, of course.
+        Yield (row, URI) tuples, but row is always 1 and the generator stops
+        after only one iteration, of course.
         """
         yield 1, self.source
 
@@ -408,11 +410,11 @@ class SkimmedURI(SkimmedSink):
     """A class to represent Skimmed (with 0% Manteca) single URIs."""
     def add_metadata(self, row, uri, metadata):
         """
-        Print specified 'metadata' to stdout.
+        Print specified metadata to stdout.
 
-        The 'metadata' is a list of 'key'-'value' pairs.
+        The metadata is a list of key-value pairs.
 
-        The 'row' parameter is ignored, the rest of the metatata is somewhat
+        The row parameter is ignored, the rest of the metatata is somewhat
         pretty-printed after the URI itself.
 
         In addition to this, the metadata is dumped to the output file, too.
@@ -440,11 +442,11 @@ class BaseParser(HTMLParser):
     @classmethod
     def is_parser_for_profile(cls, profile):
         """
-        Check if this parser can parse 'profile'.
+        Check if this parser can parse profile.
 
-        For now, a parser can parse a 'profile' if its 'NEEDED_KEYS' set is
-        exactly the same as the profile.keys(), ignoring 'URI_REGEX' key as it
-        is unused in the parsers but present in all of the profiles anyway.
+        For now, a parser can parse a profile if its NEEDED_KEYS set is exactly
+        the same as the profile.keys(), ignoring URI_REGEX key as it is unused
+        in the parsers but present in all of the profiles anyway.
         """
         return (cls.NEEDED_KEYS | {BaseParser.URI_REGEX}) == profile.keys()
 
@@ -753,31 +755,16 @@ def setup_logging():
 
 def process_argv():
     """
-    Process command line arguments.
+    Process arguments contained in the argv list.
 
-    For each argument, identify the type of Manteca source, and signal the
-    invalid ones.
+    For each argument identify the type of Manteca source and build appropriate
+    source and sink objects, yielding them as pairs.
 
-    Returns a list of valid sources (can be empty).
+    Raise InvalidSourceError for invalid sources.
+
+    Yield (source, sink) tuples of valid sources.
     """
-    sys.argv.pop(0)
-    if len(sys.argv) == 0:
-        # The input source should be provided automatically if the program is
-        # used as a drag'n'drop target, which is in fact the intended method
-        # of operation.
-        #
-        # But the program can be also run by hand from a command prompt, so it
-        # is better to give the end user a warning (well, an error...) if the
-        # input source is missing.
-        error(
-            'No se ha especificado un fichero de entrada para ser procesado.\n'
-            '\n'
-            'Arrastre y suelte un fichero de entrada sobre el icono del programa, '
-            'o proporcione el nombre del fichero como argumento.'
-        )
-        return
-
-    for arg in sys.argv:
+    for arg in argv:
         logging.debug('Procesando fuente de Manteca «%s».', arg)
         dumpmode = arg.startswith(DUMPMODE_PREFIX)
         arg = arg.removeprefix(DUMPMODE_PREFIX)
@@ -825,18 +812,18 @@ def process_argv():
 
 def load_profiles(filename):
     """
-    Load the profiles from 'filename'.
+    Load the profiles from filename.
 
-    Returns the preprocessed list of profiles as a dictionary whose keys
-    are the found profiles and the values are dictionaries containing the
-    corresponding profile configuration items as key-value pairs.
+    Return the preprocessed list of profiles as a dictionary where the keys are
+    the profiles which were found in filename and the values are dictionaries
+    containing the corresponding profile configuration items as key-value pairs.
 
-    Raises MissingProfilesError if 'filename' cannot be opened or read.
+    Raise MissingProfilesError if filename cannot be opened or read.
 
-    Raises ProfilesSyntaxError if there is any syntax error in 'filename'.
+    Raise ProfilesSyntaxError if there is any syntax error in filename.
 
-    The returned dictionary will be empty if no profiles are present in
-    'filename' OR if only empty profiles are present.
+    The returned dictionary will be empty if no profiles or only empty profiles
+    are present in filename.
     """
     parser = configparser.ConfigParser()
     logging.debug('Obteniendo perfiles desde «%s».', filename)
@@ -864,13 +851,13 @@ def load_profiles(filename):
 
 def retrieve_uri(uri):
     """
-    Retrieve contents from 'uri'.
+    Retrieve contents from uri.
 
-    This function resolves meta-refresh redirection for 'uri', then gets the
-    contents and decodes them using the detected charset, or iso-8859-1 if no
-    charset is detected.
+    First resolve meta-refresh redirection for uri, then get the contents and
+    decode them using the detected charset, or iso-8859-1 if no charset is
+    detected.
 
-    Returns a tuple whose first element are the decoded contents and the second
+    Return a tuple whose first element are the decoded contents and the second
     element is the charset detected (or the default one if none is found).
 
     NOTE about charset: if no charset is detected, then iso-8859-1 is used as
@@ -933,12 +920,12 @@ def retrieve_uri(uri):
 
 def saca_las_mantecas(source, sink, profiles):  # pylint: disable=too-many-branches,too-many-locals,too-many-statements
     """
-    Saca las Mantecas (skims) from each 'source' dumping metadata to 'sink'.
+    Saca las Mantecas (skims) from each source dumping metadata to sink.
 
-    The 'profiles' are used to properly perform the skimming, since that process
+    The profiles are used to properly perform the skimming, since that process
     depends on the particular profile matched by the Manteca being skimmed.
 
-    The full process is to obtain the list of Mantecas from each 'source', then
+    The full process is to obtain the list of Mantecas from each source, then
     retrieving the contents from each URI and then get the metadata (that is,
     skim the Manteca) using the proper parser depending on the particular URI.
     """
