@@ -22,10 +22,10 @@ entry.
 metadata is directly written to the console and dumped to an output file.
 
 In addition to this, if any of the sources is prepended with the fake URI scheme
-'dump://', then the contents are not processed, but dumped to files so they can
+"dump://", then the contents are not processed, but dumped to files so they can
 be used as testing sources in the future.
 
-A Manteca can be ANY kind of URI scheme supported by 'urllib'.
+A Manteca can be ANY kind of URI scheme supported by urllib.
 
 The Mantecas are processed according to profiles, which indicate how to properly
 process the retrieved contents from the URIs, depending on the bibliographic
@@ -136,7 +136,7 @@ def wait_for_keypress():
     # For a frozen executable, it is more or less easy: if the console title
     # is not equal to sys.executable, then the console is NOT transient.
     #
-    # For a .py file, it's a bit more complicated, but in most cases if the
+    # For a .py file, it is a bit more complicated, but in most cases if the
     # console title contains the name of the .py file, the console is NOT a
     # transient console.
     if getattr(sys, 'frozen', False):
@@ -308,7 +308,7 @@ class SkimmedExcel(SkimmedSink):
                 #
                 # As per Excel specification, the width units are the width of
                 # the zero character of the font used by the Normal style for a
-                # workbook. So a column of width '10' would fit exactly 10 zero
+                # workbook. So a column of width 10 would fit exactly 10 zero
                 # characters in the font specified by the Normal style.
                 #
                 # No, no kidding.
@@ -558,9 +558,9 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
                 self.current_v_tag = tag
                 if self.within_k:
                     # If still processing a key, the nesting error can still be
-                    # recovered to a certain point. If some data was obtained
-                    # for the key, the parser is put in 'within_v' mode to get
-                    # the corresponding value. Otherwise the parser is reset.
+                    # recovered up to a certain point. If some data was obtained
+                    # for the key, the parser is put in within_v mode to get the
+                    # corresponding value. Otherwise the parser is reset.
                     logging.debug('Problema de anidación (valor dentro de clave), restableciendo parser.')
                     self.within_k = False
                     self.current_k_tag = None
