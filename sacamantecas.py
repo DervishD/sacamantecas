@@ -748,6 +748,45 @@ def setup_logging():
     dictConfig(logging_configuration)
 
 
+def load_profiles(filename):
+    """
+    Load the profiles from filename.
+
+    Return the preprocessed list of profiles as a dictionary where the keys are
+    the profiles which were found in filename and the values are dictionaries
+    containing the corresponding profile configuration items as key-value pairs.
+
+    Raise MissingProfilesError if filename cannot be opened or read.
+
+    Raise ProfilesSyntaxError if there is any syntax error in filename.
+
+    The returned dictionary will be empty if no profiles or only empty profiles
+    are present in filename.
+    """
+    parser = configparser.ConfigParser()
+    logging.debug('Obteniendo perfiles desde «%s».', filename)
+    try:
+        with open(filename, encoding='utf-8') as inifile:
+            parser.read_file(inifile)
+    except (FileNotFoundError, PermissionError) as exc:
+        raise MissingProfilesError(exc.filename) from exc
+    except configparser.Error as exc:
+        raise ProfilesSyntaxError(type(exc).__name__.removesuffix('Error'), exc) from exc
+
+    profiles = {}
+    for profile in parser.sections():
+        profiles[profile] = {}
+        for key, value in parser[profile].items():
+            try:
+                profiles[profile][key] = re.compile(value, re.IGNORECASE) if value else None
+            except re.error as exc:
+                message = f'Perfil «{profile}»: {exc.msg[0].upper() + exc.msg[1:]}.\n'
+                message += f'  {key} = {exc.pattern}\n'
+                message += '  ' + '_' * (exc.pos + len(key) + len(' = ')) + '^'
+                raise ProfilesSyntaxError('BadRegex', message) from exc
+    return {key: value for key, value in profiles.items() if value}
+
+
 def parse_sources(sources):
     """
     Process arguments contained in the argv list.
@@ -789,45 +828,6 @@ def parse_sources(sources):
             sink_name = Path(source)
         sink_name = None if sink_name is None else sink_name.with_stem(sink_name.stem + '_out')
         yield source_type, source_name, sink_name, dumpmode
-
-
-def load_profiles(filename):
-    """
-    Load the profiles from filename.
-
-    Return the preprocessed list of profiles as a dictionary where the keys are
-    the profiles which were found in filename and the values are dictionaries
-    containing the corresponding profile configuration items as key-value pairs.
-
-    Raise MissingProfilesError if filename cannot be opened or read.
-
-    Raise ProfilesSyntaxError if there is any syntax error in filename.
-
-    The returned dictionary will be empty if no profiles or only empty profiles
-    are present in filename.
-    """
-    parser = configparser.ConfigParser()
-    logging.debug('Obteniendo perfiles desde «%s».', filename)
-    try:
-        with open(filename, encoding='utf-8') as inifile:
-            parser.read_file(inifile)
-    except (FileNotFoundError, PermissionError) as exc:
-        raise MissingProfilesError(exc.filename) from exc
-    except configparser.Error as exc:
-        raise ProfilesSyntaxError(type(exc).__name__.removesuffix('Error'), exc) from exc
-
-    profiles = {}
-    for profile in parser.sections():
-        profiles[profile] = {}
-        for key, value in parser[profile].items():
-            try:
-                profiles[profile][key] = re.compile(value, re.IGNORECASE) if value else None
-            except re.error as exc:
-                message = f'Perfil «{profile}»: {exc.msg[0].upper() + exc.msg[1:]}.\n'
-                message += f'  {key} = {exc.pattern}\n'
-                message += '  ' + '_' * (exc.pos + len(key) + len(' = ')) + '^'
-                raise ProfilesSyntaxError('BadRegex', message) from exc
-    return {key: value for key, value in profiles.items() if value}
 
 
 def retrieve_uri(uri):
