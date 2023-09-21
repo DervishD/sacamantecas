@@ -984,6 +984,8 @@ def main():
         logging.debug('Registro de depuración iniciado.')
         logging.debug('User-Agent: «%s».', USER_AGENT)
 
+        logging.info(PROGRAM_NAME)
+
         sys.argv.pop(0)
         if len(sys.argv) == 0:
             # The input source should be provided automatically if the program
@@ -1000,8 +1002,6 @@ def main():
                 'o proporcione el nombre del fichero como argumento.'
             )
             return EXITCODE_FAILURE
-
-        logging.info(PROGRAM_NAME)
 
         try:
             profiles = load_profiles(INIFILE_PATH)
