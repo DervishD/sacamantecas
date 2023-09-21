@@ -1,5 +1,5 @@
 #! /usr/bin/env python3
-"""Test suite for parse_argv."""
+"""Test suite for parse_sources()."""
 from pathlib import Path
 import pytest
 from sacamantecas import parse_sources
