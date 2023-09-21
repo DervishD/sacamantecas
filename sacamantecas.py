@@ -989,6 +989,7 @@ def saca_las_mantecas(source, sink, profiles):  # pylint: disable=too-many-branc
 
 def main():
     """."""
+    exitcode = EXITCODE_SUCCESS
     try:
         atexit.register(wait_for_keypress)
         setup_logging()
@@ -1019,14 +1020,15 @@ def main():
             profiles = load_profiles(INIFILE_PATH)
             if not profiles:
                 error('No hay perfiles definidos en el fichero de perfiles «{exc.filename}».')
-                return EXITCODE_FAILURE
+                exitcode = EXITCODE_FAILURE
             logging.debug('Se obtuvieron los siguientes perfiles: %s.', list(profiles.keys()))
         except MissingProfilesError as exc:
             error(f'No se encontró o no se pudo leer el fichero de perfiles «{exc.filename}».')
-            return EXITCODE_FAILURE
+            exitcode = EXITCODE_FAILURE
         except ProfilesSyntaxError as exc:
             error(f'Error de sintaxis «{exc.error}» leyendo el fichero de perfiles.\n{exc.details}')
-                    logging.warning('  [{%s}] {%s}.', uri, problem)
+            exitcode = EXITCODE_FAILURE
+        else:
 
 
             logging.warning('Se encontraron problemas en los siguientes enlaces:')
@@ -1034,13 +1036,12 @@ def main():
                 logging.warning(f'  [{uri}] {problem}.')
     except KeyboardInterrupt:
         logging.info('\nEl usuario interrumpió la operación del programa.')
-        return EXITCODE_FAILURE
+        exitcode = EXITCODE_FAILURE
     logging.info('\nProceso terminado.')
     logging.debug('Registro de depuración finalizado.')
     logging.shutdown()
 
-    return EXITCODE_SUCCESS
-
+    return exitcode
 
 sys.excepthook = excepthook
 if __name__ == '__main__':
