@@ -83,7 +83,7 @@ if sys.platform != 'win32':
 
 
 # Needed for having VERY basic logging when the code is imported rather than run.
-logging.basicConfig(level=logging.NOTSET, format='%(message)s', force=True)
+logging.basicConfig(level=logging.NOTSET, format='%(levelname).1s %(message)s', force=True)
 
 
 # Reconfigure standard output streams so they use UTF-8 encoding, no matter if
