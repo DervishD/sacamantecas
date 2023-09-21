@@ -35,6 +35,7 @@ def test_syntax_errors(tmp_path: Path, text: str, error: str) -> None:  # pylint
 
     filename.unlink()
 
+
 @pytest.mark.parametrize("text", ['', '[s]'])
 def test_empty(tmp_path: Path, text: str) -> None:  # pylint: disable=unused-variable
     """Test for empty profiles configuration file."""
