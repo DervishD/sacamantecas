@@ -60,7 +60,7 @@ from openpyxl.styles import Font, PatternFill
 from openpyxl.utils.exceptions import SheetTitleException, InvalidFileException
 from openpyxl.utils.cell import get_column_letter
 
-
+TIMESTAMP = time.strftime('%Y%m%d_%H%M%S')
 try:
     if getattr(sys, 'frozen', False):
         PROGRAM_PATH = sys.executable
@@ -633,7 +633,7 @@ class BaratzParser(BaseParser):
             return
 
 
-def setup_logging():
+def setup_logging(log_filename, debug_filename):
     """
     Sets up logging system, disabling all existing loggers.
 
@@ -641,10 +641,6 @@ def setup_logging():
     file, logging.INFO messages are sent to the log file (timestamped), and the
     console (but not timestamped in this case).
     """
-    timestamp = time.strftime('%Y%m%d_%H%M%S')
-    debugfile = f'{PROGRAM_PATH.with_suffix("")}_debug_{timestamp}.txt'
-    logfile = f'{PROGRAM_PATH.with_suffix("")}_log_{timestamp}.txt'
-
     class MultilineFormatter(logging.Formatter):
         """Simple multiline formatter for logging messages."""
         def format(self, record):
@@ -709,7 +705,7 @@ def setup_logging():
         'formatter': 'debug',
         'filters': ['debug'],
         'class': 'logging.FileHandler',
-        'filename': debugfile,
+        'filename': debug_filename,
         'mode': 'w',
         'encoding': 'utf8'
     }
@@ -719,7 +715,7 @@ def setup_logging():
         'formatter': 'log',
         'filters': ['info'],
         'class': 'logging.FileHandler',
-        'filename': logfile,
+        'filename': log_filename,
         'mode': 'w',
         'encoding': 'utf8'
     }
@@ -978,7 +974,12 @@ def main():
     exitcode = EXITCODE_SUCCESS
     try:
         atexit.register(wait_for_keypress)
-        setup_logging()
+
+        debug_filename = f'{PROGRAM_PATH.with_suffix("")}_debug_{TIMESTAMP}.txt'
+        log_filename = f'{PROGRAM_PATH.with_suffix("")}_log_{TIMESTAMP}.txt'
+
+        setup_logging(log_filename, debug_filename)
+
         logging.debug(PROGRAM_NAME)
         logging.debug('Registro de depuración iniciado.')
         logging.debug('User-Agent: «%s».', USER_AGENT)
