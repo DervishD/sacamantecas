@@ -748,61 +748,47 @@ def setup_logging():
     dictConfig(logging_configuration)
 
 
-def process_argv(argv):
+def parse_sources(sources):
     """
     Process arguments contained in the argv list.
 
-    For each argument identify the type of Manteca source and build appropriate
-    source and sink objects, yielding them as pairs.
+    For each argument identify the type of source and generate the corresponding
+    manteca source and skimmed sink names taking into account if the source must
+    be dumped or processed normally.
 
-    Raise InvalidSourceError for invalid sources.
+    The source is 'munged' in the returned tuple, that is, preprocessed and
+    normalized so it resembles a normal source instead of a 'dumpable' one.
 
-    Yield (source, sink) tuples of valid sources.
+    Yield (source_type, source_name, sink_name, dumpmode) tuples.
+
+    For invalid sources the tuple is (None, source_name, None, dumpmode).
     """
-    for arg in argv:
-        logging.debug('Procesando fuente de Manteca «%s».', arg)
-        dumpmode = arg.startswith(DUMPMODE_PREFIX)
-        arg = arg.removeprefix(DUMPMODE_PREFIX)
-        source = Path(arg)
-        sink = None if dumpmode else source.with_stem(source.stem + '_out')
-        if dumpmode:
-            logging.debug('La fuente de Manteca «%s» será volcada, no procesada.', arg)
-        try:
-            if re.match(r'(?:https?|file)://', arg):
-                logging.debug('La fuente es un URI.')
-                sink = Path(re.sub(r'\W', '_', arg, re.ASCII) + '_out.txt')
-                source = MantecaURI(arg)
-                sink = SkimmedURI(sink) if sink else None
-            elif arg.endswith('.txt'):
-                arg = Path(arg)
-                logging.debug('La fuente es un fichero de texto.')
-                source = MantecaText(source)
-                sink = SkimmedText(sink) if sink else None
-            elif arg.endswith('.xlsx'):
-                logging.debug('La fuente es un fichero Excel.')
-                if not dumpmode:
-                    logging.debug('Copiando workbook a «%s».', sink)
-                    copy2(source, sink)
-                try:
-                    source = MantecaExcel(source)
-                    sink = SkimmedExcel(sink)
-                except (InvalidFileException, SheetTitleException, BadZipFile):
-                    error('El fichero Excel de entrada es inválido.')
-                    continue
-            else:
-                error(f'La fuente «{arg}» es inválida.')
-                continue
-        except FileNotFoundError:
-            error('No se encontró el fichero de entrada.')
-            continue
-        except PermissionError as exc:
-            message = 'No hay permisos suficientes para '
-            message += 'leer ' if exc.filename == str(arg) else 'crear '
-            message += 'el fichero de '
-            message += 'entrada.' if exc.filename == str(arg) else 'salida.'
-            error(message)
-            continue
-        yield source, sink
+    for source in sources:
+        logging.debug('Procesando fuente de Manteca «%s».', source)
+
+        dumpmode = source.startswith(DUMPMODE_PREFIX)
+        source = source.removeprefix(DUMPMODE_PREFIX)
+
+        source_type = None
+        source_name = source
+        sink_name = None
+        if re.match(r'(?:https?|file)://', source):
+            logging.debug('La fuente es un URI.')
+            source_type = 'uri'
+            source_name = Path(source)
+            sink_name = Path(re.sub(r'\W', '_', source, re.ASCII) + '.txt')
+        elif source.endswith('.txt'):
+            logging.debug('La fuente es un fichero de texto.')
+            source_type = 'txt'
+            source_name = Path(source)
+            sink_name = Path(source)
+        elif source.endswith('.xlsx'):
+            logging.debug('La fuente es un fichero Excel.')
+            source_type = 'xls'
+            source_name = Path(source)
+            sink_name = Path(source)
+        sink_name = None if sink_name is None else sink_name.with_stem(sink_name.stem + '_out')
+        yield source_type, source_name, sink_name, dumpmode
 
 
 def load_profiles(filename):
@@ -1029,6 +1015,14 @@ def main():
             error(f'Error de sintaxis «{exc.error}» leyendo el fichero de perfiles.\n{exc.details}')
             exitcode = EXITCODE_FAILURE
         else:
+            logging.info('\nSacando las mantecas:')
+            for source_type, source_name, sink_name, dumpmode in parse_sources(sys.argv):
+                if dumpmode:
+                    logging.debug('La fuente de Manteca «%s» será volcada, no procesada.', source_name)
+                print(source_type, source_name, sink_name, dumpmode)
+                if source_type is None:
+                    logging.warning('La fuente «%s» no es de un tipo admitido.', source_name)
+                    continue
 
 
             logging.warning('Se encontraron problemas en los siguientes enlaces:')
