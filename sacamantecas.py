@@ -638,8 +638,11 @@ def setup_logging(log_filename, debug_filename):
     Sets up logging system, disabling all existing loggers.
 
     With the current configuration ALL logging messages are sent to the debug
-    file, logging.INFO messages are sent to the log file (timestamped), and the
-    console (but not timestamped in this case).
+    file and messages with levels over logging.INFO are sent to the log file.
+
+    Also, logging.INFO messages are sent to sys.stdout, without a timestamp.
+    Finally, messages with levels over logging.INFO are sent to sys.stderr, also
+    without a timestamp.
     """
     class MultilineFormatter(logging.Formatter):
         """Simple multiline formatter for logging messages."""
@@ -678,16 +681,16 @@ def setup_logging(log_filename, debug_filename):
         },
         'filters': {
             'debug': {
-                '()': lambda: lambda log_record: log_record.msg.strip() and log_record.levelno != logging.INFO
+                '()': lambda: lambda log_record: log_record.msg.strip() and log_record.levelno > logging.NOTSET
             },
             'info': {
                 '()': lambda: lambda log_record: log_record.msg.strip() and log_record.levelno >= logging.INFO
             },
-            'console': {
+            'stdout': {
                 '()': lambda: lambda log_record: log_record.msg.strip() and log_record.levelno == logging.INFO
             },
-            'warning': {
-                '()': lambda: lambda log_record: log_record.msg.strip() and log_record.levelno == logging.WARNING
+            'stderr': {
+                '()': lambda: lambda log_record: log_record.msg.strip() and log_record.levelno > logging.INFO
             },
         },
         'handlers': {},
@@ -720,10 +723,10 @@ def setup_logging(log_filename, debug_filename):
         'encoding': 'utf8'
     }
 
-    logging_configuration['handlers']['console'] = {
+    logging_configuration['handlers']['stdout'] = {
         'level': 'NOTSET',
         'formatter': 'console',
-        'filters': ['console'],
+        'filters': ['stdout'],
         'class': 'logging.StreamHandler',
         'stream': sys.stdout
     }
@@ -731,14 +734,14 @@ def setup_logging(log_filename, debug_filename):
     logging_configuration['handlers']['stderr'] = {
         'level': 'NOTSET',
         'formatter': 'console',
-        'filters': ['warning'],
+        'filters': ['stderr'],
         'class': 'logging.StreamHandler',
         'stream': sys.stderr
     }
 
     logging_configuration['loggers']['']['handlers'].append('debugfile')
     logging_configuration['loggers']['']['handlers'].append('logfile')
-    logging_configuration['loggers']['']['handlers'].append('console')
+    logging_configuration['loggers']['']['handlers'].append('stdout')
     logging_configuration['loggers']['']['handlers'].append('stderr')
 
     dictConfig(logging_configuration)
@@ -980,11 +983,10 @@ def main():
 
         setup_logging(log_filename, debug_filename)
 
-        logging.debug(PROGRAM_NAME)
+        logging.info(PROGRAM_NAME)
         logging.debug('Registro de depuración iniciado.')
         logging.debug('User-Agent: «%s».', USER_AGENT)
 
-        logging.info(PROGRAM_NAME)
 
         sys.argv.pop(0)
         if len(sys.argv) == 0:
