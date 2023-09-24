@@ -151,7 +151,7 @@ def wait_for_keypress():
 
 def error(message):
     """Show the error message on stderr and the debug logfile."""
-    print(f'\n*** Error en {PROGRAM_NAME}\n{message}', file=sys.stderr)
+    print(f'\n*** Error en {PROGRAM_NAME}\n', file=sys.stderr)
     logging.error(message)
 
 
