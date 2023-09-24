@@ -972,6 +972,28 @@ def saca_las_mantecas(source, sink, profiles):
     return bad_metadata
 
 
+def loggerize(function):
+    """Decorator which enables logging for function."""
+    def loggerize_wrapper(*args, **kwargs):
+        TIMESTAMP = ''
+        debug_filename = f'{PROGRAM_PATH.with_suffix("")}_debug_{TIMESTAMP}.txt'
+        log_filename = f'{PROGRAM_PATH.with_suffix("")}_log_{TIMESTAMP}.txt'
+
+        setup_logging(log_filename, debug_filename)
+
+        logging.info(PROGRAM_NAME)
+        logging.debug(MESSAGES.DEBUGGING_INIT)
+        logging.debug('User-Agent: «%s».', USER_AGENT)
+
+        status = function(*args, **kwargs)
+
+        logging.info('\nProceso terminado.')
+        logging.debug('Registro de depuración finalizado.')
+        logging.shutdown()
+        return status
+    return loggerize_wrapper
+
+
 def keyboard_interrupt_handler(function):
     """Wraps function with a simple KeyboardInterrupt handler."""
     def handle_keyboard_interrupt_wrapper(*args, **kwargs):
@@ -983,20 +1005,12 @@ def keyboard_interrupt_handler(function):
     return handle_keyboard_interrupt_wrapper
 
 
+@loggerize
 @keyboard_interrupt_handler
 def main():
     """."""
     exitcode = EXITCODE_SUCCESS
     atexit.register(wait_for_keypress)
-
-    debug_filename = f'{PROGRAM_PATH.with_suffix("")}_debug_{TIMESTAMP}.txt'
-    log_filename = f'{PROGRAM_PATH.with_suffix("")}_log_{TIMESTAMP}.txt'
-
-    setup_logging(log_filename, debug_filename)
-
-    logging.info(PROGRAM_NAME)
-    logging.debug('Registro de depuración iniciado.')
-    logging.debug('User-Agent: «%s».', USER_AGENT)
 
     sys.argv.pop(0)
     if len(sys.argv) == 0:
@@ -1040,13 +1054,7 @@ def main():
 
             logging.warning('Se encontraron problemas en los siguientes enlaces:')
     #         for uri, problem in bad_metadata:
-                logging.warning(f'  [{uri}] {problem}.')
-    except KeyboardInterrupt:
-        logging.info('\nEl usuario interrumpió la operación del programa.')
-        exitcode = EXITCODE_FAILURE
-    logging.info('\nProceso terminado.')
-    logging.debug('Registro de depuración finalizado.')
-    logging.shutdown()
+                # logging.warning(f'  [{uri}] {problem}.')
 
     return exitcode
 
