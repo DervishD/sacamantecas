@@ -39,6 +39,7 @@ import configparser
 import sys
 from pathlib import Path
 import errno
+from enum import StrEnum
 import logging
 import atexit
 from logging.config import dictConfig
@@ -76,6 +77,21 @@ USER_AGENT += f' (Windows {platform.version()}; {platform.architecture()[0]}; {p
 DUMPMODE_PREFIX = 'dump://'
 EXITCODE_FAILURE = 1
 EXITCODE_SUCCESS = 0
+
+
+class MESSAGES(StrEnum):
+    """Messages for the application."""
+    KEYBOARD_INTERRUPTION = '\nEl usuario interrumpión la operación del programa.'
+    NO_PROGRAM_ARGUMENTS = (
+        'No se ha especificado un fichero de entrada para ser procesado.\n'
+        '\n'
+        'Arrastre y suelte un fichero de entrada sobre el icono del programa, '
+        'o proporcione el nombre del fichero como argumento.'
+    )
+    DEBUGGING_INIT = 'Registro de depuración iniciado.'
+    EMPTY_PROFILES = 'No hay perfiles definidos en el fichero de perfiles «{}».'
+    MISSING_PROFILES = 'No se encontró o no se pudo leer el fichero de perfiles «{}».'
+    PROFILES_WRONG_SYNTAX = 'Error de sintaxis «{}» leyendo el fichero de perfiles.\n{}'
 
 
 if sys.platform != 'win32':
@@ -1003,7 +1019,7 @@ def keyboard_interrupt_handler(function):
         try:
             return function(*args, **kwargs)
         except KeyboardInterrupt:
-            logging.warning('\nEl usuario interrumpió la operación del programa.')
+            logging.warning(MESSAGES.KEYBOARD_INTERRUPTION)
             return EXITCODE_FAILURE
     return handle_keyboard_interrupt_wrapper
 
@@ -1023,25 +1039,20 @@ def main():
         # But the program can be also run by hand from a command prompt, so
         # it is better to signal the end user with an error and explanation
         # if the input source is missing, as soon as possible.
-        error(
-            'No se ha especificado un fichero de entrada para ser procesado.\n'
-            '\n'
-            'Arrastre y suelte un fichero de entrada sobre el icono del programa, '
-            'o proporcione el nombre del fichero como argumento.'
-        )
+        error(MESSAGES.NO_PROGRAM_ARGUMENTS)
         return EXITCODE_FAILURE
 
     try:
         profiles = load_profiles(INIFILE_PATH)
         if not profiles:
-            error('No hay perfiles definidos en el fichero de perfiles «{exc.filename}».')
+            error(MESSAGES.EMPTY_PROFILES.format(INIFILE_PATH))
             return EXITCODE_FAILURE
         logging.debug('Se obtuvieron los siguientes perfiles: %s.', list(profiles.keys()))
     except MissingProfilesError as exc:
-        error(f'No se encontró o no se pudo leer el fichero de perfiles «{exc.filename}».')
+        error(MESSAGES.MISSING_PROFILES.format(exc.filename))
         return EXITCODE_FAILURE
     except ProfilesSyntaxError as exc:
-        error(f'Error de sintaxis «{exc.error}» leyendo el fichero de perfiles.\n{exc.details}')
+        error(MESSAGES.PROFILES_WRONG_SYNTAX.format(exc.error, exc.details))
         return EXITCODE_FAILURE
 
     logging.info('\nSacando las mantecas:')
