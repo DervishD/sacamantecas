@@ -998,7 +998,7 @@ def loggerize(function):
 
 
 def keyboard_interrupt_handler(function):
-    """Wraps function with a simple KeyboardInterrupt handler."""
+    """Decorator which wraps function with a simple KeyboardInterrupt handler."""
     def handle_keyboard_interrupt_wrapper(*args, **kwargs):
         try:
             return function(*args, **kwargs)
