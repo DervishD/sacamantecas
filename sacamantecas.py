@@ -89,9 +89,9 @@ class MESSAGES(StrEnum):
         'o proporcione el nombre del fichero como argumento.'
     )
     DEBUGGING_INIT = 'Registro de depuración iniciado.'
-    EMPTY_PROFILES = 'No hay perfiles definidos en el fichero de perfiles «{}».'
-    MISSING_PROFILES = 'No se encontró o no se pudo leer el fichero de perfiles «{}».'
-    PROFILES_WRONG_SYNTAX = 'Error de sintaxis «{}» leyendo el fichero de perfiles.\n{}'
+    EMPTY_PROFILES = 'No hay perfiles definidos en el fichero de perfiles «{%s}».'
+    MISSING_PROFILES = 'No se encontró o no se pudo leer el fichero de perfiles «{%s}».'
+    PROFILES_WRONG_SYNTAX = 'Error de sintaxis «{%s}» leyendo el fichero de perfiles.\n{%s}'
 
 
 if sys.platform != 'win32':
@@ -163,11 +163,6 @@ def wait_for_keypress():
 
     print('\nPulse cualquier tecla para continuar...', end='', flush=True)
     getch()
-
-
-def error(message):
-    """Show the error message on stderr and the debug logfile."""
-    logging.error(message)
 
 
 def excepthook(exc_type, exc_value, exc_traceback):
@@ -1039,20 +1034,20 @@ def main():
         # But the program can be also run by hand from a command prompt, so
         # it is better to signal the end user with an error and explanation
         # if the input source is missing, as soon as possible.
-        error(MESSAGES.NO_PROGRAM_ARGUMENTS)
+        logging.error(MESSAGES.NO_PROGRAM_ARGUMENTS)
         return EXITCODE_FAILURE
 
     try:
         profiles = load_profiles(INIFILE_PATH)
         if not profiles:
-            error(MESSAGES.EMPTY_PROFILES.format(INIFILE_PATH))
+            logging.error(MESSAGES.EMPTY_PROFILES, INIFILE_PATH)
             return EXITCODE_FAILURE
         logging.debug('Se obtuvieron los siguientes perfiles: %s.', list(profiles.keys()))
     except MissingProfilesError as exc:
-        error(MESSAGES.MISSING_PROFILES.format(exc.filename))
+        logging.error(MESSAGES.MISSING_PROFILES, exc.filename)
         return EXITCODE_FAILURE
     except ProfilesSyntaxError as exc:
-        error(MESSAGES.PROFILES_WRONG_SYNTAX.format(exc.error, exc.details))
+        logging.error(MESSAGES.PROFILES_WRONG_SYNTAX, exc.error, exc.details)
         return EXITCODE_FAILURE
 
     logging.info('\nSacando las mantecas:')
@@ -1065,7 +1060,19 @@ def main():
             continue
 
 
-            logging.warning('Se encontraron problemas en los siguientes enlaces:')
+
+
+            # bad_metadata = []
+        #     result = saca_las_mantecas(source, sink, profiles)
+        #     if result is not None:
+        #         bad_metadata.extend(result)
+        # if bad_metadata:
+        #     print(bad_metadata)
+
+    #     if bad_metadata:
+    #         exitcode = 1
+    #         print(file=sys.stderr)
+            # logging.warning('Se encontraron problemas en los siguientes enlaces:')
     #         for uri, problem in bad_metadata:
                 # logging.warning(f'  [{uri}] {problem}.')
 
