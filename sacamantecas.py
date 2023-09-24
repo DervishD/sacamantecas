@@ -1009,7 +1009,6 @@ def keyboard_interrupt_handler(function):
 @keyboard_interrupt_handler
 def main():
     """."""
-    exitcode = EXITCODE_SUCCESS
     atexit.register(wait_for_keypress)
 
     sys.argv.pop(0)
@@ -1033,30 +1032,30 @@ def main():
         profiles = load_profiles(INIFILE_PATH)
         if not profiles:
             error('No hay perfiles definidos en el fichero de perfiles «{exc.filename}».')
-            exitcode = EXITCODE_FAILURE
+            return EXITCODE_FAILURE
         logging.debug('Se obtuvieron los siguientes perfiles: %s.', list(profiles.keys()))
     except MissingProfilesError as exc:
         error(f'No se encontró o no se pudo leer el fichero de perfiles «{exc.filename}».')
-        exitcode = EXITCODE_FAILURE
+        return EXITCODE_FAILURE
     except ProfilesSyntaxError as exc:
         error(f'Error de sintaxis «{exc.error}» leyendo el fichero de perfiles.\n{exc.details}')
-        exitcode = EXITCODE_FAILURE
-    else:
-        logging.info('\nSacando las mantecas:')
-        for source_type, source_name, sink_name, dumpmode in parse_sources(sys.argv):
-            if dumpmode:
-                logging.debug('La fuente de Manteca «%s» será volcada, no procesada.', source_name)
-            print(source_type, source_name, sink_name, dumpmode)
-            if source_type is None:
-                logging.warning('La fuente «%s» no es de un tipo admitido.', source_name)
-                continue
+        return EXITCODE_FAILURE
+
+    logging.info('\nSacando las mantecas:')
+    for source_type, source_name, sink_name, dumpmode in parse_sources(sys.argv):
+        if dumpmode:
+            logging.debug('La fuente de Manteca «%s» será volcada, no procesada.', source_name)
+        print(source_type, source_name, sink_name, dumpmode)
+        if source_type is None:
+            logging.warning('La fuente «%s» no es de un tipo admitido.', source_name)
+            continue
 
 
             logging.warning('Se encontraron problemas en los siguientes enlaces:')
     #         for uri, problem in bad_metadata:
                 # logging.warning(f'  [{uri}] {problem}.')
 
-    return exitcode
+    return EXITCODE_SUCCESS
 
 
 sys.excepthook = excepthook
