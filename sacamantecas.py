@@ -151,7 +151,6 @@ def wait_for_keypress():
 
 def error(message):
     """Show the error message on stderr and the debug logfile."""
-    print(f'\n*** Error en {PROGRAM_NAME}', file=sys.stderr)
     logging.error(message)
 
 
@@ -674,9 +673,13 @@ def setup_logging(log_filename, debug_filename):
                 'format': '{asctime} {message}',
                 'datefmt': '%Y%m%d_%H%M%S'
             },
-            'console': {
+            'stdout': {
                 'style': '{',
-                'format': '{message}',
+                'format': '{message}'
+            },
+            'stderr': {
+                'style': '{',
+                'format': '\n*** Error en ' + PROGRAM_NAME + '\n{message}'
             },
         },
         'filters': {
@@ -725,7 +728,7 @@ def setup_logging(log_filename, debug_filename):
 
     logging_configuration['handlers']['stdout'] = {
         'level': 'NOTSET',
-        'formatter': 'console',
+        'formatter': 'stdout',
         'filters': ['stdout'],
         'class': 'logging.StreamHandler',
         'stream': sys.stdout
@@ -733,7 +736,7 @@ def setup_logging(log_filename, debug_filename):
 
     logging_configuration['handlers']['stderr'] = {
         'level': 'NOTSET',
-        'formatter': 'console',
+        'formatter': 'stderr',
         'filters': ['stderr'],
         'class': 'logging.StreamHandler',
         'stream': sys.stderr
