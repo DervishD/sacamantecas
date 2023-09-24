@@ -186,7 +186,7 @@ def excepthook(exc_type, exc_value, exc_traceback):
         message += ']'
         message += f': {frame.line}' if frame.line else ''
         message += '\n'
-    error(message.rstrip())
+    logging.error(message.rstrip())
 
 
 class MantecaSource():
