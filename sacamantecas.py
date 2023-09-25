@@ -72,8 +72,8 @@ except NameError:
 PROGRAM_PATH = Path(PROGRAM_PATH).resolve()
 PROGRAM_NAME = PROGRAM_PATH.stem + ' ' + __version__
 PROGRAM_BANNER = f'{PROGRAM_NAME.replace(" v", " versión ")}'
-WARNING_HEADER = '* Warning: '
 ERROR_HEADER = f'\n*** Error en {PROGRAM_NAME}\n'
+WARNING_HEADER = '* Warning: '
 INIFILE_PATH = PROGRAM_PATH.with_suffix('.ini')
 DEBUGFILE_PATH = Path(f'{PROGRAM_PATH.with_suffix("")}_debug_{TIMESTAMP}.txt')
 LOGFILE_PATH = Path(f'{PROGRAM_PATH.with_suffix("")}_log_{TIMESTAMP}.txt')
