@@ -72,6 +72,8 @@ except NameError:
 PROGRAM_PATH = Path(PROGRAM_PATH).resolve()
 PROGRAM_NAME = PROGRAM_PATH.stem + ' ' + __version__
 PROGRAM_BANNER = f'{PROGRAM_NAME.replace(" v", " versión ")}'
+WARNING_HEADER = '* Warning: '
+ERROR_HEADER = f'\n*** Error en {PROGRAM_NAME}\n'
 INIFILE_PATH = PROGRAM_PATH.with_suffix('.ini')
 DEBUGFILE_PATH = Path(f'{PROGRAM_PATH.with_suffix("")}_debug_{TIMESTAMP}.txt')
 LOGFILE_PATH = Path(f'{PROGRAM_PATH.with_suffix("")}_log_{TIMESTAMP}.txt')
@@ -127,6 +129,16 @@ class ProfilesSyntaxError(Exception):
     def __init__ (self, errortype, details):
         self.error = errortype
         self.details = details
+
+
+def error(message, *args, **kwargs):
+    """Helper for prepending a header to error messages."""
+    logging.error(f'{ERROR_HEADER}{message}', *args, **kwargs)
+
+
+def warning(message, *args, **kwargs):
+    """Helper for prepending a header to warning messages."""
+    logging.warning(f'{WARNING_HEADER}{message}', *args, **kwargs)
 
 
 def wait_for_keypress():
@@ -205,7 +217,7 @@ def excepthook(exc_type, exc_value, exc_traceback):
         message += ']'
         message += f': {frame.line}' if frame.line else ''
         message += '\n'
-    logging.error(message.rstrip())
+    error(message.rstrip())
 
 
 class MantecaSource():
@@ -689,13 +701,9 @@ def setup_logging(log_filename, debug_filename):
                 'format': '{asctime} {message}',
                 'datefmt': '%Y%m%d_%H%M%S'
             },
-            'stdout': {
+            'console': {
                 'style': '{',
                 'format': '{message}'
-            },
-            'stderr': {
-                'style': '{',
-                'format': '\n*** Error en ' + PROGRAM_NAME + '\n{message}'
             },
         },
         'filters': {
@@ -744,7 +752,7 @@ def setup_logging(log_filename, debug_filename):
 
     logging_configuration['handlers']['stdout'] = {
         'level': 'NOTSET',
-        'formatter': 'stdout',
+        'formatter': 'console',
         'filters': ['stdout'],
         'class': 'logging.StreamHandler',
         'stream': sys.stdout
@@ -752,7 +760,7 @@ def setup_logging(log_filename, debug_filename):
 
     logging_configuration['handlers']['stderr'] = {
         'level': 'NOTSET',
-        'formatter': 'stderr',
+        'formatter': 'console',
         'filters': ['stderr'],
         'class': 'logging.StreamHandler',
         'stream': sys.stderr
@@ -909,7 +917,7 @@ def retrieve_uri(uri):
                 charset = match.group(1).decode('ascii')
             else:
                 charset = 'iso-8859-1'
-                logging.error('Usando charset por defecto.')
+                error('Usando charset por defecto.')
     else:
         logging.debug('Charset detectado en las cabeceras.')
     logging.debug('Contenidos codificados con charset «%s».', charset)
@@ -937,7 +945,7 @@ def saca_las_mantecas(source, sink, profiles):
                 logging.debug('Perfil detectado: «%s».', profile_name)
                 break
         else:
-            logging.warning('No se detectó un perfil para «%s», ignorando.', uri)
+            warning('No se detectó un perfil para «%s», ignorando.', uri)
             bad_metadata.append((uri, 'No existe perfil'))
             continue
 
@@ -954,20 +962,20 @@ def saca_las_mantecas(source, sink, profiles):
         try:
             contents, charset = retrieve_uri(uri)
         except ConnectionError:
-            logging.error('Error de conexión accediendo a «%s».', uri)
+            error('Error de conexión accediendo a «%s».', uri)
             bad_metadata.append((uri, 'No se pudo conectar'))
             continue
         except URLError as exc:
-            logging.error('Error accediendo a «%s»: %s.', uri, exc.reason)
+            error('Error accediendo a «%s»: %s.', uri, exc.reason)
             bad_metadata.append((uri, 'No se pudo acceder'))
             continue
         except HTTPException as exc:
-            logging.error('Error de descarga accediendo a «%s»: %s.', uri, type(exc).__name__)
+            error('Error de descarga accediendo a «%s»: %s.', uri, type(exc).__name__)
             bad_metadata.append((uri, 'No se pudo descargar'))
             continue
 
         if not contents:
-            logging.error('No se recibieron contenidos de «%s».', uri)
+            error('No se recibieron contenidos de «%s».', uri)
             bad_metadata.append((uri, 'No se recibieron contenidos'))
             continue
 
@@ -1014,7 +1022,7 @@ def keyboard_interrupt_handler(function):
         try:
             return function(*args, **kwargs)
         except KeyboardInterrupt:
-            logging.warning(MESSAGES.KEYBOARD_INTERRUPTION)
+            warning(MESSAGES.KEYBOARD_INTERRUPTION)
             return EXITCODE_FAILURE
     return handle_keyboard_interrupt_wrapper
 
@@ -1036,20 +1044,20 @@ def main():
         # But the program can be also run by hand from a command prompt, so
         # it is better to signal the end user with an error and explanation
         # if the input source is missing, as soon as possible.
-        logging.error(MESSAGES.NO_PROGRAM_ARGUMENTS)
+        error(MESSAGES.NO_PROGRAM_ARGUMENTS)
         return EXITCODE_FAILURE
 
     try:
         profiles = load_profiles(INIFILE_PATH)
         if not profiles:
-            logging.error(MESSAGES.EMPTY_PROFILES, INIFILE_PATH)
+            error(MESSAGES.EMPTY_PROFILES, INIFILE_PATH)
             return EXITCODE_FAILURE
         logging.debug('Se obtuvieron los siguientes perfiles: %s.', list(profiles.keys()))
     except MissingProfilesError as exc:
-        logging.error(MESSAGES.MISSING_PROFILES, exc.filename)
+        error(MESSAGES.MISSING_PROFILES, exc.filename)
         return EXITCODE_FAILURE
     except ProfilesSyntaxError as exc:
-        logging.error(MESSAGES.PROFILES_WRONG_SYNTAX, exc.error, exc.details)
+        error(MESSAGES.PROFILES_WRONG_SYNTAX, exc.error, exc.details)
         return EXITCODE_FAILURE
 
     logging.info(MESSAGES.SKIMMING_MARKER)
@@ -1058,7 +1066,7 @@ def main():
             logging.debug('La fuente de Manteca «%s» será volcada, no procesada.', source_name)
         print(source_type, source_name, sink_name, dumpmode)
         if source_type is None:
-            logging.warning(MESSAGES.INVALID_SOURCE, source_name)
+            warning(MESSAGES.INVALID_SOURCE, source_name)
             continue
 
 
