@@ -659,14 +659,11 @@ def setup_logging(log_filename, debug_filename):
         def format(self, record):
             """Format multiline records so they look like multiple records."""
             message = super().format(record)
+            preamble, message = message.partition(record.message)[:2]
+            preamble = preamble.rstrip()
+            message = [f' {line.rstrip()}' if line.strip() else '' for line in message.splitlines()]
+            return '\n'.join([f'{preamble}{line}' for line in message])
 
-            if record.message.strip() == '':
-                return message.strip()
-
-            preamble = message.split(record.message)[0]
-            # Return cleaned up message: no multiple newlines, no trailing spaces,
-            # and the preamble is inserted at the beginning of each line.
-            return f'\n{preamble}'.join([line.rstrip() for line in message.splitlines() if line.strip()])
 
     logging_configuration = {
         'version': 1,
