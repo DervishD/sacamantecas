@@ -989,7 +989,6 @@ def saca_las_mantecas(source, sink, profiles):
 def loggerize(function):
     """Decorator which enables logging for function."""
     def loggerize_wrapper(*args, **kwargs):
-        TIMESTAMP = ''
         debug_filename = f'{PROGRAM_PATH.with_suffix("")}_debug_{TIMESTAMP}.txt'
         log_filename = f'{PROGRAM_PATH.with_suffix("")}_log_{TIMESTAMP}.txt'
 
