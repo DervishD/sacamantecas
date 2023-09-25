@@ -71,6 +71,7 @@ except NameError:
     sys.exit('Error de inicialización del programa.')
 PROGRAM_PATH = Path(PROGRAM_PATH).resolve()
 PROGRAM_NAME = PROGRAM_PATH.stem + ' ' + __version__
+PROGRAM_BANNER = f'{PROGRAM_NAME.replace(" v", " versión ")}'
 INIFILE_PATH = PROGRAM_PATH.with_suffix('.ini')
 DEBUGFILE_PATH = Path(f'{PROGRAM_PATH.with_suffix("")}_debug_{TIMESTAMP}.txt')
 LOGFILE_PATH = Path(f'{PROGRAM_PATH.with_suffix("")}_log_{TIMESTAMP}.txt')
@@ -83,6 +84,7 @@ EXITCODE_SUCCESS = 0
 
 class MESSAGES(StrEnum):
     """Messages for the application."""
+    USER_AGENT = f'User-Agent: «{USER_AGENT}»'
     KEYBOARD_INTERRUPTION = '\nEl usuario interrumpión la operación del programa.'
     NO_PROGRAM_ARGUMENTS = (
         'No se ha especificado un fichero de entrada para ser procesado.\n'
@@ -91,9 +93,13 @@ class MESSAGES(StrEnum):
         'o proporcione el nombre del fichero como argumento.'
     )
     DEBUGGING_INIT = 'Registro de depuración iniciado.'
-    EMPTY_PROFILES = 'No hay perfiles definidos en el fichero de perfiles «{%s}».'
-    MISSING_PROFILES = 'No se encontró o no se pudo leer el fichero de perfiles «{%s}».'
-    PROFILES_WRONG_SYNTAX = 'Error de sintaxis «{%s}» leyendo el fichero de perfiles.\n{%s}'
+    EMPTY_PROFILES = 'No hay perfiles definidos en el fichero de perfiles «%s».'
+    MISSING_PROFILES = 'No se encontró o no se pudo leer el fichero de perfiles «%s».'
+    PROFILES_WRONG_SYNTAX = 'Error de sintaxis «%s» leyendo el fichero de perfiles.\n%s'
+    SKIMMING_MARKER = '\nSacando las mantecas:'
+    INVALID_SOURCE = 'La fuente «%s» no es de un tipo admitido.'
+    EOP = '\nProceso terminado.'
+    DEBUGGING_DONE = 'Registro de depuración finalizado.'
 
 
 if sys.platform != 'win32':
@@ -990,14 +996,13 @@ def loggerize(function):
     def loggerize_wrapper(*args, **kwargs):
         setup_logging(LOGFILE_PATH, DEBUGFILE_PATH)
 
-        logging.info(PROGRAM_NAME)
         logging.debug(MESSAGES.DEBUGGING_INIT)
-        logging.debug('User-Agent: «%s».', USER_AGENT)
+        logging.debug(MESSAGES.USER_AGENT)
 
         status = function(*args, **kwargs)
 
-        logging.info('\nProceso terminado.')
-        logging.debug('Registro de depuración finalizado.')
+        logging.info(MESSAGES.EOP)
+        logging.debug(MESSAGES.DEBUGGING_DONE)
         logging.shutdown()
         return status
     return loggerize_wrapper
@@ -1018,6 +1023,8 @@ def keyboard_interrupt_handler(function):
 @keyboard_interrupt_handler
 def main():
     """."""
+    logging.info(PROGRAM_BANNER)
+
     atexit.register(wait_for_keypress)
 
     sys.argv.pop(0)
@@ -1045,13 +1052,13 @@ def main():
         logging.error(MESSAGES.PROFILES_WRONG_SYNTAX, exc.error, exc.details)
         return EXITCODE_FAILURE
 
-    logging.info('\nSacando las mantecas:')
+    logging.info(MESSAGES.SKIMMING_MARKER)
     for source_type, source_name, sink_name, dumpmode in parse_sources(sys.argv):
         if dumpmode:
             logging.debug('La fuente de Manteca «%s» será volcada, no procesada.', source_name)
         print(source_type, source_name, sink_name, dumpmode)
         if source_type is None:
-            logging.warning('La fuente «%s» no es de un tipo admitido.', source_name)
+            logging.warning(MESSAGES.INVALID_SOURCE, source_name)
             continue
 
 
