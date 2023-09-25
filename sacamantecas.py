@@ -72,6 +72,8 @@ except NameError:
 PROGRAM_PATH = Path(PROGRAM_PATH).resolve()
 PROGRAM_NAME = PROGRAM_PATH.stem + ' ' + __version__
 INIFILE_PATH = PROGRAM_PATH.with_suffix('.ini')
+DEBUGFILE_PATH = Path(f'{PROGRAM_PATH.with_suffix("")}_debug_{TIMESTAMP}.txt')
+LOGFILE_PATH = Path(f'{PROGRAM_PATH.with_suffix("")}_log_{TIMESTAMP}.txt')
 USER_AGENT = f'{PROGRAM_NAME.replace(" v", "/")} +https://github.com/DervishD/sacamantecas'
 USER_AGENT += f' (Windows {platform.version()}; {platform.architecture()[0]}; {platform.machine()})'
 DUMPMODE_PREFIX = 'dump://'
@@ -986,10 +988,7 @@ def saca_las_mantecas(source, sink, profiles):
 def loggerize(function):
     """Decorator which enables logging for function."""
     def loggerize_wrapper(*args, **kwargs):
-        debug_filename = f'{PROGRAM_PATH.with_suffix("")}_debug_{TIMESTAMP}.txt'
-        log_filename = f'{PROGRAM_PATH.with_suffix("")}_log_{TIMESTAMP}.txt'
-
-        setup_logging(log_filename, debug_filename)
+        setup_logging(LOGFILE_PATH, DEBUGFILE_PATH)
 
         logging.info(PROGRAM_NAME)
         logging.debug(MESSAGES.DEBUGGING_INIT)
