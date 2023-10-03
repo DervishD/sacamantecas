@@ -1,8 +1,23 @@
 #! /usr/bin/env python3
 """Test suite for load_profiles()."""
 from pathlib import Path
+import os
+import subprocess
 import pytest
 from sacamantecas import MissingProfilesError, ProfilesSyntaxError, load_profiles
+
+
+@pytest.fixture(name='unreadable_file')
+def fixture_unreadable_file(tmp_path: Path) -> Path:  # pylint: disable=unused-variable
+    """Create a file which is unreadable by the current user."""
+    filename = tmp_path / 'unreadable.ini'
+    filename.write_text('')
+
+    subprocess.run(['icacls', str(filename), '/deny', f'{os.environ["USERNAME"]}:R'], check=True)
+    yield filename
+    subprocess.run(['icacls', str(filename), '/grant', f'{os.environ["USERNAME"]}:R'], check=True)
+
+    filename.unlink()
 
 
 def test_missing(tmp_path: Path) -> None:  # pylint: disable=unused-variable
