@@ -17,11 +17,11 @@ def test_logging_files_creation(log_paths):  # pylint: disable=unused-variable
     assert log_paths.log.is_file()
     assert log_paths.debug.is_file()
 
-# The 'expected_contents' argument is a tuple containing four items:
-#   - The expected contents for the logging file.
-#   - The expected contents for the debugging file.
-#   - The expected contents for stdout.
-#   - The expected contents for stderr.
+# The 'expected' argument is a tuple containing four items:
+#   - The expected logging file contents.
+#   - The expected debugging file contents.
+#   - The expected stdout output.
+#   - The expected stderr output.
 TEST_MESSAGE = 'Test message'
 Expected = namedtuple('Expected', ['log', 'debug', 'out','err'])
 @pytest.mark.parametrize('logfunc, expected', [
