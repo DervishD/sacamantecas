@@ -1090,4 +1090,4 @@ def main(sources):
 
 sys.excepthook = excepthook
 if __name__ == '__main__':
-    sys.exit(main(sys.argv.pop(0)))
+    sys.exit(main(sys.argv[1:]))
