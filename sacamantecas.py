@@ -1029,14 +1029,13 @@ def keyboard_interrupt_handler(function):
 
 @loggerize
 @keyboard_interrupt_handler
-def main():
+def main(sources):
     """."""
     logging.info(PROGRAM_BANNER)
 
     atexit.register(wait_for_keypress)
 
-    sys.argv.pop(0)
-    if len(sys.argv) == 0:
+    if len(sources) == 0:
         # The input source should be provided automatically if the program
         # is used as a drag'n'drop target which is, in fact, the intended
         # method of operation.
@@ -1061,7 +1060,7 @@ def main():
         return EXITCODE_FAILURE
 
     logging.info(MESSAGES.SKIMMING_MARKER)
-    for source_type, source_name, sink_name, dumpmode in parse_sources(sys.argv):
+    for source_type, source_name, sink_name, dumpmode in parse_sources(sources):
         if dumpmode:
             logging.debug('La fuente de Manteca «%s» será volcada, no procesada.', source_name)
         print(source_type, source_name, sink_name, dumpmode)
@@ -1091,4 +1090,4 @@ def main():
 
 sys.excepthook = excepthook
 if __name__ == '__main__':
-    sys.exit(main())
+    sys.exit(main(sys.argv.pop(0)))
