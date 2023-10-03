@@ -2,7 +2,7 @@
 """Test suite for parse_sources()."""
 from pathlib import Path
 import pytest
-from sacamantecas import parse_sources
+from sacamantecas import parse_sources, DUMPMODE_PREFIX
 
 # The 'expected' argument is a tuple containing three items:
 #   - The expected source type detected.
@@ -20,4 +20,4 @@ from sacamantecas import parse_sources
 def test_parse_sources(source, expected):  # pylint: disable=unused-variable
     """Test parsing of Manteca sources from command line."""
     assert list(parse_sources([source])) == [expected + (False,)]
-    assert list(parse_sources([f'dump://{source}'])) == [expected + (True,)]
+    assert list(parse_sources([f'{DUMPMODE_PREFIX}{source}'])) == [expected + (True,)]
