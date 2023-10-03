@@ -143,10 +143,15 @@ def warning(message, *args, **kwargs):
 
 def wait_for_keypress():
     """Wait for a keypress to continue if sys.stdout is a real console AND the console is transient."""
+    # First of all, if this program is being imported rather than run,
+    # then the program must NOT pause. Absolutely NOT.
+    if __name__ != '__main__':
+        return
+
     # If no console is attached, then the program must NOT pause.
     #
-    # Since sys.stdout.isatty() returns True under Windows when sys.stdout is
-    # redirected to NUL, another, more complicated method, is needed here.
+    # Since sys.stdout.isatty() returns True under Windows when sys.stdout
+    # is redirected to NUL, another (more complex) method, is needed here.
     # The test below has been adapted from https://stackoverflow.com/a/33168697
     if not WinDLL('kernel32').GetConsoleMode(get_osfhandle(sys.stdout.fileno()), byref(c_uint())):
         return
@@ -1033,8 +1038,6 @@ def main(sources):
     """."""
     logging.info(PROGRAM_BANNER)
 
-    atexit.register(wait_for_keypress)
-
     if len(sources) == 0:
         # The input source should be provided automatically if the program
         # is used as a drag'n'drop target which is, in fact, the intended
@@ -1088,6 +1091,7 @@ def main(sources):
     return EXITCODE_SUCCESS
 
 
+atexit.register(wait_for_keypress)
 sys.excepthook = excepthook
 if __name__ == '__main__':
     sys.exit(main(sys.argv[1:]))

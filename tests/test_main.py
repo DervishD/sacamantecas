@@ -2,6 +2,7 @@
 """Test suite for main()."""
 import sacamantecas as sm
 
+
 def test_logging_setup(log_paths, monkeypatch):  # pylint: disable=unused-variable
     """Test for proper logging setup."""
     monkeypatch.setattr("sacamantecas.LOGFILE_PATH", log_paths.log)
