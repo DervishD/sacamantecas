@@ -16,10 +16,10 @@ def interrupted_function():
     raise KeyboardInterrupt
 
 
-def test_loggerize(tmp_path, monkeypatch):   # pylint: disable=unused-variable
+def test_loggerize(log_paths, monkeypatch):   # pylint: disable=unused-variable
     """Test the loggerize() decorator."""  # cSpell:ignore loggerize
-    monkeypatch.setattr("sacamantecas.LOGFILE_PATH", tmp_path / 'log_filename.txt')
-    monkeypatch.setattr("sacamantecas.DEBUGFILE_PATH", tmp_path / 'debug_filename.txt')
+    monkeypatch.setattr("sacamantecas.LOGFILE_PATH", log_paths.log)
+    monkeypatch.setattr("sacamantecas.DEBUGFILE_PATH", log_paths.debug)
 
     assert not sm.LOGFILE_PATH.is_file()
     assert not sm.DEBUGFILE_PATH.is_file()
@@ -30,15 +30,10 @@ def test_loggerize(tmp_path, monkeypatch):   # pylint: disable=unused-variable
     assert sm.LOGFILE_PATH.is_file()
     assert sm.DEBUGFILE_PATH.is_file()
 
-    sm.LOGFILE_PATH.unlink()
-    sm.DEBUGFILE_PATH.unlink()
 
-
-def test_keyboard_interrupt_handler(tmp_path, capsys):  # pylint: disable=unused-variable
+def test_keyboard_interrupt_handler(log_paths, capsys):  # pylint: disable=unused-variable
     """Test the keyboard_interrupt_handler() decorator."""
-    log_filename = tmp_path / 'log_filename.txt'
-    debug_filename = tmp_path / 'debug_filename.txt'
-    sm.setup_logging(log_filename, debug_filename)
+    sm.setup_logging(log_paths.log, log_paths.debug)
 
     try:
         interrupted_function()
@@ -46,7 +41,5 @@ def test_keyboard_interrupt_handler(tmp_path, capsys):  # pylint: disable=unused
         pytest.fail(f'Unexpected exception «{type(exc).__name__}{exc.args}»', pytrace=False)
 
     logging.shutdown()
-    log_filename.unlink()
-    debug_filename.unlink()
 
     assert capsys.readouterr().err.rstrip() == f'{sm.WARNING_HEADER}{sm.MESSAGES.KEYBOARD_INTERRUPTION}'
