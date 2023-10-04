@@ -2,9 +2,9 @@
 """
 Saca las Mantecas.
 
-This program processes "Mantecas", which are URIs pointing to an entry within
-some bibliographic catalogue where book metadata can be obtained, by accessing
-the URI, getting that metadata and producing the proper output.
+This application processes "Mantecas", which are URIs pointing to an entry
+within some bibliographic catalogue where book metadata can be obtained, by
+accessing the URI, getting that metadata and producing the proper output.
 
 In short, it "saca las mantecas"…
 
@@ -124,7 +124,7 @@ logging.basicConfig(level=logging.NOTSET, format='%(levelname).1s %(message)s', 
 
 
 # Reconfigure standard output streams so they use UTF-8 encoding, no matter if
-# they are redirected to a file when running the program from a shell.
+# they are redirected to a file when running the application from a shell.
 sys.stdout.reconfigure(encoding='utf-8')
 sys.stderr.reconfigure(encoding='utf-8')
 
@@ -154,12 +154,12 @@ def warning(message, *args, **kwargs):
 
 def wait_for_keypress():
     """Wait for a keypress to continue if sys.stdout is a real console AND the console is transient."""
-    # First of all, if this program is being imported rather than run,
-    # then the program must NOT pause. Absolutely NOT.
+    # First of all, if this script is being imported rather than run,
+    # then the application must NOT pause. Absolutely NOT.
     if __name__ != '__main__':
         return
 
-    # If no console is attached, then the program must NOT pause.
+    # If no console is attached, then the application must NOT pause.
     #
     # Since sys.stdout.isatty() returns True under Windows when sys.stdout
     # is redirected to NUL, another (more complex) method, is needed here.
@@ -167,9 +167,9 @@ def wait_for_keypress():
     if not WinDLL('kernel32').GetConsoleMode(get_osfhandle(sys.stdout.fileno()), byref(c_uint())):
         return
 
-    # If there is a console attached, the program must pause ONLY if that
-    # console will automatically close when the program finishes, hiding
-    # any messages printed by the program. In other words, pause only if
+    # If there is a console attached, the application must pause ONLY if that
+    # console will automatically close when the application finishes, hiding
+    # any messages printed by the application. In other words, pause only if
     # the console is transient.
     #
     # Determining if a console is transient is not easy as there is no
@@ -1055,13 +1055,13 @@ def main(sources):
     logging.info(PROGRAM_BANNER)
 
     if len(sources) == 0:
-        # The input source should be provided automatically if the program
-        # is used as a drag'n'drop target which is, in fact, the intended
-        # method of operation.
+        # The input source should be provided automatically if the application
+        # is used as a drag'n'drop target which is in fact the intended method
+        # of operation.
         #
-        # But the program can be also run by hand from a command prompt, so
-        # it is better to signal the end user with an error and explanation
-        # if the input source is missing, as soon as possible.
+        # But the application can be also run by hand from a command prompt, so
+        # it is better to signal the end user with an error and explanation if
+        # the input source is missing, as soon as possible.
         error(Messages.NO_PROGRAM_ARGUMENTS)
         return EXITCODE_FAILURE
 
