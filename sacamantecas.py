@@ -486,7 +486,7 @@ class BaseParser(HTMLParser):
         Check if this parser can parse profile.
 
         For now, a parser can parse a profile if its NEEDED_KEYS set is exactly
-        the same as the profile.keys(), ignoring URI_REGEX key as it is unused
+        the same as the profile.keys(), excluding URI_REGEX key as it is unused
         in the parsers but present in all of the profiles anyway.
         """
         return (cls.NEEDED_KEYS | {BaseParser.URI_REGEX}) == profile.keys()
