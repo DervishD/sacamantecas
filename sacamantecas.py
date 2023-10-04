@@ -68,14 +68,14 @@ TIMESTAMP = time.strftime('%Y%m%d_%H%M%S')
 
 class MESSAGES(StrEnum):
     """Messages for the application."""
-    INITIALIZATION_ERROR = 'Error de inicialización del programa.'
+    INITIALIZATION_ERROR = 'Error de inicialización de la aplicación.'
     W32_ONLY_ERROR = '%s solo funciona en la plataforma Win32.'
     USER_AGENT = 'User-Agent: «%s»'
-    KEYBOARD_INTERRUPTION = '\nEl usuario interrumpión la operación del programa.'
+    KEYBOARD_INTERRUPTION = '\nEl usuario interrumpión la operación de la aplicación.'
     NO_PROGRAM_ARGUMENTS = (
         'No se ha especificado un fichero de entrada para ser procesado.\n'
         '\n'
-        'Arrastre y suelte un fichero de entrada sobre el icono del programa, '
+        'Arrastre y suelte un fichero de entrada sobre el icono de la aplicación, '
         'o proporcione el nombre del fichero como argumento.'
     )
     DEBUGGING_INIT = 'Registro de depuración iniciado.'
@@ -84,7 +84,7 @@ class MESSAGES(StrEnum):
     PROFILES_WRONG_SYNTAX = 'Error de sintaxis «%s» leyendo el fichero de perfiles.\n%s'
     SKIMMING_MARKER = '\nSacando las mantecas:'
     INVALID_SOURCE = 'La fuente «%s» no es de un tipo admitido.'
-    EOP = '\nProceso terminado.'
+    EOP = '\nProceso finalizado.'
     DEBUGGING_DONE = 'Registro de depuración finalizado.'
 
 
