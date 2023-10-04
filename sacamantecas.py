@@ -66,7 +66,7 @@ from openpyxl.utils.cell import get_column_letter
 TIMESTAMP = time.strftime('%Y%m%d_%H%M%S')
 
 
-class MESSAGES(StrEnum):
+class Messages(StrEnum):
     """Messages for the application."""
     INITIALIZATION_ERROR = 'Error de inicialización de la aplicación.'
     W32_ONLY_ERROR = '%s solo funciona en la plataforma Win32.'
@@ -94,7 +94,7 @@ try:
     else:
         PROGRAM_PATH = __file__
 except NameError:
-    sys.exit(MESSAGES.INITIALIZATION_ERROR)
+    sys.exit(Messages.INITIALIZATION_ERROR)
 
 PROGRAM_PATH = Path(PROGRAM_PATH).resolve()
 PROGRAM_NAME = PROGRAM_PATH.stem + ' ' + __version__
@@ -116,7 +116,7 @@ EXITCODE_SUCCESS = 0
 
 
 if sys.platform != 'win32':
-    sys.exit(MESSAGES.W32_ONLY_ERROR % PROGRAM_NAME)
+    sys.exit(Messages.W32_ONLY_ERROR % PROGRAM_NAME)
 
 
 # Needed for having VERY basic logging when the code is imported rather than run.
@@ -1025,13 +1025,13 @@ def loggerize(function):
     def loggerize_wrapper(*args, **kwargs):
         setup_logging(LOGFILE_PATH, DEBUGFILE_PATH)
 
-        logging.debug(MESSAGES.DEBUGGING_INIT)
-        logging.debug(MESSAGES.USER_AGENT, USER_AGENT)
+        logging.debug(Messages.DEBUGGING_INIT)
+        logging.debug(Messages.USER_AGENT, USER_AGENT)
 
         status = function(*args, **kwargs)
 
-        logging.info(MESSAGES.EOP)
-        logging.debug(MESSAGES.DEBUGGING_DONE)
+        logging.info(Messages.EOP)
+        logging.debug(Messages.DEBUGGING_DONE)
         logging.shutdown()
         return status
     return loggerize_wrapper
@@ -1043,7 +1043,7 @@ def keyboard_interrupt_handler(function):
         try:
             return function(*args, **kwargs)
         except KeyboardInterrupt:
-            warning(MESSAGES.KEYBOARD_INTERRUPTION)
+            warning(Messages.KEYBOARD_INTERRUPTION)
             return EXITCODE_FAILURE
     return handle_keyboard_interrupt_wrapper
 
@@ -1062,29 +1062,29 @@ def main(sources):
         # But the program can be also run by hand from a command prompt, so
         # it is better to signal the end user with an error and explanation
         # if the input source is missing, as soon as possible.
-        error(MESSAGES.NO_PROGRAM_ARGUMENTS)
+        error(Messages.NO_PROGRAM_ARGUMENTS)
         return EXITCODE_FAILURE
 
     try:
         profiles = load_profiles(INIFILE_PATH)
         if not profiles:
-            error(MESSAGES.EMPTY_PROFILES, INIFILE_PATH)
+            error(Messages.EMPTY_PROFILES, INIFILE_PATH)
             return EXITCODE_FAILURE
         logging.debug('Se obtuvieron los siguientes perfiles: %s.', list(profiles.keys()))
     except MissingProfilesError as exc:
-        error(MESSAGES.MISSING_PROFILES, exc.filename)
+        error(Messages.MISSING_PROFILES, exc.filename)
         return EXITCODE_FAILURE
     except ProfilesSyntaxError as exc:
-        error(MESSAGES.PROFILES_WRONG_SYNTAX, exc.error, exc.details)
+        error(Messages.PROFILES_WRONG_SYNTAX, exc.error, exc.details)
         return EXITCODE_FAILURE
 
-    logging.info(MESSAGES.SKIMMING_MARKER)
+    logging.info(Messages.SKIMMING_MARKER)
     for source_type, source_name, sink_name, dumpmode in parse_sources(sources):
         if dumpmode:
             logging.debug('La fuente de Manteca «%s» será volcada, no procesada.', source_name)
         print(source_type, source_name, sink_name, dumpmode)
         if source_type is None:
-            warning(MESSAGES.INVALID_SOURCE, source_name)
+            warning(Messages.INVALID_SOURCE, source_name)
             continue
 
 

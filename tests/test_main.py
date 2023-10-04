@@ -22,19 +22,19 @@ def test_no_arguments(log_paths, monkeypatch):  # pylint: disable=unused-variabl
 
     result = sm.LOGFILE_PATH.read_text(encoding='utf-8').splitlines()
     result = '\n'.join([' '.join(line.split(' ')[1:]) for line in result])
-    expected = f'{sm.PROGRAM_BANNER}\n{sm.ERROR_HEADER}{sm.MESSAGES.NO_PROGRAM_ARGUMENTS}\n{sm.MESSAGES.EOP}'
+    expected = f'{sm.PROGRAM_BANNER}\n{sm.ERROR_HEADER}{sm.Messages.NO_PROGRAM_ARGUMENTS}\n{sm.Messages.EOP}'
     assert result == expected
 
     result = sm.DEBUGFILE_PATH.read_text(encoding='utf-8').splitlines()
     result = '\n'.join([' '.join(line.split(' ')[1:]) for line in result])
     expected = '\n'.join((
-        f'[DEBUG] {sm.MESSAGES.DEBUGGING_INIT}',
-        f'[DEBUG] {sm.MESSAGES.USER_AGENT % sm.USER_AGENT}',
+        f'[DEBUG] {sm.Messages.DEBUGGING_INIT}',
+        f'[DEBUG] {sm.Messages.USER_AGENT % sm.USER_AGENT}',
         f'[INFO] {sm.PROGRAM_BANNER}',
         '\n'.join(f'[ERROR]{" " if line else ""}{line}' for line in sm.ERROR_HEADER.splitlines()),
-        '\n'.join(f'[ERROR]{" " if line else ""}{line}' for line in sm.MESSAGES.NO_PROGRAM_ARGUMENTS.splitlines()),
-        '\n'.join(f'[INFO]{" " if line else ""}{line}' for line in sm.MESSAGES.EOP.splitlines()),
-        f'[DEBUG] {sm.MESSAGES.DEBUGGING_DONE}'
+        '\n'.join(f'[ERROR]{" " if line else ""}{line}' for line in sm.Messages.NO_PROGRAM_ARGUMENTS.splitlines()),
+        '\n'.join(f'[INFO]{" " if line else ""}{line}' for line in sm.Messages.EOP.splitlines()),
+        f'[DEBUG] {sm.Messages.DEBUGGING_DONE}'
     ))
     assert result == expected
 
