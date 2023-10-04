@@ -829,6 +829,11 @@ def load_profiles(filename):
     return {key: value for key, value in profiles.items() if value}
 
 
+def uri_to_filename(uri):
+    """Convert the given URI to a valid filename."""
+    return re.sub(r'\W', '_', uri, re.ASCII)  # Quite crude but it works.
+
+
 def parse_sources(sources):
     """
     Process arguments contained in the argv list.
@@ -857,7 +862,7 @@ def parse_sources(sources):
             logging.debug('La fuente es un URI.')
             source_type = 'uri'
             source_name = Path(source)
-            sink_name = Path(re.sub(r'\W', '_', source, re.ASCII) + '.txt')
+            sink_name = Path(uri_to_filename(source)).with_suffix('.txt')
         elif source.endswith('.txt'):
             logging.debug('La fuente es un fichero de texto.')
             source_type = 'txt'
