@@ -61,32 +61,16 @@ from openpyxl.styles import Font, PatternFill
 from openpyxl.utils.exceptions import SheetTitleException, InvalidFileException
 from openpyxl.utils.cell import get_column_letter
 
+
+# Computed as early as possible.
 TIMESTAMP = time.strftime('%Y%m%d_%H%M%S')
-try:
-    if getattr(sys, 'frozen', False):
-        PROGRAM_PATH = sys.executable
-    else:
-        PROGRAM_PATH = __file__
-except NameError:
-    sys.exit('Error de inicialización del programa.')
-PROGRAM_PATH = Path(PROGRAM_PATH).resolve()
-PROGRAM_NAME = PROGRAM_PATH.stem + ' ' + __version__
-PROGRAM_BANNER = f'{PROGRAM_NAME.replace(" v", " versión ")}'
-ERROR_HEADER = f'\n*** Error en {PROGRAM_NAME}\n'
-WARNING_HEADER = '* Warning: '
-INIFILE_PATH = PROGRAM_PATH.with_suffix('.ini')
-DEBUGFILE_PATH = Path(f'{PROGRAM_PATH.with_suffix("")}_debug_{TIMESTAMP}.txt')
-LOGFILE_PATH = Path(f'{PROGRAM_PATH.with_suffix("")}_log_{TIMESTAMP}.txt')
-USER_AGENT = f'{PROGRAM_NAME.replace(" v", "/")} +https://github.com/DervishD/sacamantecas'
-USER_AGENT += f' (Windows {platform.version()}; {platform.architecture()[0]}; {platform.machine()})'
-DUMPMODE_PREFIX = 'dump://'
-EXITCODE_FAILURE = 1
-EXITCODE_SUCCESS = 0
 
 
 class MESSAGES(StrEnum):
     """Messages for the application."""
-    USER_AGENT = f'User-Agent: «{USER_AGENT}»'
+    INITIALIZATION_ERROR = 'Error de inicialización del programa.'
+    W32_ONLY_ERROR = '%s solo funciona en la plataforma Win32.'
+    USER_AGENT = 'User-Agent: «%s»'
     KEYBOARD_INTERRUPTION = '\nEl usuario interrumpión la operación del programa.'
     NO_PROGRAM_ARGUMENTS = (
         'No se ha especificado un fichero de entrada para ser procesado.\n'
@@ -104,8 +88,35 @@ class MESSAGES(StrEnum):
     DEBUGGING_DONE = 'Registro de depuración finalizado.'
 
 
+try:
+    if getattr(sys, 'frozen', False):
+        PROGRAM_PATH = sys.executable
+    else:
+        PROGRAM_PATH = __file__
+except NameError:
+    sys.exit(MESSAGES.INITIALIZATION_ERROR)
+
+PROGRAM_PATH = Path(PROGRAM_PATH).resolve()
+PROGRAM_NAME = PROGRAM_PATH.stem + ' ' + __version__
+
+INIFILE_PATH = PROGRAM_PATH.with_suffix('.ini')
+DEBUGFILE_PATH = Path(f'{PROGRAM_PATH.with_suffix("")}_debug_{TIMESTAMP}.txt')
+LOGFILE_PATH = Path(f'{PROGRAM_PATH.with_suffix("")}_log_{TIMESTAMP}.txt')
+
+PROGRAM_BANNER = f'{PROGRAM_NAME.replace(" v", " versión ")}'
+USER_AGENT = f'{PROGRAM_NAME.replace(" v", "/")} +https://github.com/DervishD/sacamantecas'
+USER_AGENT += f' (Windows {platform.version()}; {platform.architecture()[0]}; {platform.machine()})'
+
+DUMPMODE_PREFIX = 'dump://'
+ERROR_HEADER = f'\n*** Error en {PROGRAM_NAME}\n'
+WARNING_HEADER = '* Warning: '
+
+EXITCODE_FAILURE = 1
+EXITCODE_SUCCESS = 0
+
+
 if sys.platform != 'win32':
-    sys.exit(f'{PROGRAM_NAME} solo funciona en la plataforma Win32.')
+    sys.exit(MESSAGES.W32_ONLY_ERROR % PROGRAM_NAME)
 
 
 # Needed for having VERY basic logging when the code is imported rather than run.
@@ -1010,7 +1021,7 @@ def loggerize(function):
         setup_logging(LOGFILE_PATH, DEBUGFILE_PATH)
 
         logging.debug(MESSAGES.DEBUGGING_INIT)
-        logging.debug(MESSAGES.USER_AGENT)
+        logging.debug(MESSAGES.USER_AGENT, USER_AGENT)
 
         status = function(*args, **kwargs)
 

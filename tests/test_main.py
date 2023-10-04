@@ -29,7 +29,7 @@ def test_no_arguments(log_paths, monkeypatch):  # pylint: disable=unused-variabl
     result = '\n'.join([' '.join(line.split(' ')[1:]) for line in result])
     expected = '\n'.join((
         f'[DEBUG] {sm.MESSAGES.DEBUGGING_INIT}',
-        f'[DEBUG] {sm.MESSAGES.USER_AGENT}',
+        f'[DEBUG] {sm.MESSAGES.USER_AGENT % sm.USER_AGENT}',
         f'[INFO] {sm.PROGRAM_BANNER}',
         '\n'.join(f'[ERROR]{" " if line else ""}{line}' for line in sm.ERROR_HEADER.splitlines()),
         '\n'.join(f'[ERROR]{" " if line else ""}{line}' for line in sm.MESSAGES.NO_PROGRAM_ARGUMENTS.splitlines()),
