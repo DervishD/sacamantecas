@@ -845,7 +845,7 @@ def parse_sources(sources):
     The source is 'munged' in the returned tuple, that is, preprocessed and
     normalized so it resembles a normal source instead of a 'dumpable' one.
 
-    Yield (source_type, source_name, sink_name, dumpmode) tuples.
+    Yield (source_name, sink_name, source_type, dumpmode) tuples.
 
     For invalid sources the tuple is (None, source_name, None, dumpmode).
     """
@@ -874,7 +874,7 @@ def parse_sources(sources):
             source_name = Path(source)
             sink_name = Path(source)
         sink_name = None if sink_name is None else sink_name.with_stem(sink_name.stem + '_out')
-        yield source_type, source_name, sink_name, dumpmode
+        yield source_name, sink_name, source_type, dumpmode
 
 
 def retrieve_uri(uri):
