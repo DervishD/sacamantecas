@@ -1079,10 +1079,9 @@ def main(sources):
         return EXITCODE_FAILURE
 
     logging.info(Messages.SKIMMING_MARKER)
-    for source_type, source_name, sink_name, dumpmode in parse_sources(sources):
+    for source_name, sink_name, source_type, dumpmode in parse_sources(sources):
         if dumpmode:
             logging.debug('La fuente de Manteca «%s» será volcada, no procesada.', source_name)
-        print(source_type, source_name, sink_name, dumpmode)
         if source_type is None:
             warning(Messages.INVALID_SOURCE, source_name)
             continue
