@@ -72,7 +72,7 @@ class Messages(StrEnum):
     W32_ONLY_ERROR = '%s solo funciona en la plataforma Win32.'
     USER_AGENT = 'User-Agent: «%s»'
     KEYBOARD_INTERRUPTION = '\nEl usuario interrumpión la operación de la aplicación.'
-    NO_PROGRAM_ARGUMENTS = (
+    NO_ARGUMENTS = (
         'No se ha especificado un fichero de entrada para ser procesado.\n'
         '\n'
         'Arrastre y suelte un fichero de entrada sobre el icono de la aplicación, '
@@ -97,25 +97,25 @@ class SourceTypes(IntEnum):
 
 try:
     if getattr(sys, 'frozen', False):
-        PROGRAM_PATH = sys.executable
+        SCRIPT_PATH = sys.executable
     else:
-        PROGRAM_PATH = __file__
+        SCRIPT_PATH = __file__
 except NameError:
     sys.exit(Messages.INITIALIZATION_ERROR)
 
-PROGRAM_PATH = Path(PROGRAM_PATH).resolve()
-PROGRAM_NAME = PROGRAM_PATH.stem + ' ' + __version__
+SCRIPT_PATH = Path(SCRIPT_PATH).resolve()
+APP_NAME = SCRIPT_PATH.stem + ' ' + __version__
 
-INIFILE_PATH = PROGRAM_PATH.with_suffix('.ini')
-DEBUGFILE_PATH = Path(f'{PROGRAM_PATH.with_suffix("")}_debug_{TIMESTAMP}.txt')
-LOGFILE_PATH = Path(f'{PROGRAM_PATH.with_suffix("")}_log_{TIMESTAMP}.txt')
+INIFILE_PATH = SCRIPT_PATH.with_suffix('.ini')
+DEBUGFILE_PATH = Path(f'{SCRIPT_PATH.with_suffix("")}_debug_{TIMESTAMP}.txt')
+LOGFILE_PATH = Path(f'{SCRIPT_PATH.with_suffix("")}_log_{TIMESTAMP}.txt')
 
-PROGRAM_BANNER = f'{PROGRAM_NAME.replace(" v", " versión ")}'
-USER_AGENT = f'{PROGRAM_NAME.replace(" v", "/")} +https://github.com/DervishD/sacamantecas'
+BANNER = f'{APP_NAME.replace(" v", " versión ")}'
+USER_AGENT = f'{APP_NAME.replace(" v", "/")} +https://github.com/DervishD/sacamantecas'
 USER_AGENT += f' (Windows {platform.version()}; {platform.architecture()[0]}; {platform.machine()})'
 
 DUMPMODE_PREFIX = 'dump://'
-ERROR_HEADER = f'\n*** Error en {PROGRAM_NAME}\n'
+ERROR_HEADER = f'\n*** Error en {APP_NAME}\n'
 WARNING_HEADER = '* Warning: '
 
 EXITCODE_FAILURE = 1
@@ -123,7 +123,7 @@ EXITCODE_SUCCESS = 0
 
 
 if sys.platform != 'win32':
-    sys.exit(Messages.W32_ONLY_ERROR % PROGRAM_NAME)
+    sys.exit(Messages.W32_ONLY_ERROR % APP_NAME)
 
 
 # Needed for having VERY basic logging when the code is imported rather than run.
@@ -201,7 +201,7 @@ def wait_for_keypress():
     if getattr(sys, 'frozen', False):
         if console_title != sys.executable:
             return
-    elif console_title.find(PROGRAM_PATH.name) != -1:
+    elif console_title.find(SCRIPT_PATH.name) != -1:
         return
 
     print('\nPulse cualquier tecla para continuar...', end='', flush=True)
@@ -236,7 +236,7 @@ def excepthook(exc_type, exc_value, exc_traceback):
             message += f'▸ Fichero {frame.filename}\n'
             current_filename = frame.filename
         message += f'  Línea {frame.lineno} ['
-        message += PROGRAM_PATH.name if frame.name == '<module>' else frame.name
+        message += SCRIPT_PATH.name if frame.name == '<module>' else frame.name
         message += ']'
         message += f': {frame.line}' if frame.line else ''
         message += '\n'
@@ -1059,7 +1059,7 @@ def keyboard_interrupt_handler(function):
 @keyboard_interrupt_handler
 def main(sources):
     """."""
-    logging.info(PROGRAM_BANNER)
+    logging.info(BANNER)
 
     if len(sources) == 0:
         # The input source should be provided automatically if the application
@@ -1069,7 +1069,7 @@ def main(sources):
         # But the application can be also run by hand from a command prompt, so
         # it is better to signal the end user with an error and explanation if
         # the input source is missing, as soon as possible.
-        error(Messages.NO_PROGRAM_ARGUMENTS)
+        error(Messages.NO_ARGUMENTS)
         return EXITCODE_FAILURE
 
     try:
