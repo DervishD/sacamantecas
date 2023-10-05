@@ -130,7 +130,7 @@ if sys.platform != 'win32':
 logging.basicConfig(level=logging.NOTSET, format='%(levelname).1s %(message)s', force=True)
 
 
-# Reconfigure standard output streams so they use UTF-8 encoding, no matter if
+# Reconfigure standard output streams so they use UTF-8 encoding, even if
 # they are redirected to a file when running the application from a shell.
 sys.stdout.reconfigure(encoding='utf-8')
 sys.stderr.reconfigure(encoding='utf-8')
