@@ -876,7 +876,7 @@ def parse_sources(sources):
             source_name = Path(source)
             sink_name = Path(source)
         elif source.endswith('.xlsx'):
-            logging.debug('La fuente es un fichero Excel.')
+            logging.debug('La fuente es una hoja de cálculo.')
             source_type = SourceTypes.XLS
             source_name = Path(source)
             sink_name = Path(source)
