@@ -39,7 +39,7 @@ import configparser
 import sys
 from pathlib import Path
 import errno
-from enum import StrEnum
+from enum import StrEnum, IntEnum, auto
 import logging
 import atexit
 from logging.config import dictConfig
@@ -86,6 +86,13 @@ class Messages(StrEnum):
     INVALID_SOURCE = 'La fuente «%s» no es de un tipo admitido.'
     EOP = '\nProceso finalizado.'
     DEBUGGING_DONE = 'Registro de depuración finalizado.'
+
+
+class SourceTypes(IntEnum):
+    """Source types handled by the application."""
+    URI = auto()
+    TXT = auto()
+    XLS = auto()
 
 
 try:
@@ -860,17 +867,17 @@ def parse_sources(sources):
         sink_name = None
         if re.match(r'(?:https?|file)://', source):
             logging.debug('La fuente es un URI.')
-            source_type = 'uri'
+            source_type = SourceTypes.URI
             source_name = Path(source)
             sink_name = Path(uri_to_filename(source)).with_suffix('.txt')
         elif source.endswith('.txt'):
             logging.debug('La fuente es un fichero de texto.')
-            source_type = 'txt'
+            source_type = SourceTypes.TXT
             source_name = Path(source)
             sink_name = Path(source)
         elif source.endswith('.xlsx'):
             logging.debug('La fuente es un fichero Excel.')
-            source_type = 'xls'
+            source_type = SourceTypes.XLS
             source_name = Path(source)
             sink_name = Path(source)
         sink_name = None if sink_name is None else sink_name.with_stem(sink_name.stem + '_out')
