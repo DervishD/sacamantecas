@@ -78,7 +78,6 @@ BANNER = f'{APP_NAME.replace(" v", " versión ")}'
 USER_AGENT = f'{APP_NAME.replace(" v", "/")} +https://github.com/DervishD/sacamantecas'
 USER_AGENT += f' (Windows {platform.version()}; {platform.architecture()[0]}; {platform.machine()})'
 
-DUMPMODE_PREFIX = 'dump://'
 ERROR_HEADER = f'\n*** Error en {APP_NAME}\n'
 WARNING_HEADER = '* Warning: '
 
@@ -171,19 +170,6 @@ class URLSourceHandler(SourceHandler):
 
     def close(self):
         """ Pure virtual function: close all resources."""
-
-
-class DumpSourceHandler(SourceHandler):
-    """."""
-    def get_urls(self):
-        """."""
-
-    def add_metadata(self, index, metadata):
-        """."""
-
-    def close(self):
-        """."""
-
 
 
 def error(message, *args, **kwargs):
@@ -448,10 +434,7 @@ def parse_arguments(args):
         logging.debug('Procesando argumento «%s».', arg)
 
         handler = None
-        if arg.startswith(DUMPMODE_PREFIX):
-            logging.debug('La fuente será volcada, no procesada.')
-            handler = DumpSourceHandler(arg)
-        elif re.match(r'(?:https?|file)://', arg):
+        if re.match(r'(?:https?|file)://', arg):
             logging.debug('La fuente es un URL.')
             handler = URLSourceHandler(arg)
         elif arg.endswith('.txt'):

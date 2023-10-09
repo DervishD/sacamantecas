@@ -7,7 +7,6 @@ import sacamantecas as sm
 
 @pytest.mark.parametrize('arguments, exception, expected', [
     (['source'], pytest.raises(sm.UnsupportedSourceError), None),
-    (['dump://http://source'], nullcontext(), sm.DumpSourceHandler),
     (['http://source'], nullcontext(), sm.URLSourceHandler),
     (['file://source'], nullcontext(), sm.URLSourceHandler),
     (['source.txt'], nullcontext(), sm.TextSourceHandler),

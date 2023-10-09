@@ -18,10 +18,6 @@ file will be another text file containing the retrieved metadata for each entry.
 - a list of URLs provided as command line arguments. In this case the metadata
 is directly written to the console and dumped to an output file.
 
-In addition to this, if any of the sources is prepended with the fake URL scheme
-`dump://`, then the contents are not processed, but dumped to files so they can
-be used as testing sources in the future.
-
 The URLs can be any scheme supported by `urllib`.
 
 The URLs are processed according to profiles, which indicate how to properly
