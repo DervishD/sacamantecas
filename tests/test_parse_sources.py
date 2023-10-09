@@ -14,8 +14,8 @@ from sacamantecas import parse_sources, DUMPMODE_PREFIX, SourceTypes
     ('source', ('source', None, None)),
     ('http://source', (Path('http://source'), Path('http___source_out.txt'), SourceTypes.URL)),
     ('file://source', (Path('file://source'), Path('file___source_out.txt'), SourceTypes.URL)),
-    ('source.txt', (Path('source.txt'), Path('source_out.txt'), SourceTypes.TXT)),
-    ('source.xlsx', (Path('source.xlsx'), Path('source_out.xlsx'), SourceTypes.XLS))
+    ('source.txt', (Path('source.txt'), Path('source_out.txt'), SourceTypes.TEXT)),
+    ('source.xlsx', (Path('source.xlsx'), Path('source_out.xlsx'), SourceTypes.EXCEL))
 ])
 def test_parse_sources(source, expected):  # pylint: disable=unused-variable
     """Test parsing of Manteca sources from command line."""

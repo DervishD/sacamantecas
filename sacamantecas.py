@@ -61,9 +61,10 @@ class Messages(StrEnum):
 
 class SourceTypes(IntEnum):
     """Source types handled by the application."""
+    DUMP = auto()
     URL = auto()
-    TXT = auto()
-    XLS = auto()
+    TEXT = auto()
+    EXCEL = auto()
 
 
 try:
@@ -397,12 +398,12 @@ def parse_sources(sources):
             sink_name = Path(url_to_filename(source)).with_suffix('.txt')
         elif source.endswith('.txt'):
             logging.debug('La fuente es un fichero de texto.')
-            source_type = SourceTypes.TXT
+            source_type = SourceTypes.TEXT
             source_name = Path(source)
             sink_name = Path(source)
         elif source.endswith('.xlsx'):
             logging.debug('La fuente es una hoja de cálculo.')
-            source_type = SourceTypes.XLS
+            source_type = SourceTypes.EXCEL
             source_name = Path(source)
             sink_name = Path(source)
         sink_name = None if sink_name is None else sink_name.with_stem(sink_name.stem + '_out')
