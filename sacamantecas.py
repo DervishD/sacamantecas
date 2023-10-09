@@ -54,17 +54,9 @@ class Messages(StrEnum):
     MISSING_PROFILES = 'No se encontró o no se pudo leer el fichero de perfiles «%s».'
     PROFILES_WRONG_SYNTAX = 'Error de sintaxis «%s» leyendo el fichero de perfiles.\n%s'
     SKIMMING_MARKER = '\nSacando las mantecas:'
-    INVALID_SOURCE = 'La fuente «%s» no es de un tipo admitido.'
+    UNSUPPORTED_SOURCE = 'La fuente «%s» no es de un tipo admitido.'
     EOP = '\nProceso finalizado.'
     DEBUGGING_DONE = 'Registro de depuración finalizado.'
-
-
-class SourceTypes(IntEnum):
-    """Source types handled by the application."""
-    DUMP = auto()
-    URL = auto()
-    TEXT = auto()
-    EXCEL = auto()
 
 
 try:
@@ -116,6 +108,82 @@ class ProfilesSyntaxError(Exception):
     def __init__ (self, errortype, details):
         self.error = errortype
         self.details = details
+
+class UnsupportedSourceError(Exception):
+    """Raise when an input source has an unsupported type"""
+    def __init__ (self, source):
+        self.source = source
+
+
+class SourceHandler():
+    """
+    Abstract class to define an interface for URL sources handlers.
+
+    Handler objects can retrieve URLs and store the corresponding metadata.
+    """
+    def __init__(self, source_name):
+        self.source = source_name
+
+    def get_urls(self):
+        """ Pure virtual function: get URLs from source."""
+        raise NotImplementedError()
+
+    def add_metadata(self, index, metadata):
+        """Pure virtual function: add metadata at index."""
+        raise NotImplementedError()
+
+    def close(self):
+        """ Pure virtual function: close all resources."""
+        raise NotImplementedError()
+
+
+class ExcelSourceHandler(SourceHandler):
+    """."""
+    def get_urls(self):
+        """."""
+
+    def add_metadata(self, index, metadata):
+        """."""
+
+    def close(self):
+        """ Pure virtual function: close all resources."""
+
+
+class TextSourceHandler(SourceHandler):
+    """."""
+    def get_urls(self):
+        """."""
+
+    def add_metadata(self, index, metadata):
+        """."""
+
+    def close(self):
+        """ Pure virtual function: close all resources."""
+
+
+class URLSourceHandler(SourceHandler):
+    """."""
+    def get_urls(self):
+        """."""
+
+    def add_metadata(self, index, metadata):
+        """."""
+
+    def close(self):
+        """ Pure virtual function: close all resources."""
+
+
+class DumpSourceHandler(SourceHandler):
+    """."""
+    def get_urls(self):
+        """."""
+
+    def add_metadata(self, index, metadata):
+        """."""
+
+    def close(self):
+        """."""
+
 
 
 def error(message, *args, **kwargs):
@@ -367,47 +435,35 @@ def url_to_filename(url):
     return re.sub(r'\W', '_', url, re.ASCII)  # Quite crude but it works.
 
 
-def parse_sources(sources):
+def parse_arguments(args):
     """
-    Process arguments contained in the argv list.
+    Parse each argument in args to check if it is a valid source, identify its
+    type and build the corresponding handler.
 
-    For each argument identify the type of source and generate the corresponding
-    manteca source and skimmed sink names taking into account if the source must
-    be dumped or processed normally.
+    Yield built handler.
 
-    The source is 'munged' in the returned tuple, that is, preprocessed and
-    normalized so it resembles a normal source instead of a 'dumpable' one.
-
-    Yield (source_name, sink_name, source_type, dumpmode) tuples.
-
-    For invalid sources the tuple is (None, source_name, None, dumpmode).
+    Raises InvalidSourceError(source) for invalid (unknown) source types.
     """
-    for source in sources:
-        logging.debug('Procesando fuente de Manteca «%s».', source)
+    for arg in args:
+        logging.debug('Procesando argumento «%s».', arg)
 
-        dumpmode = source.startswith(DUMPMODE_PREFIX)
-        source = source.removeprefix(DUMPMODE_PREFIX)
-
-        source_type = None
-        source_name = source
-        sink_name = None
-        if re.match(r'(?:https?|file)://', source):
+        handler = None
+        if arg.startswith(DUMPMODE_PREFIX):
+            logging.debug('La fuente será volcada, no procesada.')
+            handler = DumpSourceHandler(arg)
+        elif re.match(r'(?:https?|file)://', arg):
             logging.debug('La fuente es un URL.')
-            source_type = SourceTypes.URL
-            source_name = Path(source)
-            sink_name = Path(url_to_filename(source)).with_suffix('.txt')
-        elif source.endswith('.txt'):
+            handler = URLSourceHandler(arg)
+        elif arg.endswith('.txt'):
             logging.debug('La fuente es un fichero de texto.')
-            source_type = SourceTypes.TEXT
-            source_name = Path(source)
-            sink_name = Path(source)
-        elif source.endswith('.xlsx'):
+            handler = TextSourceHandler(Path(arg))
+        elif arg.endswith('.xlsx'):
             logging.debug('La fuente es una hoja de cálculo.')
-            source_type = SourceTypes.EXCEL
-            source_name = Path(source)
-            sink_name = Path(source)
-        sink_name = None if sink_name is None else sink_name.with_stem(sink_name.stem + '_out')
-        yield source_name, sink_name, source_type, dumpmode
+            handler = ExcelSourceHandler(Path(arg))
+        else:
+            logging.debug('El argumento no es un tipo de fuente admitido.')
+            raise UnsupportedSourceError(arg)
+        yield handler
 
 
 def loggerize(function):
@@ -440,13 +496,13 @@ def keyboard_interrupt_handler(function):
 
 @loggerize
 @keyboard_interrupt_handler
-def main(sources):
+def main(args):
     """."""
     logging.info(BANNER)
 
     exitcode = ExitCodes.SUCCESS
 
-    if len(sources) == 0:
+    if len(args) == 0:
         # The input source should be provided automatically if the application
         # is used as a drag'n'drop target which is in fact the intended method
         # of operation.
@@ -471,13 +527,13 @@ def main(sources):
         return ExitCodes.ERROR_PROFILES_WRONG_SYNTAX
 
     logging.info(Messages.SKIMMING_MARKER)
-    for source_name, sink_name, source_type, dumpmode in parse_sources(sources):
-        if dumpmode:
-            logging.debug('La fuente de Manteca «%s» será volcada, no procesada.', source_name)
-        if source_type is None:
-            warning(Messages.INVALID_SOURCE, source_name)
-            exitcode = ExitCodes.WARNING_BASE
-            continue
+    try:
+        for handler in parse_arguments(args):
+            for url in handler.get_urls():
+                print(url)
+    except UnsupportedSourceError as exc:
+        warning(Messages.UNSUPPORTED_SOURCE, exc.source)
+        exitcode = ExitCodes.WARNING_BASE
 
     return exitcode
 
