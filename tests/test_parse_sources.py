@@ -12,8 +12,8 @@ from sacamantecas import parse_sources, DUMPMODE_PREFIX, SourceTypes
 # The different sources are tested in normal and 'dump' modes.
 @pytest.mark.parametrize('source, expected', [
     ('source', ('source', None, None)),
-    ('http://source', (Path('http://source'), Path('http___source_out.txt'), SourceTypes.URI)),
-    ('file://source', (Path('file://source'), Path('file___source_out.txt'), SourceTypes.URI)),
+    ('http://source', (Path('http://source'), Path('http___source_out.txt'), SourceTypes.URL)),
+    ('file://source', (Path('file://source'), Path('file___source_out.txt'), SourceTypes.URL)),
     ('source.txt', (Path('source.txt'), Path('source_out.txt'), SourceTypes.TXT)),
     ('source.xlsx', (Path('source.xlsx'), Path('source_out.xlsx'), SourceTypes.XLS))
 ])
