@@ -66,6 +66,20 @@ from openpyxl.utils.cell import get_column_letter
 TIMESTAMP = time.strftime('%Y%m%d_%H%M%S')
 
 
+class ExitCodes(IntEnum):
+    """Standardized exit codes for the application. """
+    SUCCESS = 0
+    WARNING_BASE = 1
+    WARNING_KEYBOARD_INTERRUPT = auto()
+    WARNING_INVALID_SOURCE = auto()
+    WARNING_MISSING_SOURCE = auto()
+    ERRORS_BASE = 127
+    ERROR_NO_ARGUMENTS = auto()
+    ERROR_EMPTY_PROFILES = auto()
+    ERROR_MISSING_PROFILES = auto()
+    ERROR_PROFILES_WRONG_SYNTAX = auto()
+
+
 class Messages(StrEnum):
     """Messages for the application."""
     INITIALIZATION_ERROR = 'Error de inicialización de la aplicación.'
@@ -117,9 +131,6 @@ USER_AGENT += f' (Windows {platform.version()}; {platform.architecture()[0]}; {p
 DUMPMODE_PREFIX = 'dump://'
 ERROR_HEADER = f'\n*** Error en {APP_NAME}\n'
 WARNING_HEADER = '* Warning: '
-
-EXITCODE_FAILURE = 1
-EXITCODE_SUCCESS = 0
 
 
 if sys.platform != 'win32':
@@ -1051,7 +1062,7 @@ def keyboard_interrupt_handler(function):
             return function(*args, **kwargs)
         except KeyboardInterrupt:
             warning(Messages.KEYBOARD_INTERRUPTION)
-            return EXITCODE_FAILURE
+            return ExitCodes.WARNING_KEYBOARD_INTERRUPT
     return handle_keyboard_interrupt_wrapper
 
 
@@ -1060,6 +1071,8 @@ def keyboard_interrupt_handler(function):
 def main(sources):
     """."""
     logging.info(BANNER)
+
+    exitcode = ExitCodes.SUCCESS
 
     if len(sources) == 0:
         # The input source should be provided automatically if the application
@@ -1070,20 +1083,20 @@ def main(sources):
         # it is better to signal the end user with an error and explanation if
         # the input source is missing, as soon as possible.
         error(Messages.NO_ARGUMENTS)
-        return EXITCODE_FAILURE
+        return ExitCodes.ERROR_NO_ARGUMENTS
 
     try:
         profiles = load_profiles(INIFILE_PATH)
         if not profiles:
             error(Messages.EMPTY_PROFILES, INIFILE_PATH)
-            return EXITCODE_FAILURE
+            return ExitCodes.ERROR_EMPTY_PROFILES
         logging.debug('Se obtuvieron los siguientes perfiles: %s.', list(profiles.keys()))
     except MissingProfilesError as exc:
         error(Messages.MISSING_PROFILES, exc.filename)
-        return EXITCODE_FAILURE
+        return ExitCodes.ERROR_MISSING_PROFILES
     except ProfilesSyntaxError as exc:
         error(Messages.PROFILES_WRONG_SYNTAX, exc.error, exc.details)
-        return EXITCODE_FAILURE
+        return ExitCodes.ERROR_PROFILES_WRONG_SYNTAX
 
     logging.info(Messages.SKIMMING_MARKER)
     for source_name, sink_name, source_type, dumpmode in parse_sources(sources):
@@ -1091,6 +1104,7 @@ def main(sources):
             logging.debug('La fuente de Manteca «%s» será volcada, no procesada.', source_name)
         if source_type is None:
             warning(Messages.INVALID_SOURCE, source_name)
+            exitcode = ExitCodes.WARNING_BASE
             continue
 
 
@@ -1110,7 +1124,7 @@ def main(sources):
     #         for uri, problem in bad_metadata:
                 # logging.warning(f'  [{uri}] {problem}.')
 
-    return EXITCODE_SUCCESS
+    return exitcode
 
 
 atexit.register(wait_for_keypress)

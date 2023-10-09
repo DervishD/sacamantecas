@@ -8,7 +8,7 @@ def test_logging_setup(log_paths, monkeypatch):  # pylint: disable=unused-variab
     monkeypatch.setattr("sacamantecas.LOGFILE_PATH", log_paths.log)
     monkeypatch.setattr("sacamantecas.DEBUGFILE_PATH", log_paths.debug)
 
-    assert sm.main([]) == sm.EXITCODE_FAILURE
+    assert sm.main([]) == sm.ExitCodes.ERROR_NO_ARGUMENTS
     assert sm.LOGFILE_PATH.is_file()
     assert sm.DEBUGFILE_PATH.is_file()
 
@@ -18,7 +18,7 @@ def test_no_arguments(log_paths, monkeypatch):  # pylint: disable=unused-variabl
     monkeypatch.setattr("sacamantecas.LOGFILE_PATH", log_paths.log)
     monkeypatch.setattr("sacamantecas.DEBUGFILE_PATH", log_paths.debug)
 
-    assert sm.main([]) == sm.EXITCODE_FAILURE
+    assert sm.main([]) == sm.ExitCodes.ERROR_NO_ARGUMENTS
 
     result = sm.LOGFILE_PATH.read_text(encoding='utf-8').splitlines()
     result = '\n'.join([' '.join(line.split(' ')[1:]) for line in result])
@@ -47,7 +47,7 @@ def test_missing_ini(log_paths, tmp_path, monkeypatch, capsys):  # pylint: disab
     filename = str(tmp_path / 'non_existent_profiles_file.ini')
 
     monkeypatch.setattr("sacamantecas.INIFILE_PATH", filename)
-    assert sm.main(['']) == sm.EXITCODE_FAILURE
+    assert sm.main(['']) == sm.ExitCodes.ERROR_MISSING_PROFILES
 
     result = capsys.readouterr().err.splitlines()[2]
     expected = f'No se encontró o no se pudo leer el fichero de perfiles «{filename}».'
@@ -64,7 +64,7 @@ def test_ini_syntax_error(log_paths, tmp_path, monkeypatch, capsys):  # pylint: 
     filename.write_text('o')
 
     monkeypatch.setattr("sacamantecas.INIFILE_PATH", filename)
-    assert sm.main(['']) == sm.EXITCODE_FAILURE
+    assert sm.main(['']) == sm.ExitCodes.ERROR_PROFILES_WRONG_SYNTAX
 
     result = capsys.readouterr().err.splitlines()[2]
     expected = 'Error de sintaxis «MissingSectionHeader» leyendo el fichero de perfiles.'
