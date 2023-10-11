@@ -7,10 +7,10 @@ import sacamantecas as sm
 
 @pytest.mark.parametrize('arguments, exception, expected', [
     (['source'], pytest.raises(sm.UnsupportedSourceError), None),
-    (['http://source'], nullcontext(), sm.URLSourceHandler),
-    (['file://source'], nullcontext(), sm.URLSourceHandler),
-    (['source.txt'], nullcontext(), sm.TextSourceHandler),
-    (['source.xlsx'], nullcontext(), sm.ExcelSourceHandler)
+    (['http://source'], nullcontext(), sm.SingleURLSource),
+    (['file://source'], nullcontext(), sm.SingleURLSource),
+    (['source.txt'], nullcontext(), sm.TextURLSource),
+    (['source.xlsx'], nullcontext(), sm.ExcelURLSource)
 ])
 def test_source_identification(arguments, exception, expected):  # pylint: disable=unused-variable
     """Test identification of different sources."""

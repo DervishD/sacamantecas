@@ -15,6 +15,7 @@ import traceback as tb
 import re
 import time
 import platform
+from abc import ABC as Abstract, abstractmethod
 from msvcrt import getch, get_osfhandle
 from ctypes import WinDLL, byref, c_uint, create_unicode_buffer, wintypes
 
@@ -114,62 +115,43 @@ class UnsupportedSourceError(Exception):
         self.source = source
 
 
-class SourceHandler():
+class BaseURLSource(Abstract):
     """
-    Abstract class to define an interface for URL sources handlers.
-
-    Handler objects can retrieve URLs and store the corresponding metadata.
+    Base abstract class to define an interface for URL sources.
     """
-    def __init__(self, source_name):
-        self.source = source_name
+    def __init__(self, source):
+        self.source = source
 
+    @abstractmethod
     def get_urls(self):
-        """ Pure virtual function: get URLs from source."""
-        raise NotImplementedError()
+        """
+        Pure virtual function: yield URLs found in source.
 
-    def add_metadata(self, index, metadata):
-        """Pure virtual function: add metadata at index."""
-        raise NotImplementedError()
-
-    def close(self):
-        """ Pure virtual function: close all resources."""
-        raise NotImplementedError()
+        Must be a generator which closes used resources when exhausted.
+        """
 
 
-class ExcelSourceHandler(SourceHandler):
+class ExcelURLSource(BaseURLSource):
     """."""
     def get_urls(self):
         """."""
 
-    def add_metadata(self, index, metadata):
-        """."""
 
-    def close(self):
-        """ Pure virtual function: close all resources."""
-
-
-class TextSourceHandler(SourceHandler):
+class TextURLSource(BaseURLSource):
     """."""
     def get_urls(self):
         """."""
 
-    def add_metadata(self, index, metadata):
-        """."""
 
-    def close(self):
-        """ Pure virtual function: close all resources."""
-
-
-class URLSourceHandler(SourceHandler):
-    """."""
+class SingleURLSource(BaseURLSource):
+    """Handle single URLs."""
     def get_urls(self):
-        """."""
+        """
+        Yield the URLs found in the URL, that is… the URL itself.
 
-    def add_metadata(self, index, metadata):
-        """."""
-
-    def close(self):
-        """ Pure virtual function: close all resources."""
+        The generator stops after only one iteration, of course.
+        """
+        yield self.source
 
 
 def error(message, *args, **kwargs):
@@ -426,27 +408,27 @@ def parse_arguments(args):
     Parse each argument in args to check if it is a valid source, identify its
     type and build the corresponding handler.
 
-    Yield built handler.
+    Yield built source object.
 
-    Raises InvalidSourceError(source) for invalid (unknown) source types.
+    Raises UnsupportedSourceError(source) for unsupported sources types.
     """
     for arg in args:
         logging.debug('Procesando argumento «%s».', arg)
 
-        handler = None
+        source = None
         if re.match(r'(?:https?|file)://', arg):
             logging.debug('La fuente es un URL.')
-            handler = URLSourceHandler(arg)
+            source = SingleURLSource(arg)
         elif arg.endswith('.txt'):
             logging.debug('La fuente es un fichero de texto.')
-            handler = TextSourceHandler(Path(arg))
+            source = TextURLSource(Path(arg))
         elif arg.endswith('.xlsx'):
             logging.debug('La fuente es una hoja de cálculo.')
-            handler = ExcelSourceHandler(Path(arg))
+            source = ExcelURLSource(Path(arg))
         else:
             logging.debug('El argumento no es un tipo de fuente admitido.')
             raise UnsupportedSourceError(arg)
-        yield handler
+        yield source
 
 
 def loggerize(function):
