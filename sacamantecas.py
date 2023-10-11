@@ -400,7 +400,7 @@ def load_profiles(filename):
 
 def url_to_filename(url):
     """Convert the given URL to a valid filename."""
-    return re.sub(r'\W', '_', url, re.ASCII)  # Quite crude but it works.
+    return Path(re.sub(r'\W', '_', url, re.ASCII))  # Quite crude but it works.
 
 
 def parse_arguments(args):
