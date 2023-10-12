@@ -125,9 +125,9 @@ class BaseURLSource(Abstract):
     @abstractmethod
     def get_urls(self):
         """
-        Pure virtual function: yield URLs found in source.
+        Pure virtual function.
 
-        Must be a generator which closes used resources when exhausted.
+        Return a generator yielding URLs found in source.
         """
 
 
