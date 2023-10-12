@@ -138,9 +138,14 @@ class ExcelURLSource(BaseURLSource):
 
 
 class TextURLSource(BaseURLSource):
-    """."""
+    """Handle text files containing URLs, one per line."""
     def get_urls(self):
-        """."""
+        """
+        Yield the URLs found in the provided UTF-8 encoded text file.
+        """
+        with open(self.source, encoding='utf-8') as source:
+            for line in source.readlines():
+                yield line.strip()
 
 
 class SingleURLSource(BaseURLSource):
