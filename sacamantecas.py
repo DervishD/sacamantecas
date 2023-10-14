@@ -15,9 +15,11 @@ import traceback as tb
 import re
 import time
 import platform
+from urllib.parse import urlparse
 from abc import ABC as Abstract, abstractmethod
 from msvcrt import getch, get_osfhandle
 from ctypes import WinDLL, byref, c_uint, create_unicode_buffer, wintypes
+from openpyxl import load_workbook
 
 
 # Computed as early as possible.
@@ -132,9 +134,28 @@ class BaseURLSource(Abstract):
 
 
 class ExcelURLSource(BaseURLSource):
-    """."""
+    """Handle Excel files containing URls, one per row. Ish."""
     def get_urls(self):
-        """."""
+        """
+        Yield the URLs found in the default worksheet.
+        Only the FIRST URL found in each row is considered and yielded.
+        """
+        workbook = load_workbook(self.source)
+        # NOTE: not all sheets are processed, only the first one because
+        # it is, allegedly, the one where the URLs for the items are…
+        sheet = workbook.worksheets[0]
+        logging.debug('La hoja con la que se trabajará es «%s»".', sheet.title)
+        for row in sheet.rows:
+            logging.debug('Procesando fila %s.', row[0].row)
+            for cell in row:
+                if cell.data_type != 's':
+                    logging.debug('La celda «%s» no es de tipo cadena, será ignorada.', cell.coordinate)
+                    continue
+                if urlparse(cell.value).scheme.startswith(('http', 'file')):
+                    logging.debug('Se encontró un URL en la celda «%s»: %s', cell.coordinate, cell.value)
+                    yield cell.row, cell.value
+                    break
+        workbook.close()
 
 
 class TextURLSource(BaseURLSource):
