@@ -15,11 +15,12 @@ import traceback as tb
 import re
 import time
 import platform
-from urllib.parse import urlparse
-from abc import ABC as Abstract, abstractmethod
+from shutil import copy2
 from msvcrt import getch, get_osfhandle
 from ctypes import WinDLL, byref, c_uint, create_unicode_buffer, wintypes
 from openpyxl import load_workbook
+from openpyxl.styles import Font, PatternFill
+from openpyxl.utils.cell import get_column_letter
 
 
 # Computed as early as possible.
@@ -60,6 +61,15 @@ class Messages(StrEnum):
     UNSUPPORTED_SOURCE = 'La fuente «%s» no es de un tipo admitido.'
     EOP = '\nProceso finalizado.'
     DEBUGGING_DONE = 'Registro de depuración finalizado.'
+    HANDLER_ERROR = '     ↪ ERROR, %s.'
+    INPUT_FILE_NOT_FOUND = 'No se encontró el fichero de entrada.'
+    INPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para leer el fichero de entrada.'
+    OUTPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para crear el fichero de salida.'
+
+
+class HandlerErrors(StrEnum):
+    """Errors for source handlers."""
+    NO_METADATA = 'no hay metadatos'
 
 
 try:
@@ -115,69 +125,6 @@ class UnsupportedSourceError(Exception):
     """Raise when an input source has an unsupported type"""
     def __init__ (self, source):
         self.source = source
-
-
-class BaseURLSource(Abstract):
-    """
-    Base abstract class to define an interface for URL sources.
-    """
-    def __init__(self, source):
-        self.source = source
-
-    @abstractmethod
-    def get_urls(self):
-        """
-        Pure virtual function.
-
-        Return a generator yielding URLs found in source.
-        """
-
-
-class ExcelURLSource(BaseURLSource):
-    """Handle Excel files containing URls, one per row. Ish."""
-    def get_urls(self):
-        """
-        Yield the URLs found in the default worksheet.
-        Only the FIRST URL found in each row is considered and yielded.
-        """
-        workbook = load_workbook(self.source)
-        # NOTE: not all sheets are processed, only the first one because
-        # it is, allegedly, the one where the URLs for the items are…
-        sheet = workbook.worksheets[0]
-        logging.debug('La hoja con la que se trabajará es «%s»".', sheet.title)
-        for row in sheet.rows:
-            logging.debug('Procesando fila %s.', row[0].row)
-            for cell in row:
-                if cell.data_type != 's':
-                    logging.debug('La celda «%s» no es de tipo cadena, será ignorada.', cell.coordinate)
-                    continue
-                if urlparse(cell.value).scheme.startswith(('http', 'file')):
-                    logging.debug('Se encontró un URL en la celda «%s»: %s', cell.coordinate, cell.value)
-                    yield cell.row, cell.value
-                    break
-        workbook.close()
-
-
-class TextURLSource(BaseURLSource):
-    """Handle text files containing URLs, one per line."""
-    def get_urls(self):
-        """
-        Yield the URLs found in the provided UTF-8 encoded text file.
-        """
-        with open(self.source, encoding='utf-8') as source:
-            for line in source.readlines():
-                yield line.strip()
-
-
-class SingleURLSource(BaseURLSource):
-    """Handle single URLs."""
-    def get_urls(self):
-        """
-        Yield the URLs found in the URL, that is… the URL itself.
-
-        The generator stops after only one iteration, of course.
-        """
-        yield self.source
 
 
 def error(message, *args, **kwargs):
@@ -429,6 +376,175 @@ def url_to_filename(url):
     return Path(re.sub(r'\W', '_', url, re.ASCII))  # Quite crude but it works.
 
 
+def get_metadata(url):
+    """."""
+    return {'url': url, 'key_1': 'value_1', 'key_2': 'value_2', 'key_3': 'value_3'}
+
+
+# NOTE: the handlers below have to be generators for two reasons. First one, the
+# list of URLs gathered by the handler from the source can be potentially large.
+# So, using a generator is more efficient. Second one, this allows the caller to
+# use the handler in two separate stages, first getting the URL so the handler
+# keep processing it, and then getting the status of that process by sending the
+# URL back to the handler. So, the handler here is acting really as a coroutine
+# rather than a simple generator.
+
+
+def single_url_handler(url):
+    """
+    Handle single URLs.
+
+    The obtained metadata for the URL is logged with INFO level, so it will be
+    printed on stdout and the corresponding log files, and it is also written
+    into a dump file named after the URL (properly sanitized, of course), as
+    key, value pairs.
+
+    The output file has UTF-8 encoding.
+    """
+    yield url
+    metadata = get_metadata(url)
+    if metadata:
+        sink_filename = url_to_filename(url).with_suffix('.txt')
+        with open(sink_filename, 'w+', encoding='utf-8') as sink:
+            logging.debug('Volcando metadatos a «%s».', sink_filename)
+            sink.write(f'{url}\n')
+            for key, value in get_metadata(url).items():
+                message = f'      {key}: {value}'
+                logging.info(message)
+                sink.write(f'{message}\n')
+        yield None
+    else:
+        yield HandlerErrors.NO_METADATA
+
+
+def textfile_handler(source_filename):
+    """
+    Handle text files containing URLs, one per line.
+
+    The metadata obtained for each URL is dumped into another text file, named
+    after the source file: first the URL is written, then the metadata as key,
+    value pairs. Barely pretty-printed, but it is more than enough for a dump.
+
+    All files are assumed to have UTF-8 encoding.
+    """
+    sink_filename = source_filename.with_stem(source_filename.stem + '_out')
+    with open(source_filename, encoding='utf-8') as source:
+        with open(sink_filename, 'w', encoding='utf-8') as sink:
+            logging.debug('Volcando metadatos a «%s».', sink_filename)
+            for url in source.readlines():
+                url = url.strip()
+                yield url
+                metadata = get_metadata(url)
+                if not metadata:
+                    yield HandlerErrors.NO_METADATA
+                else:
+                    sink.write(f'{url}\n')
+                    for key, value in metadata.items():
+                        sink.write(f'  {key}: {value}\n')
+                    sink.write('\n')
+                    yield None
+
+
+def spreadsheet_handler(source_filename):
+    """
+    Handle spreadsheets containing URLs, one per row. Ish.
+
+    The metadata obtained for each URL is dumped into another spreadsheet, named
+    after the source file, which is not created anew, it is just a copy of the
+    source spreadsheet. In fact, it is used as source, too, to avoid having two
+    copies of the same data opened, which is totally unnecessary.
+
+    The metadata is added to the spreadsheet in new columns, one per key. These
+    columns are marked with a prefix as being added by the application.
+
+    NOTE: not all sheets are processed, only the first one because it is the one
+    where the URLs for the items are. Allegedly…
+    """
+    sink_filename = source_filename.with_stem(source_filename.stem + '_out')
+    logging.debug('Copiando workbook a «%s».', sink_filename)
+
+    copy2(source_filename, sink_filename)
+    workbook = load_workbook(sink_filename)
+
+    sheet = workbook.worksheets[0]
+    logging.debug('La hoja con la que se trabajará es «%s»".', sheet.title)
+
+    for row in sheet.rows:
+        url = None
+        logging.debug('Procesando fila %s.', row[0].row)
+        for cell in row:
+            if cell.data_type != 's':
+                logging.debug('La celda «%s» no es de tipo cadena, será ignorada.', cell.coordinate)
+                continue
+            if re.match(r'(?:https?|file)://', cell.value):
+                logging.debug('Se encontró un URL en la celda «%s»: %s', cell.coordinate, cell.value)
+                url = cell.value
+                yield url
+                break  # Only the FIRST URL found in each row is considered.
+        metadata = get_metadata(url)
+        if not metadata:
+            yield HandlerErrors.NO_METADATA
+        else:
+            logging.debug('Volcando metadatos a «%s».', sink_filename)
+            metadata_columns = {}
+            logging.debug('Insertando fila de cabeceras.')
+            sheet.insert_rows(1, 1)
+            for key, value in metadata.items():
+                key = '[sm] ' + key
+                if key not in metadata_columns:
+                    logging.debug('Se encontró un metadato nuevo, «%s».', key)
+                    column = sheet.max_column + 1
+                    metadata_columns[key] = column
+                    logging.debug('El metadato «%s» irá en la columna «%s».', key, get_column_letter(column))
+                    cell = sheet.cell(row=1, column=column, value=key)
+                    cell.font = Font(name='Calibri')
+                    cell.fill = PatternFill(start_color='baddad', fill_type='solid')
+                    # Set column width.
+                    #
+                    # As per Excel specification, the width units are the width of
+                    # the zero character of the font used by the Normal style for a
+                    # workbook. So a column of width 10 would fit exactly 10 zero
+                    # characters in the font specified by the Normal style.
+                    #
+                    # No, no kidding.
+                    #
+                    # Since this width units are, IMHO, totally arbitrary, let's
+                    # choose an arbitrary column width. To wit, the Answer to the
+                    # Ultimate Question of Life, the Universe, and Everything.
+                    sheet.column_dimensions[get_column_letter(column)].width = 42
+                    # This is needed because sometimes Excel files are not properly
+                    # generated and the last column has a 'max' field too large, and
+                    # that has an unintended consequence: ANY change to the settings
+                    # of that column affects ALL the following ones whose index is
+                    # less than 'max'… So, it's better to fix that field.
+                    sheet.column_dimensions[get_column_letter(column)].max = column
+                logging.debug('Añadiendo metadato «%s» con valor «%s».', key, value)
+                # Since a heading row is inserted, the rows where metadata has to go
+                # have now an +1 offset, as they have been displaced.
+                sheet.cell(row[0].row + 1, metadata_columns[key], value=value)
+            yield None
+    workbook.close()
+
+
+def saca_las_mantecas(source, handler):
+    """."""
+    logging.info('  Fuente: %s', source)
+    try:
+        for url in handler:
+            logging.info('    %s', url)
+            status = handler.send(url)
+            if status:
+                logging.info(Messages.HANDLER_ERROR, status)
+                logging.debug('ERROR, %s.', status)
+    except FileNotFoundError:
+        error(Messages.INPUT_FILE_NOT_FOUND)
+    except PermissionError as exc:
+        if exc.filename == str(source):
+            error(Messages.INPUT_FILE_NO_PERMISSION)
+        else:
+            error(Messages.OUTPUT_FILE_NO_PERMISSION)
+
+
 def parse_sources(sources):
     """
     Parse each argument in args to check if it is a valid source, identify its
@@ -441,16 +557,16 @@ def parse_sources(sources):
     for source in sources:
         logging.debug('Procesando argumento «%s».', source)
 
-        source = None
+        handler = None
         if re.match(r'(?:https?|file)://', source):
             logging.debug('La fuente es un URL.')
-            source = SingleURLSource(arg)
+            handler = single_url_handler(source)
         elif source.endswith('.txt'):
             logging.debug('La fuente es un fichero de texto.')
-            source = TextURLSource(Path(arg))
+            handler = textfile_handler(Path(source))
         elif source.endswith('.xlsx'):
             logging.debug('La fuente es una hoja de cálculo.')
-            source = ExcelURLSource(Path(arg))
+            handler = spreadsheet_handler(Path(source))
         else:
             logging.debug('El argumento no es un tipo de fuente admitido.')
             raise UnsupportedSourceError(source)
@@ -520,6 +636,7 @@ def main(sources):
     logging.info(Messages.SKIMMING_MARKER)
     try:
         for source, handler in parse_sources(sources):
+            saca_las_mantecas(source, handler)
     except UnsupportedSourceError as exc:
         warning(Messages.UNSUPPORTED_SOURCE, exc.source)
         exitcode = ExitCodes.WARNING_BASE

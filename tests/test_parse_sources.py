@@ -1,19 +1,23 @@
 #! /usr/bin/env python3
 """Test suite for parse_sources()."""
 from contextlib import nullcontext
+import inspect
 import pytest
 import sacamantecas as sm
 
 
-@pytest.mark.parametrize('arguments, exception, expected', [
+@pytest.mark.parametrize('sources, exception, expected', [
     (['source'], pytest.raises(sm.UnsupportedSourceError), None),
-    (['http://source'], nullcontext(), sm.SingleURLSource),
-    (['file://source'], nullcontext(), sm.SingleURLSource),
-    (['source.txt'], nullcontext(), sm.TextURLSource),
-    (['source.xlsx'], nullcontext(), sm.ExcelURLSource)
+    (['http://source'], nullcontext(), sm.single_url_handler),
+    (['file://source'], nullcontext(), sm.single_url_handler),
+    (['source.txt'], nullcontext(), sm.textfile_handler),
+    (['source.xlsx'], nullcontext(), sm.spreadsheet_handler)
 ])
-def test_source_identification(arguments, exception, expected):  # pylint: disable=unused-variable
+def test_source_identification(sources, exception, expected):  # pylint: disable=unused-variable
     """Test identification of different sources."""
     with exception:
-        result = list(sm.parse_sources(arguments))[0]
-        assert isinstance(result, expected)
+        source, handler = list(sm.parse_sources(sources))[0]
+        assert source == sources[0]
+        assert inspect.isgenerator(handler)
+        assert inspect.isgeneratorfunction(expected)
+        assert handler.gi_code.co_name == expected.__name__
