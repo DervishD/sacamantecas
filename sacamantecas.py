@@ -30,11 +30,8 @@ TIMESTAMP = time.strftime('%Y%m%d_%H%M%S')
 class ExitCodes(IntEnum):
     """Standardized exit codes for the application. """
     SUCCESS = 0
-    WARNING_BASE = 1
-    WARNING_KEYBOARD_INTERRUPT = auto()
-    WARNING_INVALID_SOURCE = auto()
-    WARNING_MISSING_SOURCE = auto()
-    ERRORS_BASE = 127
+    WARNING = 1
+    KEYBOARD_INTERRUPT = 127
     ERROR_NO_ARGUMENTS = auto()
     ERROR_EMPTY_PROFILES = auto()
     ERROR_MISSING_PROFILES = auto()
@@ -410,7 +407,7 @@ def single_url_handler(url):
             sink.write(f'{url}\n')
             for key, value in get_metadata(url).items():
                 message = f'      {key}: {value}'
-                logging.info(message)
+                logging.info(message)  # Output allowed here because it is part of the handler.
                 sink.write(f'{message}\n')
         yield None
     else:
@@ -526,23 +523,14 @@ def spreadsheet_handler(source_filename):
     workbook.close()
 
 
-def saca_las_mantecas(source, handler):
+def saca_las_mantecas(handler):
     """."""
-    logging.info('  Fuente: %s', source)
-    try:
-        for url in handler:
-            logging.info('    %s', url)
-            status = handler.send(url)
-            if status:
-                logging.info(Messages.HANDLER_ERROR, status)
-                logging.debug('ERROR, %s.', status)
-    except FileNotFoundError:
-        error(Messages.INPUT_FILE_NOT_FOUND)
-    except PermissionError as exc:
-        if exc.filename == str(source):
-            error(Messages.INPUT_FILE_NO_PERMISSION)
-        else:
-            error(Messages.OUTPUT_FILE_NO_PERMISSION)
+    for url in handler:
+        logging.info('    %s', url)  # FIXME move to main()
+        status = handler.send(url)
+        if status:
+            logging.info(Messages.HANDLER_ERROR, status)
+            logging.debug('ERROR, %s.', status)
 
 
 def parse_sources(sources):
@@ -583,7 +571,6 @@ def loggerize(function):
 
         status = function(*args, **kwargs)
 
-        logging.info(Messages.EOP)
         logging.debug(Messages.DEBUGGING_DONE)
         logging.shutdown()
         return status
@@ -597,7 +584,7 @@ def keyboard_interrupt_handler(function):
             return function(*args, **kwargs)
         except KeyboardInterrupt:
             warning(Messages.KEYBOARD_INTERRUPTION)
-            return ExitCodes.WARNING_KEYBOARD_INTERRUPT
+            return ExitCodes.KEYBOARD_INTERRUPT
     return handle_keyboard_interrupt_wrapper
 
 
@@ -636,11 +623,22 @@ def main(sources):
     logging.info(Messages.SKIMMING_MARKER)
     try:
         for source, handler in parse_sources(sources):
-            saca_las_mantecas(source, handler)
+            logging.info('  Fuente: %s', source)
+            saca_las_mantecas(handler)
     except UnsupportedSourceError as exc:
         warning(Messages.UNSUPPORTED_SOURCE, exc.source)
-        exitcode = ExitCodes.WARNING_BASE
+        exitcode = ExitCodes.WARNING
+    except FileNotFoundError:
+        warning(Messages.INPUT_FILE_NOT_FOUND)
+        exitcode = ExitCodes.WARNING
+    except PermissionError as exc:
+        if exc.filename == str(source):
+            warning(Messages.INPUT_FILE_NO_PERMISSION)
+        else:
+            warning(Messages.OUTPUT_FILE_NO_PERMISSION)
+        exitcode = ExitCodes.WARNING
 
+    logging.info(Messages.EOP)
     return exitcode
 
 
