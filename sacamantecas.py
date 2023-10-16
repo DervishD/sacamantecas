@@ -373,11 +373,6 @@ def url_to_filename(url):
     return Path(re.sub(r'\W', '_', url, re.ASCII))  # Quite crude but it works.
 
 
-def get_metadata(url):
-    """."""
-    return {'url': url, 'key_1': 'value_1', 'key_2': 'value_2', 'key_3': 'value_3'}
-
-
 # NOTE: the handlers below have to be generators for two reasons. First one, the
 # list of URLs gathered by the handler from the source can be potentially large.
 # So, using a generator is more efficient. Second one, this allows the caller to
@@ -523,14 +518,10 @@ def spreadsheet_handler(source_filename):
     workbook.close()
 
 
-def saca_las_mantecas(handler):
+def saca_las_mantecas(url):
     """."""
-    for url in handler:
-        logging.info('    %s', url)  # FIXME move to main()
-        status = handler.send(url)
-        if status:
-            logging.info(Messages.HANDLER_ERROR, status)
-            logging.debug('ERROR, %s.', status)
+    return {'key_1': 'value_1', 'key_2': 'value_2', 'key_3': 'value_3'}
+    return None
 
 
 def parse_sources(sources):
@@ -624,7 +615,13 @@ def main(sources):
     try:
         for source, handler in parse_sources(sources):
             logging.info('  Fuente: %s', source)
-            saca_las_mantecas(handler)
+            for url in handler:
+                logging.info('    %s', url)
+                metadata = saca_las_mantecas(url)
+                handler.send(metadata)
+                if metadata is None:
+                    logging.info(Messages.HANDLER_ERROR, HandlerErrors.NO_METADATA)
+                    logging.debug('ERROR, %s.', HandlerErrors.NO_METADATA)
     except UnsupportedSourceError as exc:
         warning(Messages.UNSUPPORTED_SOURCE, exc.source)
         exitcode = ExitCodes.WARNING
