@@ -429,7 +429,7 @@ def url_to_filename(url):
     return Path(re.sub(r'\W', '_', url, re.ASCII))  # Quite crude but it works.
 
 
-def parse_arguments(args):
+def parse_sources(sources):
     """
     Parse each argument in args to check if it is a valid source, identify its
     type and build the corresponding handler.
@@ -438,23 +438,23 @@ def parse_arguments(args):
 
     Raises UnsupportedSourceError(source) for unsupported sources types.
     """
-    for arg in args:
-        logging.debug('Procesando argumento «%s».', arg)
+    for source in sources:
+        logging.debug('Procesando argumento «%s».', source)
 
         source = None
-        if re.match(r'(?:https?|file)://', arg):
+        if re.match(r'(?:https?|file)://', source):
             logging.debug('La fuente es un URL.')
             source = SingleURLSource(arg)
-        elif arg.endswith('.txt'):
+        elif source.endswith('.txt'):
             logging.debug('La fuente es un fichero de texto.')
             source = TextURLSource(Path(arg))
-        elif arg.endswith('.xlsx'):
+        elif source.endswith('.xlsx'):
             logging.debug('La fuente es una hoja de cálculo.')
             source = ExcelURLSource(Path(arg))
         else:
             logging.debug('El argumento no es un tipo de fuente admitido.')
-            raise UnsupportedSourceError(arg)
-        yield source
+            raise UnsupportedSourceError(source)
+        yield source, handler
 
 
 def loggerize(function):
@@ -487,14 +487,14 @@ def keyboard_interrupt_handler(function):
 
 @loggerize
 @keyboard_interrupt_handler
-def main(args):
+def main(sources):
     """."""
     logging.info(BANNER)
 
     exitcode = ExitCodes.SUCCESS
 
-    if len(args) == 0:
-        # The input source should be provided automatically if the application
+    if len(sources) == 0:
+        # The input sources should be provided automatically if the application
         # is used as a drag'n'drop target which is in fact the intended method
         # of operation.
         #
@@ -519,9 +519,7 @@ def main(args):
 
     logging.info(Messages.SKIMMING_MARKER)
     try:
-        for handler in parse_arguments(args):
-            for url in handler.get_urls():
-                print(url)
+        for source, handler in parse_sources(sources):
     except UnsupportedSourceError as exc:
         warning(Messages.UNSUPPORTED_SOURCE, exc.source)
         exitcode = ExitCodes.WARNING_BASE

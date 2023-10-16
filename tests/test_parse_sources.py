@@ -15,5 +15,5 @@ import sacamantecas as sm
 def test_source_identification(arguments, exception, expected):  # pylint: disable=unused-variable
     """Test identification of different sources."""
     with exception:
-        result = list(sm.parse_arguments(arguments))[0]
+        result = list(sm.parse_sources(arguments))[0]
         assert isinstance(result, expected)
