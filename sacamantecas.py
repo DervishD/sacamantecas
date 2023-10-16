@@ -377,45 +377,45 @@ def url_to_filename(url):
 # list of URLs gathered by the handler from the source can be potentially large.
 # So, using a generator is more efficient. Second one, this allows the caller to
 # use the handler in two separate stages, first getting the URL so the handler
-# keep processing it, and then getting the status of that process by sending the
-# URL back to the handler. So, the handler here is acting really as a coroutine
-# rather than a simple generator.
+# keep processing it, and then sending the metadata obtained for the URL back to
+# the handler. So, the handler is acting as both a coroutine and a generator.
+#
+# Since the metadata is sent back to the handler, it triggers another iteration
+# so a double yield is needed. The first one is the one that yields the URLs and
+# the second one yields a response to the caller after when the metadata is sent
+# back to the handler.
 
 
 def single_url_handler(url):
     """
     Handle single URLs.
 
-    The obtained metadata for the URL is logged with INFO level, so it will be
-    printed on stdout and the corresponding log files, and it is also written
-    into a dump file named after the URL (properly sanitized, of course), as
-    key, value pairs.
+    The metadata for the URL is logged with INFO level, so it will be printed on
+    stdout and the corresponding log files, and it is also written into a dump
+    file named after the URL (properly sanitized), as key-value pairs.
 
     The output file has UTF-8 encoding.
     """
-    yield url
-    metadata = get_metadata(url)
+    metadata = yield url
+    yield
     if metadata:
         sink_filename = url_to_filename(url).with_suffix('.txt')
         with open(sink_filename, 'w+', encoding='utf-8') as sink:
             logging.debug('Volcando metadatos a «%s».', sink_filename)
             sink.write(f'{url}\n')
-            for key, value in get_metadata(url).items():
+            for key, value in metadata.items():
                 message = f'      {key}: {value}'
                 logging.info(message)  # Output allowed here because it is part of the handler.
                 sink.write(f'{message}\n')
-        yield None
-    else:
-        yield HandlerErrors.NO_METADATA
 
 
 def textfile_handler(source_filename):
     """
     Handle text files containing URLs, one per line.
 
-    The metadata obtained for each URL is dumped into another text file, named
-    after the source file: first the URL is written, then the metadata as key,
-    value pairs. Barely pretty-printed, but it is more than enough for a dump.
+    The metadata for each URL is dumped into another text file, named after the
+    source file: first the URL is written, then the metadata as key-value pairs.
+    Barely pretty-printed, but it is more than enough for a dump.
 
     All files are assumed to have UTF-8 encoding.
     """
@@ -425,16 +425,13 @@ def textfile_handler(source_filename):
             logging.debug('Volcando metadatos a «%s».', sink_filename)
             for url in source.readlines():
                 url = url.strip()
-                yield url
-                metadata = get_metadata(url)
-                if not metadata:
-                    yield HandlerErrors.NO_METADATA
-                else:
+                metadata = yield url
+                yield
+                if metadata:
                     sink.write(f'{url}\n')
                     for key, value in metadata.items():
                         sink.write(f'  {key}: {value}\n')
                     sink.write('\n')
-                    yield None
 
 
 def spreadsheet_handler(source_filename):
@@ -443,8 +440,7 @@ def spreadsheet_handler(source_filename):
 
     The metadata obtained for each URL is dumped into another spreadsheet, named
     after the source file, which is not created anew, it is just a copy of the
-    source spreadsheet. In fact, it is used as source, too, to avoid having two
-    copies of the same data opened, which is totally unnecessary.
+    source spreadsheet.
 
     The metadata is added to the spreadsheet in new columns, one per key. These
     columns are marked with a prefix as being added by the application.
@@ -456,14 +452,20 @@ def spreadsheet_handler(source_filename):
     logging.debug('Copiando workbook a «%s».', sink_filename)
 
     copy2(source_filename, sink_filename)
-    workbook = load_workbook(sink_filename)
+    source_workbook = load_workbook(source_filename)
+    sink_workbook = load_workbook(sink_filename)
 
-    sheet = workbook.worksheets[0]
-    logging.debug('La hoja con la que se trabajará es «%s»".', sheet.title)
+    source_sheet = source_workbook.worksheets[0]
+    logging.debug('La hoja con la que se trabajará es «%s»".', source_sheet.title)
 
-    for row in sheet.rows:
-        url = None
+    sink_sheet = sink_workbook.worksheets[0]
+    logging.debug('Insertando fila de cabeceras.')
+    sink_sheet.insert_rows(1, 1)
+
+    metadata_columns = {}
+    for row in source_sheet.rows:
         logging.debug('Procesando fila %s.', row[0].row)
+        url = None
         for cell in row:
             if cell.data_type != 's':
                 logging.debug('La celda «%s» no es de tipo cadena, será ignorada.', cell.coordinate)
@@ -471,24 +473,20 @@ def spreadsheet_handler(source_filename):
             if re.match(r'(?:https?|file)://', cell.value):
                 logging.debug('Se encontró un URL en la celda «%s»: %s', cell.coordinate, cell.value)
                 url = cell.value
-                yield url
                 break  # Only the FIRST URL found in each row is considered.
-        metadata = get_metadata(url)
-        if not metadata:
-            yield HandlerErrors.NO_METADATA
-        else:
-            logging.debug('Volcando metadatos a «%s».', sink_filename)
-            metadata_columns = {}
-            logging.debug('Insertando fila de cabeceras.')
-            sheet.insert_rows(1, 1)
+        if url is None:
+            continue
+        metadata = yield url
+        yield
+        if metadata:
             for key, value in metadata.items():
                 key = '[sm] ' + key
                 if key not in metadata_columns:
                     logging.debug('Se encontró un metadato nuevo, «%s».', key)
-                    column = sheet.max_column + 1
+                    column = sink_sheet.max_column + 1
                     metadata_columns[key] = column
                     logging.debug('El metadato «%s» irá en la columna «%s».', key, get_column_letter(column))
-                    cell = sheet.cell(row=1, column=column, value=key)
+                    cell = sink_sheet.cell(row=1, column=column, value=key)
                     cell.font = Font(name='Calibri')
                     cell.fill = PatternFill(start_color='baddad', fill_type='solid')
                     # Set column width.
@@ -503,25 +501,25 @@ def spreadsheet_handler(source_filename):
                     # Since this width units are, IMHO, totally arbitrary, let's
                     # choose an arbitrary column width. To wit, the Answer to the
                     # Ultimate Question of Life, the Universe, and Everything.
-                    sheet.column_dimensions[get_column_letter(column)].width = 42
+                    sink_sheet.column_dimensions[get_column_letter(column)].width = 42
                     # This is needed because sometimes Excel files are not properly
                     # generated and the last column has a 'max' field too large, and
                     # that has an unintended consequence: ANY change to the settings
                     # of that column affects ALL the following ones whose index is
                     # less than 'max'… So, it's better to fix that field.
-                    sheet.column_dimensions[get_column_letter(column)].max = column
+                    sink_sheet.column_dimensions[get_column_letter(column)].max = column
                 logging.debug('Añadiendo metadato «%s» con valor «%s».', key, value)
                 # Since a heading row is inserted, the rows where metadata has to go
                 # have now an +1 offset, as they have been displaced.
-                sheet.cell(row[0].row + 1, metadata_columns[key], value=value)
-            yield None
-    workbook.close()
+                sink_sheet.cell(row[0].row + 1, metadata_columns[key], value=value)
+    sink_workbook.save(sink_filename)
+    sink_workbook.close()
+    source_workbook.close()
 
 
 def saca_las_mantecas(url):
     """."""
     return {'key_1': 'value_1', 'key_2': 'value_2', 'key_3': 'value_3'}
-    return None
 
 
 def parse_sources(sources):
