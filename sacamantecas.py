@@ -402,17 +402,18 @@ def single_url_handler(url):
 
     The output file has UTF-8 encoding.
     """
-    metadata = yield url
-    yield
-    if metadata:
-        sink_filename = url_to_filename(url).with_suffix('.txt')
-        with open(sink_filename, 'w+', encoding='utf-8') as sink:
-            logging.debug('Volcando metadatos a «%s».', sink_filename)
-            sink.write(f'{url}\n')
-            for key, value in metadata.items():
-                message = f'      {key}: {value}'
-                logging.info(message)  # Output allowed here because it is part of the handler.
-                sink.write(f'{message}\n')
+    if not is_accepted_url(url):
+        metadata = yield url
+        yield
+        if metadata:
+            sink_filename = url_to_filename(url).with_suffix('.txt')
+            with open(sink_filename, 'w+', encoding='utf-8') as sink:
+                logging.debug('Volcando metadatos a «%s».', sink_filename)
+                sink.write(f'{url}\n')
+                for key, value in metadata.items():
+                    message = f'      {key}: {value}'
+                    logging.info(message)  # Output allowed here because it is part of the handler.
+                    sink.write(f'{message}\n')
 
 
 def textfile_handler(source_filename):
@@ -431,6 +432,8 @@ def textfile_handler(source_filename):
             logging.debug('Volcando metadatos a «%s».', sink_filename)
             for url in source.readlines():
                 url = url.strip()
+                if not is_accepted_url(url):
+                    continue
                 metadata = yield url
                 yield
                 if metadata:
