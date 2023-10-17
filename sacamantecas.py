@@ -373,6 +373,12 @@ def url_to_filename(url):
     return Path(re.sub(r'\W', '_', url, re.ASCII))  # Quite crude but it works.
 
 
+def is_accepted_url(value):
+    """Check if value is an accepted URL or not."""
+    # The check is quite crude but works for the application's needs.
+    return re.match(r'(?:https?|file)://', value)
+
+
 # NOTE: the handlers below have to be generators for two reasons. First one, the
 # list of URLs gathered by the handler from the source can be potentially large.
 # So, using a generator is more efficient. Second one, this allows the caller to
@@ -470,7 +476,7 @@ def spreadsheet_handler(source_filename):
             if cell.data_type != 's':
                 logging.debug('La celda «%s» no es de tipo cadena, será ignorada.', cell.coordinate)
                 continue
-            if re.match(r'(?:https?|file)://', cell.value):
+            if is_accepted_url(cell.value):
                 logging.debug('Se encontró un URL en la celda «%s»: %s', cell.coordinate, cell.value)
                 url = cell.value
                 break  # Only the FIRST URL found in each row is considered.
@@ -535,7 +541,7 @@ def parse_sources(sources):
         logging.debug('Procesando argumento «%s».', source)
 
         handler = None
-        if re.match(r'(?:https?|file)://', source):
+        if is_accepted_url(source):
             logging.debug('La fuente es un URL.')
             handler = single_url_handler(source)
         elif source.endswith('.txt'):
