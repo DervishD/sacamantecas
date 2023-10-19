@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 """Test suite for the different handlers of URL sources / metadata sinks."""
-from random import randrange
+from random import choice, randrange
 from uuid import uuid4
 
 from openpyxl import Workbook
@@ -9,7 +9,7 @@ from openpyxl.utils.cell import get_column_letter
 import sacamantecas as sm
 
 
-SAMPLE_URLS = [f'http://subdomain{i}.domain.tld' for i in range(10)]
+SAMPLE_URLS = [f'{choice(sm.ACCEPTED_URL_SCHEMES)}://subdomain{i}.domain.tld' for i in range(10)]
 EXPECTED = [item for url in SAMPLE_URLS for item in (url, None)]
 
 
