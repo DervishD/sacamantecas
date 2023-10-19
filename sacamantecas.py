@@ -21,6 +21,7 @@ import sys
 import time
 import traceback as tb
 from types import SimpleNamespace
+from zipfile import BadZipFile
 
 from openpyxl import load_workbook
 from openpyxl.utils.cell import get_column_letter
@@ -124,6 +125,11 @@ class UnsupportedSourceError(Exception):
     """Raise when an input source has an unsupported type"""
     def __init__ (self, source):
         self.source = source
+
+class InvalidSourceError(Exception):
+    """Raise when an input source is invalid, damaged, etc."""
+    def __init__ (self, reason):
+        self.reason = reason
 
 
 def error(message, *args, **kwargs):
@@ -464,7 +470,13 @@ def spreadsheet_handler(source_filename):
     logging.debug('Copiando workbook a «%s».', sink_filename)
 
     copy2(source_filename, sink_filename)
-    source_workbook = load_workbook(source_filename)
+    try:
+        source_workbook = load_workbook(source_filename)
+    except (KeyError, BadZipFile) as exc:
+        details = str(exc).strip('"')
+        details = details[0].lower() + details[1:]
+        logging.error('Invalid spreadsheet file (%s): %s.', type(exc).__name__, details)
+        raise InvalidSourceError(type(exc).__name__) from exc
     sink_workbook = load_workbook(sink_filename)
 
     source_sheet = source_workbook.worksheets[0]
@@ -474,59 +486,78 @@ def spreadsheet_handler(source_filename):
     logging.debug('Insertando fila de cabeceras.')
     sink_sheet.insert_rows(1, 1)
 
-    metadata_columns = {}
     for row in source_sheet.rows:
         logging.debug('Procesando fila %s.', row[0].row)
-        url = None
-        for cell in row:
-            if cell.data_type != 's':
-                logging.debug('La celda «%s» no es de tipo cadena, será ignorada.', cell.coordinate)
-                continue
-            if is_accepted_url(cell.value):
-                logging.debug('Se encontró un URL en la celda «%s»: %s', cell.coordinate, cell.value)
-                url = cell.value
-                break  # Only the FIRST URL found in each row is considered.
-        if url is None:
+        if (url := get_url_from_row(row)) is None:
+            print('Got url', url)
             continue
         metadata = yield url
         yield
-        if metadata:
-            for key, value in metadata.items():
-                key = '[sm] ' + key
-                if key not in metadata_columns:
-                    logging.debug('Se encontró un metadato nuevo, «%s».', key)
-                    column = sink_sheet.max_column + 1
-                    metadata_columns[key] = column
-                    logging.debug('El metadato «%s» irá en la columna «%s».', key, get_column_letter(column))
-                    cell = sink_sheet.cell(row=1, column=column, value=key)
-                    cell.font = Font(name='Calibri')
-                    cell.fill = PatternFill(start_color='baddad', fill_type='solid')
-                    # Set column width.
-                    #
-                    # As per Excel specification, the width units are the width of
-                    # the zero character of the font used by the Normal style for a
-                    # workbook. So a column of width 10 would fit exactly 10 zero
-                    # characters in the font specified by the Normal style.
-                    #
-                    # No, no kidding.
-                    #
-                    # Since this width units are, IMHO, totally arbitrary, let's
-                    # choose an arbitrary column width. To wit, the Answer to the
-                    # Ultimate Question of Life, the Universe, and Everything.
-                    sink_sheet.column_dimensions[get_column_letter(column)].width = 42
-                    # This is needed because sometimes Excel files are not properly
-                    # generated and the last column has a 'max' field too large, and
-                    # that has an unintended consequence: ANY change to the settings
-                    # of that column affects ALL the following ones whose index is
-                    # less than 'max'… So, it's better to fix that field.
-                    sink_sheet.column_dimensions[get_column_letter(column)].max = column
-                logging.debug('Añadiendo metadato «%s» con valor «%s».', key, value)
-                # Since a heading row is inserted, the rows where metadata has to go
-                # have now an +1 offset, as they have been displaced.
-                sink_sheet.cell(row[0].row + 1, metadata_columns[key], value=value)
+        store_metadata_in_sheet(sink_sheet, row, metadata)
     sink_workbook.save(sink_filename)
     sink_workbook.close()
     source_workbook.close()
+
+
+def get_url_from_row(row):
+    """Find first URL in row."""
+    url = None
+    for cell in row:
+        if cell.data_type != 's':
+            logging.debug('La celda «%s» no es de tipo cadena, será ignorada.', cell.coordinate)
+            continue
+        if is_accepted_url(cell.value):
+            logging.debug('Se encontró un URL en la celda «%s»: %s', cell.coordinate, cell.value)
+            url = cell.value
+            break  # Only the FIRST URL found in each row is considered.
+    return url
+
+
+def store_metadata_in_sheet(sheet, row, metadata, static = SimpleNamespace(known_metadata = {})):
+    """
+    Store metadata in provided sheet at given row.
+
+    For new metadata, a new column is added to the sheet.
+    For already existing metadata, the value is added to the existing column.
+    """
+    # NOTE: since default parameters are evaluated just once, a typical trick
+    # for simulating static variables in functions is using a 'fake' default
+    # parameter and using SimpleNamespace: https://stackoverflow.com/a/51437838
+    if not metadata:
+        return
+    for key, value in metadata.items():
+        key = '[sm] ' + key
+        if key not in static.known_metadata:
+            logging.debug('Se encontró un metadato nuevo, «%s».', key)
+            column = sheet.max_column + 1
+            static.known_metadata[key] = column
+            logging.debug('El metadato «%s» irá en la columna «%s».', key, get_column_letter(column))
+            cell = sheet.cell(row=1, column=column, value=key)
+            cell.font = Font(name='Calibri')
+            cell.fill = PatternFill(start_color='baddad', fill_type='solid')
+                # Set column width.
+                #
+                # As per Excel specification, the width units are the width of
+                # the zero character of the font used by the Normal style for a
+                # workbook. So a column of width 10 would fit exactly 10 zero
+                # characters in the font specified by the Normal style.
+                #
+                # No, no kidding.
+                #
+                # Since this width units are, IMHO, totally arbitrary, let's
+                # choose an arbitrary column width. To wit, the Answer to the
+                # Ultimate Question of Life, the Universe, and Everything.
+            sheet.column_dimensions[get_column_letter(column)].width = 42
+                # This is needed because sometimes Excel files are not properly
+                # generated and the last column has a 'max' field too large, and
+                # that has an unintended consequence: ANY change to the settings
+                # of that column affects ALL the following ones whose index is
+                # less than 'max'… So, it's better to fix that field.
+            sheet.column_dimensions[get_column_letter(column)].max = column
+        logging.debug('Añadiendo metadato «%s» con valor «%s».', key, value)
+            # Since a heading row is inserted, the rows where metadata has to go
+            # have now an +1 offset, as they have been displaced.
+        sheet.cell(row[0].row + 1, static.known_metadata[key], value=value)
 
 
 def saca_las_mantecas(url):
