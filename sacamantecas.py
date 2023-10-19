@@ -490,7 +490,6 @@ def spreadsheet_handler(source_filename):
     for row in source_sheet.rows:
         logging.debug('Procesando fila %s.', row[0].row)
         if (url := get_url_from_row(row)) is None:
-            print('Got url', url)
             continue
         metadata = yield url
         yield
