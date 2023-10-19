@@ -123,7 +123,7 @@ class ProfilesSyntaxError(Exception):
         self.details = details
 
 class UnsupportedSourceError(Exception):
-    """Raise when an input source has an unsupported type"""
+    """Raise when an input source has an unsupported type."""
     def __init__ (self, source):
         self.source = source
 
