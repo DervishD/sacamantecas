@@ -441,6 +441,7 @@ def textfile_handler(source_filename):
                 if metadata:
                     sink.write(f'{url}\n')
                     for key, value in metadata.items():
+                        logging.debug('Añadiendo metadato «%s» con valor «%s».', key, value)
                         sink.write(f'  {key}: {value}\n')
                     sink.write('\n')
 
