@@ -402,7 +402,7 @@ def single_url_handler(url):
 
     The output file has UTF-8 encoding.
     """
-    if not is_accepted_url(url):
+    if is_accepted_url(url):
         metadata = yield url
         yield
         if metadata:
