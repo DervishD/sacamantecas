@@ -100,6 +100,9 @@ DEBUGFILE_PATH = Path(f'{SCRIPT_PATH.with_suffix("")}_debug_{TIMESTAMP}.txt')
 LOGFILE_PATH = Path(f'{SCRIPT_PATH.with_suffix("")}_log_{TIMESTAMP}.txt')
 
 
+# Accepted set of URL schemes
+ACCEPTED_URL_SCHEMES = ('https', 'http', 'file')
+
 # Needed for having VERY basic logging when the code is imported rather than run.
 logging.basicConfig(level=logging.NOTSET, format='%(levelname).1s %(message)s', force=True)
 
@@ -385,7 +388,10 @@ def url_to_filename(url):
 def is_accepted_url(value):
     """Check if value is an accepted URL or not."""
     # The check is quite crude but works for the application's needs.
-    return re.match(r'(?:https?|file)://', value)
+    try:
+        return urlparse(value).scheme in ACCEPTED_URL_SCHEMES
+    except ValueError:
+        return False
 
 
 # NOTE: the handlers below have to be generators for two reasons. First one, the
