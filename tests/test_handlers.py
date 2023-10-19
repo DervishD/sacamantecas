@@ -2,8 +2,10 @@
 """Test suite for the different handlers of URL sources / metadata sinks."""
 from random import randrange
 from uuid import uuid4
+
 from openpyxl import Workbook
 from openpyxl.utils.cell import get_column_letter
+
 import sacamantecas as sm
 
 

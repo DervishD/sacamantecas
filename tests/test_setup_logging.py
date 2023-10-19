@@ -1,9 +1,11 @@
 #! /usr/bin/env python3
 """Test suite for setup_logging()."""
-import logging
 from collections import namedtuple
+import logging
+
 import pytest
-from sacamantecas import setup_logging, error, warning, Messages
+
+from sacamantecas import error, Messages, setup_logging, warning
 
 
 ERROR_HEADER = Messages.ERROR_HEADER

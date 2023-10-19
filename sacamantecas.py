@@ -5,25 +5,26 @@ __version__ = 'v5.0alpha'
 __appname__ = f'sacamantecas {__version__}'
 
 
-import configparser
-import sys
-from pathlib import Path
-import errno
-from enum import StrEnum, IntEnum, auto
-import logging
 import atexit
+import configparser
+from ctypes import byref, c_uint, create_unicode_buffer, WinDLL, wintypes
+from enum import auto, IntEnum, StrEnum
+import errno
+import logging
 from logging.config import dictConfig
-import traceback as tb
-import re
-import time
+from msvcrt import get_osfhandle, getch
+from pathlib import Path
 import platform
-from types import SimpleNamespace
+import re
 from shutil import copy2
-from msvcrt import getch, get_osfhandle
-from ctypes import WinDLL, byref, c_uint, create_unicode_buffer, wintypes
+import sys
+import time
+import traceback as tb
+from types import SimpleNamespace
+
 from openpyxl import load_workbook
-from openpyxl.styles import Font, PatternFill
 from openpyxl.utils.cell import get_column_letter
+from openpyxl.styles import Font, PatternFill
 
 
 if sys.platform != 'win32':

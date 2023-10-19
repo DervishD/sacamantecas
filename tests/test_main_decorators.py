@@ -1,7 +1,9 @@
 #! /usr/bin/env python3
 """Test suite for main decorators."""
 import logging
+
 import pytest
+
 import sacamantecas as sm
 
 

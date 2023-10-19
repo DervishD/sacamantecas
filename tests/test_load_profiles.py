@@ -1,10 +1,12 @@
 #! /usr/bin/env python3
 """Test suite for load_profiles()."""
-from pathlib import Path
 import os
+from pathlib import Path
 import subprocess
+
 import pytest
-from sacamantecas import MissingProfilesError, ProfilesSyntaxError, load_profiles
+
+from sacamantecas import load_profiles, MissingProfilesError, ProfilesSyntaxError
 
 
 @pytest.fixture(name='unreadable_file')
