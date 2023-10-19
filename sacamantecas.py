@@ -2,6 +2,8 @@
 """See "README.md" for details."""
 
 __version__ = 'v5.0alpha'
+__appname__ = f'sacamantecas {__version__}'
+
 
 import configparser
 import sys
