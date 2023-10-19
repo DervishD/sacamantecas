@@ -76,6 +76,7 @@ Messages.PROFILES_WRONG_SYNTAX = 'Error de sintaxis «%s» leyendo el fichero de
 Messages.SKIMMING_MARKER = '\nSacando las mantecas:'
 Messages.UNSUPPORTED_SOURCE = 'La fuente «%s» no es de un tipo admitido.'
 Messages.HANDLER_ERROR = 'Messages. ↪ ERROR, %s.'
+Messages.INPUT_FILE_INVALID = 'El fichero de entrada es inválido (%s).'
 Messages.INPUT_FILE_NOT_FOUND = 'No se encontró el fichero de entrada.'
 Messages.INPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para leer el fichero de entrada.'
 Messages.OUTPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para crear el fichero de salida.'
@@ -656,13 +657,17 @@ def main(sources):
     try:
         for source, handler in parse_sources(sources):
             logging.info('  Fuente: %s', source)
-            for url in handler:
-                logging.info('    %s', url)
-                metadata = saca_las_mantecas(url)
-                handler.send(metadata)
-                if metadata is None:
-                    logging.info(Messages.HANDLER_ERROR, HandlerErrors.NO_METADATA)
-                    logging.debug('ERROR, %s.', HandlerErrors.NO_METADATA)
+            try:
+                for url in handler:
+                    logging.info('    %s', url)
+                    metadata = saca_las_mantecas(url)
+                    handler.send(metadata)
+                    if metadata is None:
+                        logging.info(Messages.HANDLER_ERROR, HandlerErrors.NO_METADATA)
+                        logging.debug('ERROR, %s.', HandlerErrors.NO_METADATA)
+            except InvalidSourceError as exc:
+                warning(Messages.INPUT_FILE_INVALID, exc.reason)
+                exitcode = ExitCodes.WARNING
     except UnsupportedSourceError as exc:
         warning(Messages.UNSUPPORTED_SOURCE, exc.source)
         exitcode = ExitCodes.WARNING
