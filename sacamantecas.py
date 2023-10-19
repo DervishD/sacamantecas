@@ -26,6 +26,10 @@ from openpyxl.styles import Font, PatternFill
 from openpyxl.utils.cell import get_column_letter
 
 
+if sys.platform != 'win32':
+    sys.exit(f'{__appname__} solo funciona en la plataforma Win32.')
+
+
 # Computed as early as possible.
 TIMESTAMP = time.strftime('%Y%m%d_%H%M%S')
 USER_AGENT = ' '.join((
@@ -56,7 +60,6 @@ Messages.DEBUGGING_DONE = 'Registro de depuración finalizado.'
 Messages.ERROR_HEADER = f'\n*** Error en {__appname__}\n'
 Messages.WARNING_HEADER = '* Warning: '
 Messages.INITIALIZATION_ERROR = 'Error de inicialización de la aplicación.'
-Messages.W32_ONLY_ERROR = f'{__appname__} solo funciona en la plataforma Win32.'
 Messages.USER_AGENT = f'User-Agent: {USER_AGENT}'
 Messages.KEYBOARD_INTERRUPTION = '\nEl usuario interrumpión la operación de la aplicación.'
 Messages.NO_ARGUMENTS = (
@@ -92,10 +95,6 @@ SCRIPT_PATH = Path(SCRIPT_PATH).resolve()
 INIFILE_PATH = SCRIPT_PATH.with_suffix('.ini')
 DEBUGFILE_PATH = Path(f'{SCRIPT_PATH.with_suffix("")}_debug_{TIMESTAMP}.txt')
 LOGFILE_PATH = Path(f'{SCRIPT_PATH.with_suffix("")}_log_{TIMESTAMP}.txt')
-
-
-if sys.platform != 'win32':
-    sys.exit(Messages.W32_ONLY_ERROR)
 
 
 # Needed for having VERY basic logging when the code is imported rather than run.
