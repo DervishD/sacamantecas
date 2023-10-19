@@ -17,6 +17,7 @@ import traceback as tb
 import re
 import time
 import platform
+from types import SimpleNamespace
 from shutil import copy2
 from msvcrt import getch, get_osfhandle
 from ctypes import WinDLL, byref, c_uint, create_unicode_buffer, wintypes
@@ -27,7 +28,13 @@ from openpyxl.utils.cell import get_column_letter
 
 # Computed as early as possible.
 TIMESTAMP = time.strftime('%Y%m%d_%H%M%S')
-
+USER_AGENT = ' '.join((
+    f'{__appname__.replace(" v", "/")}',
+    '+https://github.com/DervishD/sacamantecas',
+    f'(Windows {platform.version()};',
+    f'{platform.architecture()[0]};',
+    f'{platform.machine()})'
+))
 
 class ExitCodes(IntEnum):
     """Standardized exit codes for the application. """
@@ -40,30 +47,33 @@ class ExitCodes(IntEnum):
     ERROR_PROFILES_WRONG_SYNTAX = auto()
 
 
-class Messages(StrEnum):
-    """Messages for the application."""
-    INITIALIZATION_ERROR = 'Error de inicialización de la aplicación.'
-    W32_ONLY_ERROR = '%s solo funciona en la plataforma Win32.'
-    USER_AGENT = 'User-Agent: «%s»'
-    KEYBOARD_INTERRUPTION = '\nEl usuario interrumpión la operación de la aplicación.'
-    NO_ARGUMENTS = (
-        'No se ha especificado un fichero de entrada para ser procesado.\n'
-        '\n'
-        'Arrastre y suelte un fichero de entrada sobre el icono de la aplicación, '
-        'o proporcione el nombre del fichero como argumento.'
-    )
-    DEBUGGING_INIT = 'Registro de depuración iniciado.'
-    EMPTY_PROFILES = 'No hay perfiles definidos en el fichero de perfiles «%s».'
-    MISSING_PROFILES = 'No se encontró o no se pudo leer el fichero de perfiles «%s».'
-    PROFILES_WRONG_SYNTAX = 'Error de sintaxis «%s» leyendo el fichero de perfiles.\n%s'
-    SKIMMING_MARKER = '\nSacando las mantecas:'
-    UNSUPPORTED_SOURCE = 'La fuente «%s» no es de un tipo admitido.'
-    EOP = '\nProceso finalizado.'
-    DEBUGGING_DONE = 'Registro de depuración finalizado.'
-    HANDLER_ERROR = '     ↪ ERROR, %s.'
-    INPUT_FILE_NOT_FOUND = 'No se encontró el fichero de entrada.'
-    INPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para leer el fichero de entrada.'
-    OUTPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para crear el fichero de salida.'
+ # Messages for the application.
+Messages = SimpleNamespace()
+Messages.APP_INIT = f'{__appname__.replace(" v", " versión ")}'
+Messages.APP_DONE = '\nProceso finalizado.'
+Messages.DEBUGGING_INIT = 'Registro de depuración iniciado.'
+Messages.DEBUGGING_DONE = 'Registro de depuración finalizado.'
+Messages.ERROR_HEADER = f'\n*** Error en {__appname__}\n'
+Messages.WARNING_HEADER = '* Warning: '
+Messages.INITIALIZATION_ERROR = 'Error de inicialización de la aplicación.'
+Messages.W32_ONLY_ERROR = f'{__appname__} solo funciona en la plataforma Win32.'
+Messages.USER_AGENT = f'User-Agent: {USER_AGENT}'
+Messages.KEYBOARD_INTERRUPTION = '\nEl usuario interrumpión la operación de la aplicación.'
+Messages.NO_ARGUMENTS = (
+    'No se ha especificado un fichero de entrada para ser procesado.\n'
+    '\n'
+    'Arrastre y suelte un fichero de entrada sobre el icono de la aplicación, '
+    'o proporcione el nombre del fichero como argumento.'
+)
+Messages.EMPTY_PROFILES = 'No hay perfiles definidos en el fichero de perfiles «%s».'
+Messages.MISSING_PROFILES = 'No se encontró o no se pudo leer el fichero de perfiles «%s».'
+Messages.PROFILES_WRONG_SYNTAX = 'Error de sintaxis «%s» leyendo el fichero de perfiles.\n%s'
+Messages.SKIMMING_MARKER = '\nSacando las mantecas:'
+Messages.UNSUPPORTED_SOURCE = 'La fuente «%s» no es de un tipo admitido.'
+Messages.HANDLER_ERROR = 'Messages. ↪ ERROR, %s.'
+Messages.INPUT_FILE_NOT_FOUND = 'No se encontró el fichero de entrada.'
+Messages.INPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para leer el fichero de entrada.'
+Messages.OUTPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para crear el fichero de salida.'
 
 
 class HandlerErrors(StrEnum):
@@ -78,24 +88,14 @@ try:
         SCRIPT_PATH = __file__
 except NameError:
     sys.exit(Messages.INITIALIZATION_ERROR)
-
 SCRIPT_PATH = Path(SCRIPT_PATH).resolve()
-APP_NAME = SCRIPT_PATH.stem + ' ' + __version__
-
 INIFILE_PATH = SCRIPT_PATH.with_suffix('.ini')
 DEBUGFILE_PATH = Path(f'{SCRIPT_PATH.with_suffix("")}_debug_{TIMESTAMP}.txt')
 LOGFILE_PATH = Path(f'{SCRIPT_PATH.with_suffix("")}_log_{TIMESTAMP}.txt')
 
-BANNER = f'{APP_NAME.replace(" v", " versión ")}'
-USER_AGENT = f'{APP_NAME.replace(" v", "/")} +https://github.com/DervishD/sacamantecas'
-USER_AGENT += f' (Windows {platform.version()}; {platform.architecture()[0]}; {platform.machine()})'
-
-ERROR_HEADER = f'\n*** Error en {APP_NAME}\n'
-WARNING_HEADER = '* Warning: '
-
 
 if sys.platform != 'win32':
-    sys.exit(Messages.W32_ONLY_ERROR % APP_NAME)
+    sys.exit(Messages.W32_ONLY_ERROR)
 
 
 # Needed for having VERY basic logging when the code is imported rather than run.
@@ -128,12 +128,12 @@ class UnsupportedSourceError(Exception):
 
 def error(message, *args, **kwargs):
     """Helper for prepending a header to error messages."""
-    logging.error(f'{ERROR_HEADER}{message}', *args, **kwargs)
+    logging.error(f'{Messages.ERROR_HEADER}{message}', *args, **kwargs)
 
 
 def warning(message, *args, **kwargs):
     """Helper for prepending a header to warning messages."""
-    logging.warning(f'{WARNING_HEADER}{message}', *args, **kwargs)
+    logging.warning(f'{Messages.WARNING_HEADER}{message}', *args, **kwargs)
 
 
 def wait_for_keypress():
@@ -567,10 +567,12 @@ def loggerize(function):
         setup_logging(LOGFILE_PATH, DEBUGFILE_PATH)
 
         logging.debug(Messages.DEBUGGING_INIT)
-        logging.debug(Messages.USER_AGENT, USER_AGENT)
+        logging.info(Messages.APP_INIT)
+        logging.debug(Messages.USER_AGENT)
 
         status = function(*args, **kwargs)
 
+        logging.info(Messages.APP_DONE)
         logging.debug(Messages.DEBUGGING_DONE)
         logging.shutdown()
         return status
@@ -592,8 +594,6 @@ def keyboard_interrupt_handler(function):
 @keyboard_interrupt_handler
 def main(sources):
     """."""
-    logging.info(BANNER)
-
     exitcode = ExitCodes.SUCCESS
 
     if len(sources) == 0:
@@ -644,7 +644,6 @@ def main(sources):
             warning(Messages.OUTPUT_FILE_NO_PERMISSION)
         exitcode = ExitCodes.WARNING
 
-    logging.info(Messages.EOP)
     return exitcode
 
 

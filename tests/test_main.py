@@ -22,18 +22,18 @@ def test_no_arguments(log_paths, monkeypatch):  # pylint: disable=unused-variabl
 
     result = sm.LOGFILE_PATH.read_text(encoding='utf-8').splitlines()
     result = '\n'.join([' '.join(line.split(' ')[1:]) for line in result])
-    expected = f'{sm.BANNER}\n{sm.ERROR_HEADER}{sm.Messages.NO_ARGUMENTS}\n{sm.Messages.EOP}'
+    expected = f'{sm.Messages.APP_INIT}\n{sm.Messages.ERROR_HEADER}{sm.Messages.NO_ARGUMENTS}\n{sm.Messages.APP_DONE}'
     assert result == expected
 
     result = sm.DEBUGFILE_PATH.read_text(encoding='utf-8').splitlines()
     result = '\n'.join([' '.join(line.split(' ')[1:]) for line in result])
     expected = '\n'.join((
         f'[DEBUG] {sm.Messages.DEBUGGING_INIT}',
-        f'[DEBUG] {sm.Messages.USER_AGENT % sm.USER_AGENT}',
-        f'[INFO] {sm.BANNER}',
-        '\n'.join(f'[ERROR]{" " if line else ""}{line}' for line in sm.ERROR_HEADER.splitlines()),
+        f'[INFO] {sm.Messages.APP_INIT}',
+        f'[DEBUG] {sm.Messages.USER_AGENT}',
+        '\n'.join(f'[ERROR]{" " if line else ""}{line}' for line in sm.Messages.ERROR_HEADER.splitlines()),
         '\n'.join(f'[ERROR]{" " if line else ""}{line}' for line in sm.Messages.NO_ARGUMENTS.splitlines()),
-        '\n'.join(f'[INFO]{" " if line else ""}{line}' for line in sm.Messages.EOP.splitlines()),
+        '\n'.join(f'[INFO]{" " if line else ""}{line}' for line in sm.Messages.APP_DONE.splitlines()),
         f'[DEBUG] {sm.Messages.DEBUGGING_DONE}'
     ))
     assert result == expected

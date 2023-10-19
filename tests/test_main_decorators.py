@@ -43,6 +43,6 @@ def test_keyboard_interrupt_handler(log_paths, capsys):  # pylint: disable=unuse
     logging.shutdown()
 
     result = capsys.readouterr().err.rstrip()
-    expected = f'{sm.WARNING_HEADER}{sm.Messages.KEYBOARD_INTERRUPTION}'
+    expected = f'{sm.Messages.WARNING_HEADER}{sm.Messages.KEYBOARD_INTERRUPTION}'
 
     assert result == expected

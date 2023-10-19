@@ -3,7 +3,11 @@
 import logging
 from collections import namedtuple
 import pytest
-from sacamantecas import setup_logging, error, ERROR_HEADER, warning, WARNING_HEADER
+from sacamantecas import setup_logging, error, warning, Messages
+
+
+ERROR_HEADER = Messages.ERROR_HEADER
+WARNING_HEADER = Messages.WARNING_HEADER
 
 
 def test_logging_files_creation(log_paths):  # pylint: disable=unused-variable
