@@ -566,6 +566,15 @@ def store_metadata_in_sheet(sheet, row, metadata, static = SimpleNamespace(known
         sheet.cell(row[0].row + 1, static.known_metadata[key], value=value)
 
 
+def resolve_file_url(url):
+    """Resolve relative paths in file: url."""
+    parsed_url = urlparse(url)
+    resolved_path = unquote(parsed_url.path[1:])
+    resolved_path = Path(resolved_path).resolve().as_posix()
+    resolved_path = quote(resolved_path, safe=':/')
+    return parsed_url._replace(path=resolved_path).geturl()
+
+
 def saca_las_mantecas(url):
     """."""
     return {'key_1': 'value_1', 'key_2': 'value_2', 'key_3': 'value_3'}
