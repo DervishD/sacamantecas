@@ -575,6 +575,26 @@ def resolve_file_url(url):
     return parsed_url._replace(path=resolved_path).geturl()
 
 
+def get_redirected_url(base_url, contents):
+    """
+    Get redirected URL from a meta http-equiv="refresh" pragma if that pragma is
+    in contents. Use base_url as base URL for redirection, if some URL parts are
+    missing in the URL specified by the refresh pragma.
+    """
+    if match := re.search(META_REFRESH_RE, contents, re.I):
+        base_url = urlparse(base_url)
+        redirected_url = urlparse(match.group(1).decode('ascii'))
+        for field in redirected_url._fields:
+            value = getattr(redirected_url, field)
+            # If not specified in the redirected URL, both the scheme and netloc
+            # will be reused from the base URL. Any other field will be obtained
+            # from the redirected URL and used, no matter if it is empty.
+            if value or field not in ('scheme', 'netloc'):
+                base_url = base_url._replace(**{field: value})
+        base_url = urlunparse(base_url)
+    return base_url
+
+
 def saca_las_mantecas(url):
     """."""
     return {'key_1': 'value_1', 'key_2': 'value_2', 'key_3': 'value_3'}
