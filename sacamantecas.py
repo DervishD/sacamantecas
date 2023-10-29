@@ -592,6 +592,7 @@ def get_redirected_url(base_url, contents):
             if value or field not in ('scheme', 'netloc'):
                 base_url = base_url._replace(**{field: value})
         base_url = urlunparse(base_url)
+        logging.debug('URL redirigido a «%s».', base_url)
     return base_url
 
 
