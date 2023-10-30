@@ -577,23 +577,28 @@ def resolve_file_url(url):
 
 def get_redirected_url(base_url, contents):
     """
-    Get redirected URL from a meta http-equiv="refresh" pragma if that pragma is
-    in contents. Use base_url as base URL for redirection, if some URL parts are
-    missing in the URL specified by the refresh pragma.
+    Get redirected URL from a meta http-equiv="refresh" pragma in contents. Use
+    base_url as base URL for redirection, if some parts are missing in the URL
+    specified by the pragma.
+
+    Return redirected URL, or None if there is no redirection pragma.
     """
     if match := re.search(META_REFRESH_RE, contents, re.I):
         base_url = urlparse(base_url)
         redirected_url = urlparse(match.group(1).decode('ascii'))
-        for field in redirected_url._fields:
-            value = getattr(redirected_url, field)
+        for field in base_url._fields:
+            value = getattr(base_url, field)
             # If not specified in the redirected URL, both the scheme and netloc
             # will be reused from the base URL. Any other field will be obtained
             # from the redirected URL and used, no matter if it is empty.
-            if value or field not in ('scheme', 'netloc'):
-                base_url = base_url._replace(**{field: value})
-        base_url = urlunparse(base_url)
-        logging.debug('URL redirigido a «%s».', base_url)
-    return base_url
+            if field in ('scheme', 'netloc') and not getattr(redirected_url, field):
+                redirected_url = redirected_url._replace(**{field: value})
+        redirected_url = urlunparse(redirected_url)
+        logging.debug('URL redirigido a «%s».', redirected_url)
+        return redirected_url
+    return None
+
+
 
 
 def saca_las_mantecas(url):
