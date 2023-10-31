@@ -21,6 +21,9 @@ import sys
 import time
 import traceback as tb
 from types import SimpleNamespace
+from urllib.error import URLError
+from urllib.parse import quote, unquote, urlparse, urlunparse
+from urllib.request import urlopen, Request
 from zipfile import BadZipFile
 
 from openpyxl import load_workbook
@@ -102,6 +105,9 @@ LOGFILE_PATH = Path(f'{SCRIPT_PATH.with_suffix("")}_log_{TIMESTAMP}.txt')
 
 # Accepted set of URL schemes
 ACCEPTED_URL_SCHEMES = ('https', 'http', 'file')
+# Regex for meta http-equiv="refresh" detection and parsing
+META_REFRESH_RE = rb'<meta http-equiv="refresh" content="(?:[^;]+;\s+)?URL=([^"]+)"'
+
 
 # Needed for having VERY basic logging when the code is imported rather than run.
 logging.basicConfig(level=logging.NOTSET, format='%(levelname).1s %(message)s', force=True)
