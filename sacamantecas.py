@@ -52,9 +52,7 @@ class ExitCodes(IntEnum):
     WARNING = 1
     KEYBOARD_INTERRUPT = 127
     ERROR_NO_ARGUMENTS = auto()
-    ERROR_EMPTY_PROFILES = auto()
-    ERROR_MISSING_PROFILES = auto()
-    ERROR_PROFILES_WRONG_SYNTAX = auto()
+    ERROR_PROFILES = auto()
 
 
 class Messages(StrEnum):
@@ -123,15 +121,9 @@ sys.stderr.reconfigure(encoding='utf-8')
 
 
 # Custom errors.
-class MissingProfilesError(Exception):
-    """Raise when profiles configuration file is missing."""
-    def __init__ (self, filename):
-        self.filename = filename
-
-class ProfilesSyntaxError(Exception):
-    """Raise when profiles configuration file has syntax errors."""
-    def __init__ (self, errortype, details):
-        self.error = errortype
+class ProfilesError(Exception):
+    """Raise for profile-related errors."""
+    def __init__ (self, details):
         self.details = details
 
 class InvalidSourceError(Exception):
@@ -366,9 +358,9 @@ def load_profiles(filename):
         with open(filename, encoding='utf-8') as inifile:
             parser.read_file(inifile)
     except (FileNotFoundError, PermissionError) as exc:
-        raise MissingProfilesError(exc.filename) from exc
+        raise ProfilesError(Messages.MISSING_PROFILES % exc.filename) from exc
     except configparser.Error as exc:
-        raise ProfilesSyntaxError(type(exc).__name__.removesuffix('Error'), exc) from exc
+        raise ProfilesError(Messages.PROFILES_WRONG_SYNTAX % (type(exc).__name__.removesuffix('Error'), exc)) from exc
 
     profiles = {}
     for profile in parser.sections():
@@ -380,7 +372,7 @@ def load_profiles(filename):
                 message = f'Perfil «{profile}»: {exc.msg[0].upper() + exc.msg[1:]}.\n'
                 message += f'  {key} = {exc.pattern}\n'
                 message += '  ' + '_' * (exc.pos + len(key) + len(' = ')) + '^'
-                raise ProfilesSyntaxError('BadRegex', message) from exc
+                raise ProfilesError(Messages.PROFILES_WRONG_SYNTAX % ('BadRegex', message)) from exc
     return {key: value for key, value in profiles.items() if value}
 
 
@@ -745,15 +737,11 @@ def main(sources):
     try:
         profiles = load_profiles(INIFILE_PATH)
         if not profiles:
-            error(Messages.EMPTY_PROFILES, INIFILE_PATH)
-            return ExitCodes.ERROR_EMPTY_PROFILES
+            raise ProfilesError(Messages.EMPTY_PROFILES % INIFILE_PATH)
         logging.debug('Se obtuvieron los siguientes perfiles: %s.', list(profiles.keys()))
-    except MissingProfilesError as exc:
-        error(Messages.MISSING_PROFILES, exc.filename)
-        return ExitCodes.ERROR_MISSING_PROFILES
-    except ProfilesSyntaxError as exc:
-        error(Messages.PROFILES_WRONG_SYNTAX, exc.error, exc.details)
-        return ExitCodes.ERROR_PROFILES_WRONG_SYNTAX
+    except ProfilesError as exc:
+        error(exc.details)
+        return ExitCodes.ERROR_PROFILES
 
     logging.info(Messages.SKIMMING_MARKER)
     for source, handler in parse_sources(sources):
