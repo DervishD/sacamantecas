@@ -6,11 +6,11 @@ import subprocess
 
 import pytest
 
-from sacamantecas import load_profiles, MissingProfilesError, ProfilesSyntaxError
+from sacamantecas import load_profiles, Messages, ProfilesError
 
 
 @pytest.fixture(name='unreadable_file')
-def fixture_unreadable_file(tmp_path: Path) -> Path:  # pylint: disable=unused-variable
+def fixture_unreadable_file(tmp_path):  # pylint: disable=unused-variable
     """Create a file which is unreadable by the current user."""
     filename = tmp_path / 'unreadable.ini'
     filename.write_text('')
@@ -22,17 +22,19 @@ def fixture_unreadable_file(tmp_path: Path) -> Path:  # pylint: disable=unused-v
     filename.unlink()
 
 
-def test_missing(tmp_path: Path) -> None:  # pylint: disable=unused-variable
+def test_missing(tmp_path):  # pylint: disable=unused-variable
     """Test for missing profiles configuration file."""
     filename = str(tmp_path / 'non_existent_profiles_file.ini')
-    with pytest.raises(MissingProfilesError):
+    with pytest.raises(ProfilesError) as exc:
         load_profiles(filename)
+    assert exc.value.details == Messages.MISSING_PROFILES % filename
 
 
-def test_unreadable(unreadable_file: Path) -> None:  # pylint: disable=unused-variable
+def test_unreadable(unreadable_file):  # pylint: disable=unused-variable
     """Test for unreadable profiles configuration file."""
-    with pytest.raises(MissingProfilesError):
+    with pytest.raises(ProfilesError) as exc:
         load_profiles(str(unreadable_file))
+    assert exc.value.details == Messages.MISSING_PROFILES % unreadable_file
 
 
 @pytest.mark.parametrize("text,error", [
@@ -41,14 +43,14 @@ def test_unreadable(unreadable_file: Path) -> None:  # pylint: disable=unused-va
     ('[s]\no = v\no = v', 'DuplicateOption'),
     ('[s]\no = (', 'BadRegex')
 ])
-def test_syntax_errors(tmp_path: Path, text: str, error: str) -> None:  # pylint: disable=unused-variable
+def test_syntax_errors(tmp_path, text, error):  # pylint: disable=unused-variable
     """Test for syntax errors in profiles configuration file."""
     filename = tmp_path / 'profiles_syntax_error.ini'
     filename.write_text(text)
 
-    with pytest.raises(ProfilesSyntaxError) as exc:
+    with pytest.raises(ProfilesError) as exc:
         load_profiles(str(filename))
-    assert exc.value.error == error
+    assert exc.value.details.startswith(Messages.PROFILES_WRONG_SYNTAX % (error, ''))
 
     filename.unlink()
 
