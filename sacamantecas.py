@@ -79,7 +79,7 @@ class Messages(StrEnum):
     PROFILES_WRONG_SYNTAX = 'Error de sintaxis «%s» leyendo el fichero de perfiles.\n%s'
     SKIMMING_MARKER = '\nSacando las mantecas:'
     UNSUPPORTED_SOURCE = 'La fuente «%s» no es de un tipo admitido.'
-    HANDLER_ERROR = 'Messages. ↪ ERROR, %s.'
+    HANDLER_ERROR = '     ↪ ERROR, %s.'
     INPUT_FILE_INVALID = 'El fichero de entrada es inválido (%s).'
     INPUT_FILE_NOT_FOUND = 'No se encontró el fichero de entrada.'
     INPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para leer el fichero de entrada.'
