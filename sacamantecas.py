@@ -45,8 +45,9 @@ USER_AGENT = ' '.join((
     f'{platform.machine()})'
 ))
 
+
 class ExitCodes(IntEnum):
-    """Standardized exit codes for the application. """
+    """Standardized exit codes for the application."""
     SUCCESS = 0
     WARNING = 1
     KEYBOARD_INTERRUPT = 127
@@ -56,33 +57,33 @@ class ExitCodes(IntEnum):
     ERROR_PROFILES_WRONG_SYNTAX = auto()
 
 
- # Messages for the application.
-Messages = SimpleNamespace()
-Messages.APP_INIT = f'{__appname__.replace(" v", " versión ")}'
-Messages.APP_DONE = '\nProceso finalizado.'
-Messages.DEBUGGING_INIT = 'Registro de depuración iniciado.'
-Messages.DEBUGGING_DONE = 'Registro de depuración finalizado.'
-Messages.ERROR_HEADER = f'\n*** Error en {__appname__}\n'
-Messages.WARNING_HEADER = '* Warning: '
-Messages.INITIALIZATION_ERROR = 'Error de inicialización de la aplicación.'
-Messages.USER_AGENT = f'User-Agent: {USER_AGENT}'
-Messages.KEYBOARD_INTERRUPTION = '\nEl usuario interrumpión la operación de la aplicación.'
-Messages.NO_ARGUMENTS = (
-    'No se ha especificado un fichero de entrada para ser procesado.\n'
-    '\n'
-    'Arrastre y suelte un fichero de entrada sobre el icono de la aplicación, '
-    'o proporcione el nombre del fichero como argumento.'
-)
-Messages.EMPTY_PROFILES = 'No hay perfiles definidos en el fichero de perfiles «%s».'
-Messages.MISSING_PROFILES = 'No se encontró o no se pudo leer el fichero de perfiles «%s».'
-Messages.PROFILES_WRONG_SYNTAX = 'Error de sintaxis «%s» leyendo el fichero de perfiles.\n%s'
-Messages.SKIMMING_MARKER = '\nSacando las mantecas:'
-Messages.UNSUPPORTED_SOURCE = 'La fuente «%s» no es de un tipo admitido.'
-Messages.HANDLER_ERROR = 'Messages. ↪ ERROR, %s.'
-Messages.INPUT_FILE_INVALID = 'El fichero de entrada es inválido (%s).'
-Messages.INPUT_FILE_NOT_FOUND = 'No se encontró el fichero de entrada.'
-Messages.INPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para leer el fichero de entrada.'
-Messages.OUTPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para crear el fichero de salida.'
+class Messages(StrEnum):
+    """Messages for the application."""
+    APP_INIT = f'{__appname__.replace(" v", " versión ")}'
+    APP_DONE = '\nProceso finalizado.'
+    DEBUGGING_INIT = 'Registro de depuración iniciado.'
+    DEBUGGING_DONE = 'Registro de depuración finalizado.'
+    ERROR_HEADER = f'\n*** Error en {__appname__}\n'
+    WARNING_HEADER = '* Warning: '
+    INITIALIZATION_ERROR = 'Error de inicialización de la aplicación.'
+    USER_AGENT = f'User-Agent: {USER_AGENT}'
+    KEYBOARD_INTERRUPTION = '\nEl usuario interrumpión la operación de la aplicación.'
+    NO_ARGUMENTS = (
+        'No se ha especificado un fichero de entrada para ser procesado.\n'
+        '\n'
+        'Arrastre y suelte un fichero de entrada sobre el icono de la aplicación, '
+        'o proporcione el nombre del fichero como argumento.'
+    )
+    EMPTY_PROFILES = 'No hay perfiles definidos en el fichero de perfiles «%s».'
+    MISSING_PROFILES = 'No se encontró o no se pudo leer el fichero de perfiles «%s».'
+    PROFILES_WRONG_SYNTAX = 'Error de sintaxis «%s» leyendo el fichero de perfiles.\n%s'
+    SKIMMING_MARKER = '\nSacando las mantecas:'
+    UNSUPPORTED_SOURCE = 'La fuente «%s» no es de un tipo admitido.'
+    HANDLER_ERROR = 'Messages. ↪ ERROR, %s.'
+    INPUT_FILE_INVALID = 'El fichero de entrada es inválido (%s).'
+    INPUT_FILE_NOT_FOUND = 'No se encontró el fichero de entrada.'
+    INPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para leer el fichero de entrada.'
+    OUTPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para crear el fichero de salida.'
 
 
 class HandlerErrors(StrEnum):
