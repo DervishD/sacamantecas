@@ -8,7 +8,7 @@ __appname__ = f'sacamantecas {__version__}'
 import atexit
 import configparser
 from ctypes import byref, c_uint, create_unicode_buffer, WinDLL, wintypes
-from enum import auto, IntEnum, StrEnum
+from enum import IntEnum, StrEnum
 import errno
 import logging
 from logging.config import dictConfig
@@ -49,10 +49,10 @@ USER_AGENT = ' '.join((
 class ExitCodes(IntEnum):
     """Standardized exit codes for the application."""
     SUCCESS = 0
-    WARNING = 1
+    NO_ARGUMENTS = 1
+    WARNING = 2
+    ERROR = 3
     KEYBOARD_INTERRUPT = 127
-    ERROR_NO_ARGUMENTS = auto()
-    ERROR_PROFILES = auto()
 
 
 class Messages(StrEnum):
@@ -732,7 +732,7 @@ def main(sources):
         # it is better to signal the end user with an error and explanation if
         # the input source is missing, as soon as possible.
         error(Messages.NO_ARGUMENTS)
-        return ExitCodes.ERROR_NO_ARGUMENTS
+        return ExitCodes.NO_ARGUMENTS
 
     try:
         profiles = load_profiles(INIFILE_PATH)
@@ -741,7 +741,7 @@ def main(sources):
         logging.debug('Se obtuvieron los siguientes perfiles: %s.', list(profiles.keys()))
     except ProfilesError as exc:
         error(exc.details)
-        return ExitCodes.ERROR_PROFILES
+        return ExitCodes.ERROR
 
     logging.info(Messages.SKIMMING_MARKER)
     for source, handler in parse_sources(sources):
