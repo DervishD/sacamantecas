@@ -65,7 +65,7 @@ class Messages(StrEnum):
     WARNING_HEADER = '* Warning: '
     INITIALIZATION_ERROR = 'Error de inicialización de la aplicación.'
     USER_AGENT = f'User-Agent: {USER_AGENT}'
-    KEYBOARD_INTERRUPTION = '\nEl usuario interrumpión la operación de la aplicación.'
+    KEYBOARD_INTERRUPT = '\nEl usuario interrumpión la operación de la aplicación.'
     NO_ARGUMENTS = (
         'No se ha especificado un fichero de entrada para ser procesado.\n'
         '\n'
@@ -712,7 +712,7 @@ def keyboard_interrupt_handler(function):
         try:
             return function(*args, **kwargs)
         except KeyboardInterrupt:
-            warning(Messages.KEYBOARD_INTERRUPTION)
+            warning(Messages.KEYBOARD_INTERRUPT)
             return ExitCodes.KEYBOARD_INTERRUPT
     return handle_keyboard_interrupt_wrapper
 
