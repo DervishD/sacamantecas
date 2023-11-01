@@ -680,7 +680,7 @@ def parse_sources(sources):
     Parse each argument in args to check if it is a valid source, identify its
     type and build the corresponding handler.
 
-    Yield built source object.
+    Yield tuple containing the source and its corresponding handler.
 
     Raises UnsupportedSourceError(source) for unsupported sources types.
     """
