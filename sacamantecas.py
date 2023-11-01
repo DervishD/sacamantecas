@@ -107,6 +107,8 @@ LOGFILE_PATH = Path(f'{SCRIPT_PATH.with_suffix("")}_log_{TIMESTAMP}.txt')
 ACCEPTED_URL_SCHEMES = ('https', 'http', 'file')
 # Regex for meta http-equiv="refresh" detection and parsing
 META_REFRESH_RE = rb'<meta http-equiv="refresh" content="(?:[^;]+;\s+)?URL=([^"]+)"'
+META_HTTP_EQUIV_CHARSET_RE = rb'<meta http-equiv="content-type".*charset="([^"]+)"'
+META_CHARSET_RE = rb'<meta charset="([^"]+)"'
 
 
 # Needed for having VERY basic logging when the code is imported rather than run.
@@ -603,6 +605,32 @@ def get_redirected_url(base_url, contents):
         logging.debug('URL redirigido a «%s».', redirected_url)
         return redirected_url
     return None
+
+
+def detect_html_charset(contents):
+    """
+    Detect contents charset from HTML tags, if any, and return it.
+
+    If the charset can not be determined, iso-8859-1 is used as fallback even
+    though utf-8 may look as a much better fallback. Modern web pages may NOT
+    specify any encoding if they are using utf-8 and it is identical to ascii
+    for 7-bit codepoints. The problem is that utf-8 will fail for pages whose
+    encoding is iso-8859-1, AND most if not all of the web pages processed by
+    this application which does not specify a charset will in fact be using
+    iso-8859-1 anyway, so in the end that is a safer fallback.
+    """
+    charset = 'iso-8859-1'
+    if match := re.search(META_HTTP_EQUIV_CHARSET_RE, contents, re.I):
+        # Next best thing, from the meta http-equiv="content-type".
+        logging.debug('Charset detectado mediante meta http-equiv.')
+        charset = match.group(1).decode('ascii')
+    elif match := re.search(META_CHARSET_RE, contents, re.I):
+        # Last resort, from some meta charset, if any…
+        logging.debug('Charset detectado mediante meta charset.')
+        charset = match.group(1).decode('ascii')
+    else:
+        logging.debug('Charset not detectado, usando valor por defecto.')
+    return charset
 
 
 
