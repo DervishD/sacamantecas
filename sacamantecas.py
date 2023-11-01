@@ -633,6 +633,41 @@ def detect_html_charset(contents):
     return charset
 
 
+def retrieve_url(url):
+    """
+    Retrieve contents from url.
+
+    First resolve any meta http-equiv="Refresh" redirection for url and then get
+    the contents as a byte string.
+
+    The contents are decoded using the detected charset.
+
+    Return the decoded contents as a string.
+
+    """
+    if not is_accepted_url(url):
+        raise URLError(f'El URL «{url}» es de tipo desconocido.')
+
+    if url.startswith('file://'):
+        url = resolve_file_url(url)
+
+    while url:
+        logging.debug('Procesando URL «%s».', url)
+        with urlopen(Request(url, headers={'User-Agent': USER_AGENT})) as response:
+            # First, check if any redirection is needed and get the charset the easy way.
+            contents = response.read()
+            charset = response.headers.get_content_charset()
+        url = get_redirected_url(url, contents)
+
+    # In this point, we have the contents as a byte string.
+    # If the charset is None, it has to be determined the hard way.
+    if charset is None:
+        charset = detect_html_charset(contents)
+    else:
+        logging.debug('Charset detectado en las cabeceras.')
+    logging.debug('Contenidos codificados con charset «%s».', charset)
+
+    return contents.decode(charset)
 
 
 def saca_las_mantecas(url):
