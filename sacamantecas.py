@@ -747,7 +747,7 @@ def main(sources):
     for source, handler in parse_sources(sources):
         logging.info('  Fuente: %s', source)
         if handler is None:
-            warning(Messages.UNSUPPORTED_SOURCE, exc.source)
+            warning(Messages.UNSUPPORTED_SOURCE, source)
             exitcode = ExitCodes.WARNING
             continue
         try:
