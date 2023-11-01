@@ -134,11 +134,6 @@ class ProfilesSyntaxError(Exception):
         self.error = errortype
         self.details = details
 
-class UnsupportedSourceError(Exception):
-    """Raise when an input source has an unsupported type."""
-    def __init__ (self, source):
-        self.source = source
-
 class InvalidSourceError(Exception):
     """Raise when an input source is invalid, damaged, etc."""
     def __init__ (self, reason):
@@ -681,14 +676,11 @@ def parse_sources(sources):
     Parse each argument in args to check if it is a valid source, identify its
     type and build the corresponding handler.
 
-    Yield tuple containing the source and its corresponding handler.
-
-    Raises UnsupportedSourceError(source) for unsupported sources types.
+    Yield tuple containing the source and its corresponding handler, which will
+    be None for unsupported sources.
     """
     for source in sources:
         logging.debug('Procesando argumento «%s».', source)
-
-        handler = None
         if is_accepted_url(source):
             logging.debug('La fuente es un URL.')
             handler = single_url_handler(source)
@@ -700,7 +692,7 @@ def parse_sources(sources):
             handler = spreadsheet_handler(Path(source))
         else:
             logging.debug('El argumento no es un tipo de fuente admitido.')
-            raise UnsupportedSourceError(source)
+            handler = None
         yield source, handler
 
 
@@ -764,32 +756,32 @@ def main(sources):
         return ExitCodes.ERROR_PROFILES_WRONG_SYNTAX
 
     logging.info(Messages.SKIMMING_MARKER)
-    try:
-        for source, handler in parse_sources(sources):
-            logging.info('  Fuente: %s', source)
-            try:
-                for url in handler:
-                    logging.info('    %s', url)
-                    metadata = saca_las_mantecas(url)
-                    handler.send(metadata)
-                    if metadata is None:
-                        logging.info(Messages.HANDLER_ERROR, HandlerErrors.NO_METADATA)
-                        logging.debug('ERROR, %s.', HandlerErrors.NO_METADATA)
-            except InvalidSourceError as exc:
-                warning(Messages.INPUT_FILE_INVALID, exc.reason)
-                exitcode = ExitCodes.WARNING
-    except UnsupportedSourceError as exc:
-        warning(Messages.UNSUPPORTED_SOURCE, exc.source)
-        exitcode = ExitCodes.WARNING
-    except FileNotFoundError:
-        warning(Messages.INPUT_FILE_NOT_FOUND)
-        exitcode = ExitCodes.WARNING
-    except PermissionError as exc:
-        if exc.filename == str(source):
-            warning(Messages.INPUT_FILE_NO_PERMISSION)
-        else:
-            warning(Messages.OUTPUT_FILE_NO_PERMISSION)
-        exitcode = ExitCodes.WARNING
+    for source, handler in parse_sources(sources):
+        logging.info('  Fuente: %s', source)
+        if handler is None:
+            warning(Messages.UNSUPPORTED_SOURCE, exc.source)
+            exitcode = ExitCodes.WARNING
+            continue
+        try:
+            for url in handler:
+                logging.info('    %s', url)
+                metadata = saca_las_mantecas(url)
+                if metadata is None:
+                    logging.info(Messages.HANDLER_ERROR, HandlerErrors.NO_METADATA)
+                    logging.debug('ERROR, %s.', HandlerErrors.NO_METADATA)
+                handler.send(metadata)
+        except InvalidSourceError as exc:
+            warning(Messages.INPUT_FILE_INVALID, exc.reason)
+            exitcode = ExitCodes.WARNING
+        except FileNotFoundError:
+            warning(Messages.INPUT_FILE_NOT_FOUND)
+            exitcode = ExitCodes.WARNING
+        except PermissionError as exc:
+            if exc.filename == str(source):
+                warning(Messages.INPUT_FILE_NO_PERMISSION)
+            else:
+                warning(Messages.OUTPUT_FILE_NO_PERMISSION)
+            exitcode = ExitCodes.WARNING
 
     return exitcode
 
