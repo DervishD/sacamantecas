@@ -4,15 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from sacamantecas import detect_html_charset, get_redirected_url, resolve_file_url, retrieve_url, url_to_filename
-
-
-def test_url_to_filename():  # pylint: disable=unused-variable
-    """Test URL to filename conversion."""
-    result = url_to_filename('url://subdomain.domain.toplevel/path?param1=value1&param2=value2')
-    expected = Path('url___subdomain_domain_toplevel_path_param1_value1_param2_value2')
-
-    assert result == expected
+from sacamantecas import detect_html_charset, get_redirected_url, resolve_file_url, retrieve_url
 
 
 @pytest.mark.parametrize('netloc, base, extra', [

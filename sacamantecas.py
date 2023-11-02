@@ -145,6 +145,15 @@ def warning(message, *args, **kwargs):
     logging.warning(f'{Messages.WARNING_HEADER}{message}', *args, **kwargs)
 
 
+def is_accepted_url(value):
+    """Check if value is an accepted URL or not."""
+    # The check is quite crude but works for the application's needs.
+    try:
+        return urlparse(value).scheme in ACCEPTED_URL_SCHEMES
+    except ValueError:
+        return False
+
+
 def wait_for_keypress():
     """Wait for a keypress to continue if sys.stdout is a real console AND the console is transient."""
     # First of all, if this script is being imported rather than run,
@@ -227,6 +236,24 @@ def excepthook(exc_type, exc_value, exc_traceback):
         message += f': {frame.line}' if frame.line else ''
         message += '\n'
     error(message.rstrip())
+
+
+def loggerize(function):
+    """Decorator which enables logging for function."""
+    def loggerize_wrapper(*args, **kwargs):
+        setup_logging(LOGFILE_PATH, DEBUGFILE_PATH)
+
+        logging.debug(Messages.DEBUGGING_INIT)
+        logging.info(Messages.APP_INIT)
+        logging.debug(Messages.USER_AGENT)
+
+        status = function(*args, **kwargs)
+
+        logging.info(Messages.APP_DONE)
+        logging.debug(Messages.DEBUGGING_DONE)
+        logging.shutdown()
+        return status
+    return loggerize_wrapper
 
 
 def setup_logging(log_filename, debug_filename):
@@ -340,6 +367,17 @@ def setup_logging(log_filename, debug_filename):
     dictConfig(logging_configuration)
 
 
+def keyboard_interrupt_handler(function):
+    """Decorator which wraps function with a simple KeyboardInterrupt handler."""
+    def handle_keyboard_interrupt_wrapper(*args, **kwargs):
+        try:
+            return function(*args, **kwargs)
+        except KeyboardInterrupt:
+            warning(Messages.KEYBOARD_INTERRUPT)
+            return ExitCodes.KEYBOARD_INTERRUPT
+    return handle_keyboard_interrupt_wrapper
+
+
 def load_profiles(filename):
     """
     Load the profiles from filename.
@@ -379,18 +417,29 @@ def load_profiles(filename):
     return {key: value for key, value in profiles.items() if value}
 
 
-def url_to_filename(url):
-    """Convert the given URL to a valid filename."""
-    return Path(re.sub(r'\W', '_', url, re.ASCII))  # Quite crude but it works.
+def parse_arguments(*args):
+    """
+    Parse each argument in args to check if it is a valid source, identify its
+    type and build the corresponding handler.
 
-
-def is_accepted_url(value):
-    """Check if value is an accepted URL or not."""
-    # The check is quite crude but works for the application's needs.
-    try:
-        return urlparse(value).scheme in ACCEPTED_URL_SCHEMES
-    except ValueError:
-        return False
+    Yield tuple containing the source and its corresponding handler, which will
+    be None for unsupported sources.
+    """
+    for arg in args:
+        logging.debug('Procesando argumento «%s».', arg)
+        if is_accepted_url(arg):
+            logging.debug('El argumento es una fuente de tipo single_url.')
+            handler = single_url_handler(arg)
+        elif arg.endswith('.txt'):
+            logging.debug('El argumento es una fuente de tipo textfile.')
+            handler = textfile_handler(Path(arg))
+        elif arg.endswith('.xlsx'):
+            logging.debug('El argumento es una fuente de tipo spreadsheet.')
+            handler = spreadsheet_handler(Path(arg))
+        else:
+            logging.debug('El argumento no es un tipo de fuente admitido.')
+            handler = None
+        yield arg, handler
 
 
 # NOTE: the handlers below have to be generators for two reasons. First one, the
@@ -432,6 +481,11 @@ def single_url_handler(url):
                     message = f'      {key}: {value}'
                     logging.info(message)  # Output allowed here because it is part of the handler.
                     sink.write(f'{message}\n')
+
+
+def url_to_filename(url):
+    """Convert the given URL to a valid filename."""
+    return Path(re.sub(r'\W', '_', url, re.ASCII))  # Quite crude but it works.
 
 
 def textfile_handler(source_filename):
@@ -571,6 +625,70 @@ def store_metadata_in_sheet(sheet, row, metadata, static = SimpleNamespace(known
         sheet.cell(row[0].row + 1, static.known_metadata[key], value=value)
 
 
+def bootstrap(handler):
+    """Bootstrap (prime) and handle initialization errors for handler."""
+    if handler is None:
+        raise SourceError(Messages.UNSUPPORTED_SOURCE)
+
+    try:
+        handler.send(None)
+    except FileNotFoundError as exc:
+        raise SourceError(Messages.INPUT_FILE_NOT_FOUND) from exc
+    except PermissionError as exc:
+        if Path(exc.filename).stem.endswith(OUTPUT_FILE_STEM_MARKER):
+            raise SourceError(Messages.OUTPUT_FILE_NO_PERMISSION) from exc
+        raise SourceError(Messages.INPUT_FILE_NO_PERMISSION) from exc
+
+
+def saca_las_mantecas(url):
+    """
+    Saca las mantecas from the provided url, that is, retrieve its contents,
+    parse it using the appropriate parser for the URL type, and obtain library
+    catalogue metadata, if any.
+
+    Return obtained metadata as a dictionary.
+    """
+    retrieve_url(url)
+    return {'key_1': 'value_1', 'key_2': 'value_2', 'key_3': 'value_3'}
+
+
+def retrieve_url(url):
+    """
+    Retrieve contents from url.
+
+    First resolve any meta http-equiv="Refresh" redirection for url and then get
+    the contents as a byte string.
+
+    The contents are decoded using the detected charset.
+
+    Return the decoded contents as a string.
+
+    """
+    if not is_accepted_url(url):
+        raise URLError(f'El URL «{url}» es de tipo desconocido.')
+
+    if url.startswith('file://'):
+        url = resolve_file_url(url)
+
+    while url:
+        logging.debug('Procesando URL «%s».', url)
+        with urlopen(Request(url, headers={'User-Agent': USER_AGENT})) as response:
+            # First, check if any redirection is needed and get the charset the easy way.
+            contents = response.read()
+            charset = response.headers.get_content_charset()
+        url = get_redirected_url(url, contents)
+
+    # In this point, we have the contents as a byte string.
+    # If the charset is None, it has to be determined the hard way.
+    if charset is None:
+        charset = detect_html_charset(contents)
+    else:
+        logging.debug('Charset detectado en las cabeceras.')
+    logging.debug('Contenidos codificados con charset «%s».', charset)
+
+    return contents.decode(charset)
+
+
 def resolve_file_url(url):
     """Resolve relative paths in file: url."""
     parsed_url = urlparse(url)
@@ -628,117 +746,6 @@ def detect_html_charset(contents):
     else:
         logging.debug('Charset not detectado, usando valor por defecto.')
     return charset
-
-
-def retrieve_url(url):
-    """
-    Retrieve contents from url.
-
-    First resolve any meta http-equiv="Refresh" redirection for url and then get
-    the contents as a byte string.
-
-    The contents are decoded using the detected charset.
-
-    Return the decoded contents as a string.
-
-    """
-    if not is_accepted_url(url):
-        raise URLError(f'El URL «{url}» es de tipo desconocido.')
-
-    if url.startswith('file://'):
-        url = resolve_file_url(url)
-
-    while url:
-        logging.debug('Procesando URL «%s».', url)
-        with urlopen(Request(url, headers={'User-Agent': USER_AGENT})) as response:
-            # First, check if any redirection is needed and get the charset the easy way.
-            contents = response.read()
-            charset = response.headers.get_content_charset()
-        url = get_redirected_url(url, contents)
-
-    # In this point, we have the contents as a byte string.
-    # If the charset is None, it has to be determined the hard way.
-    if charset is None:
-        charset = detect_html_charset(contents)
-    else:
-        logging.debug('Charset detectado en las cabeceras.')
-    logging.debug('Contenidos codificados con charset «%s».', charset)
-
-    return contents.decode(charset)
-
-
-def saca_las_mantecas(url):
-    """."""
-    return {'key_1': 'value_1', 'key_2': 'value_2', 'key_3': 'value_3'}
-
-
-def parse_arguments(*args):
-    """
-    Parse each argument in args to check if it is a valid source, identify its
-    type and build the corresponding handler.
-
-    Yield tuple containing the source and its corresponding handler, which will
-    be None for unsupported sources.
-    """
-    for arg in args:
-        logging.debug('Procesando argumento «%s».', arg)
-        if is_accepted_url(arg):
-            logging.debug('El argumento es una fuente de tipo single_url.')
-            handler = single_url_handler(arg)
-        elif arg.endswith('.txt'):
-            logging.debug('El argumento es una fuente de tipo textfile.')
-            handler = textfile_handler(Path(arg))
-        elif arg.endswith('.xlsx'):
-            logging.debug('El argumento es una fuente de tipo spreadsheet.')
-            handler = spreadsheet_handler(Path(arg))
-        else:
-            logging.debug('El argumento no es un tipo de fuente admitido.')
-            handler = None
-        yield arg, handler
-
-
-def loggerize(function):
-    """Decorator which enables logging for function."""
-    def loggerize_wrapper(*args, **kwargs):
-        setup_logging(LOGFILE_PATH, DEBUGFILE_PATH)
-
-        logging.debug(Messages.DEBUGGING_INIT)
-        logging.info(Messages.APP_INIT)
-        logging.debug(Messages.USER_AGENT)
-
-        status = function(*args, **kwargs)
-
-        logging.info(Messages.APP_DONE)
-        logging.debug(Messages.DEBUGGING_DONE)
-        logging.shutdown()
-        return status
-    return loggerize_wrapper
-
-
-def keyboard_interrupt_handler(function):
-    """Decorator which wraps function with a simple KeyboardInterrupt handler."""
-    def handle_keyboard_interrupt_wrapper(*args, **kwargs):
-        try:
-            return function(*args, **kwargs)
-        except KeyboardInterrupt:
-            warning(Messages.KEYBOARD_INTERRUPT)
-            return ExitCodes.KEYBOARD_INTERRUPT
-    return handle_keyboard_interrupt_wrapper
-
-
-def bootstrap(handler):
-    """Bootstrap (prime) and handle initialization errors for handler."""
-    if handler is None:
-        raise SourceError(Messages.UNSUPPORTED_SOURCE)
-
-    try:
-        handler.send(None)
-    except FileNotFoundError as exc:
-        raise SourceError(Messages.INPUT_FILE_NOT_FOUND) from exc
-    except PermissionError as exc:
-        if Path(exc.filename).stem.endswith(OUTPUT_FILE_STEM_MARKER):
-            raise SourceError(Messages.OUTPUT_FILE_NO_PERMISSION) from exc
-        raise SourceError(Messages.INPUT_FILE_NO_PERMISSION) from exc
 
 
 @loggerize

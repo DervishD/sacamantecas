@@ -23,6 +23,15 @@ def test_unreadable(unreadable_file):  # pylint: disable=unused-variable
     assert excinfo.value.details == Messages.MISSING_PROFILES % unreadable_file
 
 
+@pytest.mark.parametrize('text', ['', '[s]'])
+def test_empty(tmp_path: Path, text: str) -> None:  # pylint: disable=unused-variable
+    """Test for empty profiles configuration file."""
+    filename = tmp_path / 'profiles_empty.ini'
+    filename.write_text(text)
+
+    assert load_profiles(str(filename)) == {}
+
+
 @pytest.mark.parametrize('text, error', [
     ('o', 'MissingSectionHeader'),
     ('[s]\no', 'Parsing'),
@@ -39,12 +48,3 @@ def test_syntax_errors(tmp_path, text, error):  # pylint: disable=unused-variabl
     assert excinfo.value.details.startswith(Messages.PROFILES_WRONG_SYNTAX % (error, ''))
 
     filename.unlink()
-
-
-@pytest.mark.parametrize('text', ['', '[s]'])
-def test_empty(tmp_path: Path, text: str) -> None:  # pylint: disable=unused-variable
-    """Test for empty profiles configuration file."""
-    filename = tmp_path / 'profiles_empty.ini'
-    filename.write_text(text)
-
-    assert load_profiles(str(filename)) == {}
