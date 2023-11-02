@@ -1,10 +1,13 @@
 #! /usr/bin/env python3
 """Test suite for the different handlers of URL sources / metadata sinks."""
+from pathlib import Path
 from random import choice, randrange
 from uuid import uuid4
 
 from openpyxl import Workbook
 from openpyxl.utils.cell import get_column_letter
+
+import pytest
 
 import sacamantecas as sm
 
@@ -15,6 +18,10 @@ EXPECTED = [True] + [item for url in SAMPLE_URLS for item in (url, None)]
 
 def test_single_url_handler():  # pylint: disable=unused-variable
     """Test single URLs."""
+    result = sm.url_to_filename('url://subdomain.domain.toplevel/path?param1=value1&param2=value2')
+    expected = Path('url___subdomain_domain_toplevel_path_param1_value1_param2_value2')
+    assert result == expected
+
     result = list(sm.single_url_handler(SAMPLE_URLS[0]))
     assert result == EXPECTED[0:3]
 
