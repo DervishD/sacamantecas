@@ -468,14 +468,15 @@ def single_url_handler(url):
 
     The output file has UTF-8 encoding.
     """
-    yield True  # Successful initialization.
-    if is_accepted_url(url):
-        metadata = yield url
-        yield
-        if metadata:
-            sink_filename = url_to_filename(url).with_suffix('.txt')
-            with open(sink_filename, 'w+', encoding='utf-8') as sink:
-                logging.debug('Volcando metadatos a «%s».', sink_filename)
+    sink_filename = url_to_filename(url).with_suffix('.txt')
+    sink_filename = sink_filename.with_stem(sink_filename.stem + OUTPUT_FILE_STEM_MARKER)
+    with open(sink_filename, 'w+', encoding='utf-8') as sink:
+        logging.debug('Volcando metadatos a «%s».', sink_filename)
+        yield True  # Successful initialization.
+        if is_accepted_url(url):
+            metadata = yield url
+            yield
+            if metadata:
                 sink.write(f'{url}\n')
                 for key, value in metadata.items():
                     message = f'      {key}: {value}'
