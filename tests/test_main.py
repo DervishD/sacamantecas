@@ -44,7 +44,7 @@ def test_missing_ini(log_paths, tmp_path, monkeypatch, capsys):  # pylint: disab
     monkeypatch.setattr("sacamantecas.LOGFILE_PATH", log_paths.log)
     monkeypatch.setattr("sacamantecas.DEBUGFILE_PATH", log_paths.debug)
 
-    filename = str(tmp_path / 'non_existent_profiles_file.ini')
+    filename = str(tmp_path / 'non_existent.ini')
 
     monkeypatch.setattr("sacamantecas.INIFILE_PATH", filename)
     assert sm.main(['']) == sm.ExitCodes.ERROR

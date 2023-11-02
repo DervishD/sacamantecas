@@ -9,7 +9,7 @@ from sacamantecas import load_profiles, Messages, ProfilesError
 
 def test_missing(tmp_path):  # pylint: disable=unused-variable
     """Test for missing profiles configuration file."""
-    filename = str(tmp_path / 'non_existent_profiles_file.ini')
+    filename = str(tmp_path / 'non_existent.ini')
     with pytest.raises(ProfilesError) as excinfo:
         load_profiles(filename)
     assert excinfo.value.details == Messages.MISSING_PROFILES % filename
