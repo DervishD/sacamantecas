@@ -8,7 +8,7 @@ def test_logging_setup(log_paths, monkeypatch):  # pylint: disable=unused-variab
     monkeypatch.setattr("sacamantecas.LOGFILE_PATH", log_paths.log)
     monkeypatch.setattr("sacamantecas.DEBUGFILE_PATH", log_paths.debug)
 
-    assert sm.main([]) == sm.ExitCodes.NO_ARGUMENTS
+    assert sm.main() == sm.ExitCodes.NO_ARGUMENTS
     assert sm.LOGFILE_PATH.is_file()
     assert sm.DEBUGFILE_PATH.is_file()
 
@@ -18,7 +18,7 @@ def test_no_arguments(log_paths, monkeypatch):  # pylint: disable=unused-variabl
     monkeypatch.setattr("sacamantecas.LOGFILE_PATH", log_paths.log)
     monkeypatch.setattr("sacamantecas.DEBUGFILE_PATH", log_paths.debug)
 
-    assert sm.main([]) == sm.ExitCodes.NO_ARGUMENTS
+    assert sm.main() == sm.ExitCodes.NO_ARGUMENTS
 
     result = sm.LOGFILE_PATH.read_text(encoding='utf-8').splitlines()
     result = '\n'.join([' '.join(line.split(' ')[1:]) for line in result])

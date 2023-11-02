@@ -665,7 +665,7 @@ def saca_las_mantecas(url):
     return {'key_1': 'value_1', 'key_2': 'value_2', 'key_3': 'value_3'}
 
 
-def parse_sources(sources):
+def parse_arguments(*args):
     """
     Parse each argument in args to check if it is a valid source, identify its
     type and build the corresponding handler.
@@ -673,21 +673,21 @@ def parse_sources(sources):
     Yield tuple containing the source and its corresponding handler, which will
     be None for unsupported sources.
     """
-    for source in sources:
-        logging.debug('Procesando argumento «%s».', source)
-        if is_accepted_url(source):
-            logging.debug('La fuente es un URL.')
-            handler = single_url_handler(source)
-        elif source.endswith('.txt'):
-            logging.debug('La fuente es un fichero de texto.')
-            handler = textfile_handler(Path(source))
-        elif source.endswith('.xlsx'):
-            logging.debug('La fuente es una hoja de cálculo.')
-            handler = spreadsheet_handler(Path(source))
+    for arg in args:
+        logging.debug('Procesando argumento «%s».', arg)
+        if is_accepted_url(arg):
+            logging.debug('El argumento es una fuente de tipo single_url.')
+            handler = single_url_handler(arg)
+        elif arg.endswith('.txt'):
+            logging.debug('El argumento es una fuente de tipo textfile.')
+            handler = textfile_handler(Path(arg))
+        elif arg.endswith('.xlsx'):
+            logging.debug('El argumento es una fuente de tipo spreadsheet.')
+            handler = spreadsheet_handler(Path(arg))
         else:
             logging.debug('El argumento no es un tipo de fuente admitido.')
             handler = None
-        yield source, handler
+        yield arg, handler
 
 
 def loggerize(function):
@@ -721,18 +721,18 @@ def keyboard_interrupt_handler(function):
 
 @loggerize
 @keyboard_interrupt_handler
-def main(sources):
+def main(*args):
     """."""
     exitcode = ExitCodes.SUCCESS
 
-    if len(sources) == 0:
-        # The input sources should be provided automatically if the application
-        # is used as a drag'n'drop target which is in fact the intended method
-        # of operation.
+    if len(args) == 0:
+        # Input arguments should be provided automatically to the application if
+        # it is used as a drag'n'drop target which is actually the intended way
+        # of operation, generally speaking.
         #
         # But the application can be also run by hand from a command prompt, so
         # it is better to signal the end user with an error and explanation if
-        # the input source is missing, as soon as possible.
+        # no input arguments are provided, as soon as possible.
         error(Messages.NO_ARGUMENTS)
         return ExitCodes.NO_ARGUMENTS
 
@@ -746,7 +746,7 @@ def main(sources):
         return ExitCodes.ERROR
 
     logging.info(Messages.SKIMMING_MARKER)
-    for source, handler in parse_sources(sources):
+    for source, handler in parse_arguments(*args):
         logging.info('  Fuente: %s', source)
         if handler is None:
             warning(Messages.UNSUPPORTED_SOURCE, source)
@@ -779,4 +779,4 @@ def main(sources):
 atexit.register(wait_for_keypress)
 sys.excepthook = excepthook
 if __name__ == '__main__':
-    sys.exit(main(sys.argv[1:]))
+    sys.exit(main(*sys.argv[1:]))
