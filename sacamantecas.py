@@ -102,11 +102,13 @@ DEBUGFILE_PATH = Path(f'{SCRIPT_PATH.with_suffix("")}_debug_{TIMESTAMP}.txt')
 LOGFILE_PATH = Path(f'{SCRIPT_PATH.with_suffix("")}_log_{TIMESTAMP}.txt')
 
 
-# Accepted set of URL schemes
+# Accepted set of URL schemes.
 ACCEPTED_URL_SCHEMES = ('https', 'http', 'file')
-# Regex for meta http-equiv="refresh" detection and parsing
+# Regex for <meta http-equiv="refresh"…> detection and parsing.
 META_REFRESH_RE = rb'<meta http-equiv="refresh" content="(?:[^;]+;\s+)?URL=([^"]+)"'
+# Regex for <meta http-equiv="content-type" charset…> detection and parsing.
 META_HTTP_EQUIV_CHARSET_RE = rb'<meta http-equiv="content-type".*charset="([^"]+)"'
+# Regex for <meta charset…> detection and parsing.
 META_CHARSET_RE = rb'<meta charset="([^"]+)"'
 
 
