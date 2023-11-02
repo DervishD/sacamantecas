@@ -1,10 +1,11 @@
 #! /usr/bin/env python3
 """Test suite for load_profiles()."""
 from pathlib import Path
+import re
 
 import pytest
 
-from sacamantecas import load_profiles, Messages, ProfilesError
+from sacamantecas import INIFILE_PATH, load_profiles, Messages, ProfilesError
 
 
 def test_missing(tmp_path):  # pylint: disable=unused-variable
@@ -48,3 +49,37 @@ def test_syntax_errors(tmp_path, text, error):  # pylint: disable=unused-variabl
     assert excinfo.value.details.startswith(Messages.PROFILES_WRONG_SYNTAX % (error, ''))
 
     filename.unlink()
+
+
+INIFILE_CONTENTS = """
+[profile1]
+url = profile1.domain.tld
+m_tag = tag
+m_attr = attr
+m_value = value
+
+[profile2]
+url = profile1.domain.tld
+k_class = key_class
+v_class = value_class
+"""
+EXPECTED_PROFILES_DICT = {
+    'profile1': {
+        'url': re.compile('profile1.domain.tld', re.IGNORECASE),
+        'm_tag': re.compile('tag', re.IGNORECASE),
+        'm_attr': re.compile('attr', re.IGNORECASE),
+        'm_value': re.compile('value', re.IGNORECASE),
+    },
+   'profile2': {
+        'url': re.compile('profile1.domain.tld', re.IGNORECASE),
+        'k_class': re.compile('key_class', re.IGNORECASE),
+        'v_class': re.compile('value_class', re.IGNORECASE),
+    }
+}
+def test_profile_loading(tmp_path):  # pylint: disable=unused-variable
+    """Test full profile loading."""
+    filename = tmp_path / INIFILE_PATH.name
+    filename.write_text(INIFILE_CONTENTS)
+    profiles = load_profiles(filename)
+    filename.unlink()
+    assert profiles == EXPECTED_PROFILES_DICT
