@@ -10,13 +10,13 @@ import sacamantecas as sm
 
 
 SAMPLE_URLS = [f'{choice(sm.ACCEPTED_URL_SCHEMES)}://subdomain{i}.domain.tld' for i in range(10)]
-EXPECTED = [item for url in SAMPLE_URLS for item in (url, None)]
+EXPECTED = [True] + [item for url in SAMPLE_URLS for item in (url, None)]
 
 
 def test_single_url_handler():  # pylint: disable=unused-variable
     """Test single URLs."""
     result = list(sm.single_url_handler(SAMPLE_URLS[0]))
-    assert result == EXPECTED[0:2]
+    assert result == EXPECTED[0:3]
 
 
 def test_textfile_handler(tmp_path):  # pylint: disable=unused-variable

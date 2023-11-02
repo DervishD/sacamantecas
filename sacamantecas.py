@@ -76,7 +76,7 @@ class Messages(StrEnum):
     MISSING_PROFILES = 'No se encontró o no se pudo leer el fichero de perfiles «%s».'
     PROFILES_WRONG_SYNTAX = 'Error de sintaxis «%s» leyendo el fichero de perfiles.\n%s'
     SKIMMING_MARKER = '\nSacando las mantecas:'
-    UNSUPPORTED_SOURCE = 'La fuente «%s» no es de un tipo admitido.'
+    UNSUPPORTED_SOURCE = 'La fuente no es de un tipo admitido.'
     HANDLER_ERROR = '     ↪ ERROR, %s.'
     INPUT_FILE_INVALID = 'El fichero de entrada es inválido (%s).'
     INPUT_FILE_NOT_FOUND = 'No se encontró el fichero de entrada.'
@@ -110,7 +110,8 @@ META_REFRESH_RE = rb'<meta http-equiv="refresh" content="(?:[^;]+;\s+)?URL=([^"]
 META_HTTP_EQUIV_CHARSET_RE = rb'<meta http-equiv="content-type".*charset="([^"]+)"'
 # Regex for <meta charset…> detection and parsing.
 META_CHARSET_RE = rb'<meta charset="([^"]+)"'
-
+# Stem suffix for output files.
+OUTPUT_FILE_STEM_MARKER = '.out'
 
 # Needed for having VERY basic logging when the code is imported rather than run.
 logging.basicConfig(level=logging.NOTSET, format='%(levelname).1s %(message)s', force=True)
@@ -128,10 +129,10 @@ class ProfilesError(Exception):
     def __init__ (self, details):
         self.details = details
 
-class InvalidSourceError(Exception):
-    """Raise when an input source is invalid, damaged, etc."""
-    def __init__ (self, reason):
-        self.reason = reason
+class SourceError(Exception):
+    """Raise for source-related errors."""
+    def __init__ (self, details):
+        self.details = details
 
 
 def error(message, *args, **kwargs):
@@ -403,6 +404,9 @@ def is_accepted_url(value):
 # so a double yield is needed. The first one is the one that yields the URLs and
 # the second one yields a response to the caller after when the metadata is sent
 # back to the handler.
+#
+# The first 'yield True' expression in the handlers is for signalling successful
+# initialization after priming the generator/coroutine.
 
 
 def single_url_handler(url):
@@ -415,6 +419,7 @@ def single_url_handler(url):
 
     The output file has UTF-8 encoding.
     """
+    yield True  # Successful initialization.
     if is_accepted_url(url):
         metadata = yield url
         yield
@@ -439,10 +444,11 @@ def textfile_handler(source_filename):
 
     All files are assumed to have UTF-8 encoding.
     """
-    sink_filename = source_filename.with_stem(source_filename.stem + '_out')
+    sink_filename = source_filename.with_stem(source_filename.stem + OUTPUT_FILE_STEM_MARKER)
     with open(source_filename, encoding='utf-8') as source:
         with open(sink_filename, 'w', encoding='utf-8') as sink:
             logging.debug('Volcando metadatos a «%s».', sink_filename)
+            yield True  # Successful initialization.
             for url in source.readlines():
                 url = url.strip()
                 if not is_accepted_url(url):
@@ -471,7 +477,7 @@ def spreadsheet_handler(source_filename):
     NOTE: not all sheets are processed, only the first one because it is the one
     where the URLs for the items are. Allegedly…
     """
-    sink_filename = source_filename.with_stem(source_filename.stem + '_out')
+    sink_filename = source_filename.with_stem(source_filename.stem + OUTPUT_FILE_STEM_MARKER)
     logging.debug('Copiando workbook a «%s».', sink_filename)
 
     copy2(source_filename, sink_filename)
@@ -481,8 +487,9 @@ def spreadsheet_handler(source_filename):
         details = str(exc).strip('"')
         details = details[0].lower() + details[1:]
         logging.error('Invalid spreadsheet file (%s): %s.', type(exc).__name__, details)
-        raise InvalidSourceError(type(exc).__name__) from exc
+        raise SourceError(Messages.INPUT_FILE_INVALID % type(exc).__name__) from exc
     sink_workbook = load_workbook(sink_filename)
+    yield True  # Successful initialization.
 
     source_sheet = source_workbook.worksheets[0]
     logging.debug('La hoja con la que se trabajará es «%s»".', source_sheet.title)
@@ -719,6 +726,21 @@ def keyboard_interrupt_handler(function):
     return handle_keyboard_interrupt_wrapper
 
 
+def bootstrap(handler):
+    """Bootstrap (prime) and handle initialization errors for handler."""
+    if handler is None:
+        raise SourceError(Messages.UNSUPPORTED_SOURCE)
+
+    try:
+        handler.send(None)
+    except FileNotFoundError as exc:
+        raise SourceError(Messages.INPUT_FILE_NOT_FOUND) from exc
+    except PermissionError as exc:
+        if Path(exc.filename).stem.endswith(OUTPUT_FILE_STEM_MARKER):
+            raise SourceError(Messages.OUTPUT_FILE_NO_PERMISSION) from exc
+        raise SourceError(Messages.INPUT_FILE_NO_PERMISSION) from exc
+
+
 @loggerize
 @keyboard_interrupt_handler
 def main(*args):
@@ -748,30 +770,20 @@ def main(*args):
     logging.info(Messages.SKIMMING_MARKER)
     for source, handler in parse_arguments(*args):
         logging.info('  Fuente: %s', source)
-        if handler is None:
-            warning(Messages.UNSUPPORTED_SOURCE, source)
+        try:
+            bootstrap(handler)
+        except SourceError as exc:
+            warning(exc.details)
             exitcode = ExitCodes.WARNING
             continue
-        try:
-            for url in handler:
-                logging.info('    %s', url)
-                metadata = saca_las_mantecas(url)
-                if metadata is None:
-                    logging.info(Messages.HANDLER_ERROR, HandlerErrors.NO_METADATA)
-                    logging.debug('ERROR, %s.', HandlerErrors.NO_METADATA)
-                handler.send(metadata)
-        except InvalidSourceError as exc:
-            warning(Messages.INPUT_FILE_INVALID, exc.reason)
-            exitcode = ExitCodes.WARNING
-        except FileNotFoundError:
-            warning(Messages.INPUT_FILE_NOT_FOUND)
-            exitcode = ExitCodes.WARNING
-        except PermissionError as exc:
-            if exc.filename == str(source):
-                warning(Messages.INPUT_FILE_NO_PERMISSION)
-            else:
-                warning(Messages.OUTPUT_FILE_NO_PERMISSION)
-            exitcode = ExitCodes.WARNING
+
+        for url in handler:
+            logging.info('    %s', url)
+            metadata = saca_las_mantecas(url)
+            if metadata is None:
+                logging.info(Messages.HANDLER_ERROR, HandlerErrors.NO_METADATA)
+                logging.debug('ERROR, %s.', HandlerErrors.NO_METADATA)
+            handler.send(metadata)
 
     return exitcode
 
