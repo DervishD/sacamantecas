@@ -47,7 +47,7 @@ def test_missing_ini(log_paths, tmp_path, monkeypatch, capsys):  # pylint: disab
     filename = str(tmp_path / 'non_existent.ini')
 
     monkeypatch.setattr("sacamantecas.INIFILE_PATH", filename)
-    assert main(['']) == ExitCodes.ERROR
+    assert main('') == ExitCodes.ERROR
 
     result = capsys.readouterr().err.splitlines()[2]
     expected = f'No se encontró o no se pudo leer el fichero de perfiles «{filename}».'
@@ -64,7 +64,7 @@ def test_ini_syntax_error(log_paths, tmp_path, monkeypatch, capsys):  # pylint: 
     filename.write_text('o')
 
     monkeypatch.setattr("sacamantecas.INIFILE_PATH", filename)
-    assert main(['']) == ExitCodes.ERROR
+    assert main('') == ExitCodes.ERROR
 
     result = capsys.readouterr().err.splitlines()[2]
     expected = 'Error de sintaxis «MissingSectionHeader» leyendo el fichero de perfiles.'
