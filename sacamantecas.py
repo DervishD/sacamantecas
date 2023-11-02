@@ -57,13 +57,11 @@ class ExitCodes(IntEnum):
 
 class Messages(StrEnum):
     """Messages for the application."""
-    APP_INIT = f'{__appname__.replace(" v", " versión ")}'
-    APP_DONE = '\nProceso finalizado.'
-    DEBUGGING_INIT = 'Registro de depuración iniciado.'
-    DEBUGGING_DONE = 'Registro de depuración finalizado.'
+    INITIALIZATION_ERROR = 'Error de inicialización de la aplicación.'
     ERROR_HEADER = f'\n*** Error en {__appname__}\n'
     WARNING_HEADER = '* Warning: '
-    INITIALIZATION_ERROR = 'Error de inicialización de la aplicación.'
+    DEBUGGING_INIT = 'Registro de depuración iniciado.'
+    APP_INIT = f'{__appname__.replace(" v", " versión ")}'
     USER_AGENT = f'User-Agent: {USER_AGENT}'
     KEYBOARD_INTERRUPT = '\nEl usuario interrumpión la operación de la aplicación.'
     NO_ARGUMENTS = (
@@ -77,11 +75,13 @@ class Messages(StrEnum):
     PROFILES_WRONG_SYNTAX = 'Error de sintaxis «%s» leyendo el fichero de perfiles.\n%s'
     SKIMMING_MARKER = '\nSacando las mantecas:'
     UNSUPPORTED_SOURCE = 'La fuente no es de un tipo admitido.'
-    HANDLER_ERROR = '     ↪ ERROR, %s.'
     INPUT_FILE_INVALID = 'El fichero de entrada es inválido (%s).'
     INPUT_FILE_NOT_FOUND = 'No se encontró el fichero de entrada.'
-    INPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para leer el fichero de entrada.'
     OUTPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para crear el fichero de salida.'
+    INPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para leer el fichero de entrada.'
+    HANDLER_ERROR = '     ↪ ERROR, %s.'
+    APP_DONE = '\nProceso finalizado.'
+    DEBUGGING_DONE = 'Registro de depuración finalizado.'
 
 
 class HandlerErrors(StrEnum):
