@@ -4,15 +4,15 @@ import logging
 
 import pytest
 
-import sacamantecas as sm
+from sacamantecas import DEBUGFILE_PATH, keyboard_interrupt_handler, LOGFILE_PATH, loggerize, Messages, setup_logging
 
 
-@sm.loggerize
+@loggerize
 def loggerized_function():
     """Mock function to be decorated."""
 
 
-@sm.keyboard_interrupt_handler
+@keyboard_interrupt_handler
 def interrupted_function():
     """Mock function to be decorated."""
     raise KeyboardInterrupt
@@ -23,19 +23,19 @@ def test_loggerize(log_paths, monkeypatch):   # pylint: disable=unused-variable
     monkeypatch.setattr("sacamantecas.LOGFILE_PATH", log_paths.log)
     monkeypatch.setattr("sacamantecas.DEBUGFILE_PATH", log_paths.debug)
 
-    assert not sm.LOGFILE_PATH.is_file()
-    assert not sm.DEBUGFILE_PATH.is_file()
+    assert not LOGFILE_PATH.is_file()
+    assert not DEBUGFILE_PATH.is_file()
 
     loggerized_function()
     logging.shutdown()
 
-    assert sm.LOGFILE_PATH.is_file()
-    assert sm.DEBUGFILE_PATH.is_file()
+    assert LOGFILE_PATH.is_file()
+    assert DEBUGFILE_PATH.is_file()
 
 
 def test_keyboard_interrupt_handler(log_paths, capsys):  # pylint: disable=unused-variable
     """Test the keyboard_interrupt_handler() decorator."""
-    sm.setup_logging(log_paths.log, log_paths.debug)
+    setup_logging(log_paths.log, log_paths.debug)
 
     try:
         interrupted_function()
@@ -45,6 +45,6 @@ def test_keyboard_interrupt_handler(log_paths, capsys):  # pylint: disable=unuse
     logging.shutdown()
 
     result = capsys.readouterr().err.rstrip()
-    expected = f'{sm.Messages.WARNING_HEADER}{sm.Messages.KEYBOARD_INTERRUPT}'
+    expected = f'{Messages.WARNING_HEADER}{Messages.KEYBOARD_INTERRUPT}'
 
     assert result == expected

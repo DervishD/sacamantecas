@@ -4,26 +4,26 @@ import inspect
 
 import pytest
 
-import sacamantecas as sm
+from sacamantecas import parse_arguments, single_url_handler, spreadsheet_handler, textfile_handler
 
 
 def test_unsupported_source():  # pylint: disable=unused-variable
     """Test unsupported source."""
     sources = 'source'
-    source, handler = list(sm.parse_arguments(sources))[0]
+    source, handler = list(parse_arguments(sources))[0]
     assert source == sources
     assert handler is None
 
 
 @pytest.mark.parametrize('sources, expected', [
-    ('http://source', sm.single_url_handler),
-    ('file://source', sm.single_url_handler),
-    ('source.txt', sm.textfile_handler),
-    ('source.xlsx', sm.spreadsheet_handler)
+    ('http://source', single_url_handler),
+    ('file://source', single_url_handler),
+    ('source.txt', textfile_handler),
+    ('source.xlsx', spreadsheet_handler)
 ])
 def test_source_identification(sources, expected):  # pylint: disable=unused-variable
     """Test identification of different sources."""
-    source, handler = list(sm.parse_arguments(sources))[0]
+    source, handler = list(parse_arguments(sources))[0]
     assert source == sources
     assert inspect.isgenerator(handler)
     assert inspect.isgeneratorfunction(expected)
