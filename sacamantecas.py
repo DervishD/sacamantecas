@@ -111,7 +111,7 @@ META_HTTP_EQUIV_CHARSET_RE = rb'<meta http-equiv="content-type".*charset="([^"]+
 # Regex for <meta charset…> detection and parsing.
 META_CHARSET_RE = rb'<meta charset="([^"]+)"'
 # Stem suffix for output files.
-OUTPUT_FILE_STEM_MARKER = '.out'
+OUTPUT_FILE_STEM_MARKER = '_out'
 
 # Needed for having VERY basic logging when the code is imported rather than run.
 logging.basicConfig(level=logging.NOTSET, format='%(levelname).1s %(message)s', force=True)
