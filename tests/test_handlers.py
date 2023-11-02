@@ -1,5 +1,6 @@
 #! /usr/bin/env python3
 """Test suite for the different handlers of URL sources / metadata sinks."""
+import os
 from pathlib import Path
 from random import choice, randrange
 from uuid import uuid4
@@ -56,3 +57,57 @@ def test_spreadsheet_handler(tmp_path):  # pylint: disable=unused-variable
 
     result = list(sm.spreadsheet_handler(filename))
     assert result == EXPECTED
+
+
+@pytest.mark.parametrize('suffix, handler', [
+    ('.txt', sm.textfile_handler),
+    ('.xlsx', sm.spreadsheet_handler)
+])
+def test_missing_source(tmp_path, suffix, handler):  # pylint: disable=unused-variable
+    """Test for missing source handling."""
+    handler = handler(tmp_path / f'non_existent{suffix}')
+    with pytest.raises(sm.SourceError) as excinfo:
+        sm.bootstrap(handler)
+    assert excinfo.value.details.startswith(sm.Messages.INPUT_FILE_NOT_FOUND)
+
+
+@pytest.mark.parametrize('filename, handler', [
+    ('unreadable.txt', sm.textfile_handler),
+    ('unreadable.xlsx', sm.spreadsheet_handler)
+])
+def test_input_no_permission(unreadable_file, handler):  # pylint: disable=unused-variable
+    """."""
+    handler = handler(unreadable_file)
+    with pytest.raises(sm.SourceError) as excinfo:
+        sm.bootstrap(handler)
+    assert excinfo.value.details.startswith(sm.Messages.INPUT_FILE_NO_PERMISSION)
+
+
+@pytest.mark.parametrize('source, filename, handler', [
+    (
+        'http://s.url',
+        Path(str(sm.url_to_filename('http://s.url')) + sm.OUTPUT_FILE_STEM_MARKER).with_suffix('.txt'),
+        sm.single_url_handler
+    ),
+    (
+        Path('s.txt'),
+        Path('s.txt').with_stem(Path('s.txt').stem + sm.OUTPUT_FILE_STEM_MARKER),
+        sm.textfile_handler
+    ),
+    (
+        Path('s.xlsx'),
+        Path('s.xlsx').with_stem(Path('s.xlsx').stem + sm.OUTPUT_FILE_STEM_MARKER),
+        sm.spreadsheet_handler
+    )
+])
+def test_output_no_permission(source, unreadable_file, handler):  # pylint: disable=unused-variable
+    """."""
+    os.chdir(unreadable_file.parent)
+    if isinstance(source, Path):
+        source.write_text('')
+    handler = handler(source)
+    with pytest.raises(sm.SourceError) as excinfo:
+        sm.bootstrap(handler)
+    if isinstance(source, Path):
+        source.unlink()
+    assert excinfo.value.details.startswith(sm.Messages.OUTPUT_FILE_NO_PERMISSION)
