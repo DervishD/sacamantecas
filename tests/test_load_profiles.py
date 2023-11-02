@@ -15,6 +15,7 @@ def test_missing(tmp_path):  # pylint: disable=unused-variable
     assert excinfo.value.details == Messages.MISSING_PROFILES % filename
 
 
+@pytest.mark.parametrize('unreadable_file', ['unreadable_profiles.ini'])
 def test_unreadable(unreadable_file):  # pylint: disable=unused-variable
     """Test for unreadable profiles configuration file."""
     with pytest.raises(ProfilesError) as excinfo:
@@ -22,7 +23,7 @@ def test_unreadable(unreadable_file):  # pylint: disable=unused-variable
     assert excinfo.value.details == Messages.MISSING_PROFILES % unreadable_file
 
 
-@pytest.mark.parametrize("text,error", [
+@pytest.mark.parametrize('text, error', [
     ('o', 'MissingSectionHeader'),
     ('[s]\no', 'Parsing'),
     ('[s]\no = v\no = v', 'DuplicateOption'),
@@ -40,7 +41,7 @@ def test_syntax_errors(tmp_path, text, error):  # pylint: disable=unused-variabl
     filename.unlink()
 
 
-@pytest.mark.parametrize("text", ['', '[s]'])
+@pytest.mark.parametrize('text', ['', '[s]'])
 def test_empty(tmp_path: Path, text: str) -> None:  # pylint: disable=unused-variable
     """Test for empty profiles configuration file."""
     filename = tmp_path / 'profiles_empty.ini'
