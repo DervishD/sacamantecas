@@ -4,7 +4,7 @@ import logging
 
 import pytest
 
-from sacamantecas import DEBUGFILE_PATH, keyboard_interrupt_handler, LOGFILE_PATH, loggerize, Messages, setup_logging
+from sacamantecas import keyboard_interrupt_handler, loggerize, Messages, setup_logging
 
 
 @loggerize
@@ -23,14 +23,14 @@ def test_loggerize(log_paths, monkeypatch):   # pylint: disable=unused-variable
     monkeypatch.setattr("sacamantecas.LOGFILE_PATH", log_paths.log)
     monkeypatch.setattr("sacamantecas.DEBUGFILE_PATH", log_paths.debug)
 
-    assert not LOGFILE_PATH.is_file()
-    assert not DEBUGFILE_PATH.is_file()
+    assert not log_paths.log.is_file()
+    assert not log_paths.debug.is_file()
 
     loggerized_function()
     logging.shutdown()
 
-    assert LOGFILE_PATH.is_file()
-    assert DEBUGFILE_PATH.is_file()
+    assert log_paths.log.is_file()
+    assert log_paths.debug.is_file()
 
 
 def test_keyboard_interrupt_handler(log_paths, capsys):  # pylint: disable=unused-variable
