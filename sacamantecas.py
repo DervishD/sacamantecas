@@ -70,16 +70,16 @@ class Messages(StrEnum):
         'Arrastre y suelte un fichero de entrada sobre el icono de la aplicación, '
         'o proporcione el nombre del fichero como argumento.'
     )
-    EMPTY_PROFILES = 'No hay perfiles definidos en el fichero de perfiles «%s».'
-    MISSING_PROFILES = 'No se encontró o no se pudo leer el fichero de perfiles «%s».'
-    PROFILES_WRONG_SYNTAX = 'Error de sintaxis «%s» leyendo el fichero de perfiles.\n%s'
+    EMPTY_PROFILES = 'No hay perfiles definidos en el fichero de perfiles «{}».'
+    MISSING_PROFILES = 'No se encontró o no se pudo leer el fichero de perfiles «{}».'
+    PROFILES_WRONG_SYNTAX = 'Error de sintaxis «{}» leyendo el fichero de perfiles.\n{}'
     SKIMMING_MARKER = '\nSacando las mantecas:'
     UNSUPPORTED_SOURCE = 'La fuente no es de un tipo admitido.'
-    INPUT_FILE_INVALID = 'El fichero de entrada es inválido (%s).'
+    INPUT_FILE_INVALID = 'El fichero de entrada es inválido ({}).'
     INPUT_FILE_NOT_FOUND = 'No se encontró el fichero de entrada.'
     OUTPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para crear el fichero de salida.'
     INPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para leer el fichero de entrada.'
-    HANDLER_ERROR = '     ↪ ERROR, %s.'
+    HANDLER_ERROR = '     ↪ ERROR, {}.'
     APP_DONE = '\nProceso finalizado.'
     DEBUGGING_DONE = 'Registro de depuración finalizado.'
 
@@ -399,9 +399,10 @@ def load_profiles(filename):
         with open(filename, encoding='utf-8') as inifile:
             parser.read_file(inifile)
     except (FileNotFoundError, PermissionError) as exc:
-        raise ProfilesError(Messages.MISSING_PROFILES % exc.filename) from exc
+        raise ProfilesError(Messages.MISSING_PROFILES.format(exc.filename)) from exc
     except configparser.Error as exc:
-        raise ProfilesError(Messages.PROFILES_WRONG_SYNTAX % (type(exc).__name__.removesuffix('Error'), exc)) from exc
+        errorname = type(exc).__name__.removesuffix('Error')
+        raise ProfilesError(Messages.PROFILES_WRONG_SYNTAX.format(errorname, exc)) from exc
 
     profiles = {}
     for profile in parser.sections():
@@ -413,7 +414,7 @@ def load_profiles(filename):
                 message = f'Perfil «{profile}»: {exc.msg[0].upper() + exc.msg[1:]}.\n'
                 message += f'  {key} = {exc.pattern}\n'
                 message += '  ' + '_' * (exc.pos + len(key) + len(' = ')) + '^'
-                raise ProfilesError(Messages.PROFILES_WRONG_SYNTAX % ('BadRegex', message)) from exc
+                raise ProfilesError(Messages.PROFILES_WRONG_SYNTAX.format('BadRegex', message)) from exc
     return {key: value for key, value in profiles.items() if value}
 
 
@@ -542,7 +543,7 @@ def spreadsheet_handler(source_filename):
         details = str(exc).strip('"')
         details = details[0].lower() + details[1:]
         logging.error('Invalid spreadsheet file (%s): %s.', type(exc).__name__, details)
-        raise SourceError(Messages.INPUT_FILE_INVALID % type(exc).__name__) from exc
+        raise SourceError(Messages.INPUT_FILE_INVALID.format(type(exc).__name__)) from exc
     sink_workbook = load_workbook(sink_filename)
     yield True  # Successful initialization.
 
@@ -769,7 +770,7 @@ def main(*args):
     try:
         profiles = load_profiles(INIFILE_PATH)
         if not profiles:
-            raise ProfilesError(Messages.EMPTY_PROFILES % INIFILE_PATH)
+            raise ProfilesError(Messages.EMPTY_PROFILES.format(INIFILE_PATH))
         logging.debug('Se obtuvieron los siguientes perfiles: %s.', list(profiles.keys()))
     except ProfilesError as exc:
         error(exc.details)
@@ -789,7 +790,7 @@ def main(*args):
             logging.info('    %s', url)
             metadata = saca_las_mantecas(url)
             if metadata is None:
-                logging.info(Messages.HANDLER_ERROR, HandlerErrors.NO_METADATA)
+                logging.info(Messages.HANDLER_ERROR.format(HandlerErrors.NO_METADATA))
                 logging.debug('ERROR, %s.', HandlerErrors.NO_METADATA)
             handler.send(metadata)
 
