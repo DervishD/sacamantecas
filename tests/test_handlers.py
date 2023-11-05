@@ -80,10 +80,10 @@ def test_missing_source(tmp_path, suffix, handler):  # pylint: disable=unused-va
     assert excinfo.value.details.startswith(sm.Messages.INPUT_FILE_NOT_FOUND)
 
 
-@pytest.mark.parametrize('filename, handler', [
-    ('unreadable.txt', sm.textfile_handler),
-    ('unreadable.xlsx', sm.spreadsheet_handler)
-])
+@pytest.mark.parametrize('unreadable_file, handler', [
+    ('unreadable_textfile.txt', sm.textfile_handler),
+    ('unreadable_spreadsheet.xlsx', sm.spreadsheet_handler)
+], indirect=['unreadable_file'])
 def test_input_no_permission(unreadable_file, handler):  # pylint: disable=unused-variable
     """."""
     handler = handler(unreadable_file)

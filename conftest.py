@@ -21,9 +21,9 @@ def log_paths(tmp_path):  # pylint: disable=unused-variable
 
 
 @pytest.fixture()
-def unreadable_file(tmp_path, filename):  # pylint: disable=unused-variable
+def unreadable_file(tmp_path, request):  # pylint: disable=unused-variable
     """Create a file which is unreadable by the current user."""
-    filename = tmp_path / filename
+    filename = tmp_path / request.param
     filename.write_text('')
 
     subprocess.run(['icacls', str(filename), '/deny', f'{os.environ["USERNAME"]}:R'], check=True)
