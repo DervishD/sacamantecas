@@ -8,7 +8,11 @@ def test_logging_setup(log_paths, monkeypatch):  # pylint: disable=unused-variab
     monkeypatch.setattr('sacamantecas.LOGFILE_PATH', log_paths.log)
     monkeypatch.setattr('sacamantecas.DEBUGFILE_PATH', log_paths.debug)
 
+    assert not log_paths.log.is_file()
+    assert not log_paths.debug.is_file()
+
     assert main() == ExitCodes.NO_ARGUMENTS
+
     assert log_paths.log.is_file()
     assert log_paths.debug.is_file()
 
