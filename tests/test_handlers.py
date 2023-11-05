@@ -1,6 +1,5 @@
 #! /usr/bin/env python3
 """Test suite for the different handlers of URL sources / metadata sinks."""
-import os
 from pathlib import Path
 from random import choice, randrange
 from uuid import uuid4
@@ -92,19 +91,18 @@ def test_input_no_permission(unreadable_file, handler):  # pylint: disable=unuse
     assert excinfo.value.details.startswith(sm.Messages.INPUT_FILE_NO_PERMISSION)
 
 
-@pytest.mark.parametrize('source, filename, handler', [
-    ('http://s.url', sm.generate_sink_filename(sm.url_to_filename('http://s.url').with_suffix('.txt')), sm.single_url_handler),
-    (Path('s.txt'), sm.generate_sink_filename(Path('s.txt')), sm.textfile_handler),
-    (Path('s.xlsx'), sm.generate_sink_filename(Path('s.xlsx')), sm.spreadsheet_handler)
-])
-def test_output_no_permission(source, unreadable_file, handler):  # pylint: disable=unused-variable
+@pytest.mark.parametrize('source, unwritable_file, handler', [
+    ('http://s.url', f'unwritable_single_url{sm.SINK_FILENAME_STEM_MARKER}.txt', sm.single_url_handler),
+    ('s.txt', f'unwritable_textfile{sm.SINK_FILENAME_STEM_MARKER}.txt', sm.textfile_handler),
+    ('s.xlsx', f'unwritable_spreadsheet{sm.SINK_FILENAME_STEM_MARKER}.xlsx', sm.spreadsheet_handler)
+], indirect=['unwritable_file'])
+def test_output_no_permission(tmp_path, monkeypatch, source, unwritable_file, handler):  # pylint: disable=unused-variable
     """."""
-    os.chdir(unreadable_file.parent)
-    if isinstance(source, Path):
+    monkeypatch.setattr(sm, 'generate_sink_filename', lambda _: unwritable_file)
+    if not source.startswith('http://'):
+        source = tmp_path / source
         source.write_text('')
     handler = handler(source)
     with pytest.raises(sm.SourceError) as excinfo:
         sm.bootstrap(handler)
-    if isinstance(source, Path):
-        source.unlink()
     assert excinfo.value.details.startswith(sm.Messages.OUTPUT_FILE_NO_PERMISSION)

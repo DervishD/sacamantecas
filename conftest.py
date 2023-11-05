@@ -31,3 +31,16 @@ def unreadable_file(tmp_path, request):  # pylint: disable=unused-variable
     subprocess.run(['icacls', str(filename), '/grant', f'{os.environ["USERNAME"]}:R'], check=True)
 
     filename.unlink()
+
+
+@pytest.fixture()
+def unwritable_file(tmp_path, request):  # pylint: disable=unused-variable
+    """Create a file which is not writable by the current user."""
+    filename = tmp_path / request.param
+    filename.write_text('')
+
+    subprocess.run(['icacls', str(filename), '/deny', f'{os.environ["USERNAME"]}:W'], check=True)
+    yield filename
+    subprocess.run(['icacls', str(filename), '/grant', f'{os.environ["USERNAME"]}:W'], check=True)
+
+    filename.unlink()
