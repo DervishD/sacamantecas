@@ -110,8 +110,8 @@ META_REFRESH_RE = rb'<meta http-equiv="refresh" content="(?:[^;]+;\s+)?URL=([^"]
 META_HTTP_EQUIV_CHARSET_RE = rb'<meta http-equiv="content-type".*charset="([^"]+)"'
 # Regex for <meta charset…> detection and parsing.
 META_CHARSET_RE = rb'<meta charset="([^"]+)"'
-# Stem suffix for output files.
-OUTPUT_FILE_STEM_MARKER = '_out'
+# Stem marker for sink filenames.
+SINK_FILENAME_STEM_MARKER = '_out'
 
 # Needed for having VERY basic logging when the code is imported rather than run.
 logging.basicConfig(level=logging.NOTSET, format='%(levelname).1s %(message)s', force=True)
@@ -152,6 +152,13 @@ def is_accepted_url(value):
         return urlparse(value).scheme in ACCEPTED_URL_SCHEMES
     except ValueError:
         return False
+
+
+def generate_sink_filename(base_filename):
+    """
+    Generate a filename usable as data sink, based upon base_filename.
+    """
+    return base_filename.with_stem(base_filename.stem + SINK_FILENAME_STEM_MARKER)
 
 
 def wait_for_keypress():
@@ -469,8 +476,7 @@ def single_url_handler(url):
 
     The output file has UTF-8 encoding.
     """
-    sink_filename = url_to_filename(url).with_suffix('.txt')
-    sink_filename = sink_filename.with_stem(sink_filename.stem + OUTPUT_FILE_STEM_MARKER)
+    sink_filename = generate_sink_filename(url_to_filename(url).with_suffix('.txt'))
     with open(sink_filename, 'w+', encoding='utf-8') as sink:
         logging.debug('Volcando metadatos a «%s».', sink_filename)
         yield True  # Successful initialization.
@@ -500,7 +506,7 @@ def textfile_handler(source_filename):
 
     All files are assumed to have UTF-8 encoding.
     """
-    sink_filename = source_filename.with_stem(source_filename.stem + OUTPUT_FILE_STEM_MARKER)
+    sink_filename = generate_sink_filename(source_filename)
     with open(source_filename, encoding='utf-8') as source:
         with open(sink_filename, 'w', encoding='utf-8') as sink:
             logging.debug('Volcando metadatos a «%s».', sink_filename)
@@ -533,7 +539,7 @@ def spreadsheet_handler(source_filename):
     NOTE: not all sheets are processed, only the first one because it is the one
     where the URLs for the items are. Allegedly…
     """
-    sink_filename = source_filename.with_stem(source_filename.stem + OUTPUT_FILE_STEM_MARKER)
+    sink_filename = generate_sink_filename(source_filename)
     logging.debug('Copiando workbook a «%s».', sink_filename)
 
     copy2(source_filename, sink_filename)
@@ -637,7 +643,7 @@ def bootstrap(handler):
     except FileNotFoundError as exc:
         raise SourceError(Messages.INPUT_FILE_NOT_FOUND) from exc
     except PermissionError as exc:
-        if Path(exc.filename).stem.endswith(OUTPUT_FILE_STEM_MARKER):
+        if Path(exc.filename).stem.endswith(SINK_FILENAME_STEM_MARKER):
             raise SourceError(Messages.OUTPUT_FILE_NO_PERMISSION) from exc
         raise SourceError(Messages.INPUT_FILE_NO_PERMISSION) from exc
 

@@ -17,28 +17,34 @@ SAMPLE_URLS = [f'{choice(sm.ACCEPTED_URL_SCHEMES)}://subdomain{i}.domain.tld' fo
 EXPECTED = [True] + [item for url in SAMPLE_URLS for item in (url, None)]
 
 
-def test_single_url_handler():  # pylint: disable=unused-variable
+def test_single_url_handler(monkeypatch, tmp_path):  # pylint: disable=unused-variable
     """Test single URLs."""
     result = sm.url_to_filename('url://subdomain.domain.toplevel/path?param1=value1&param2=value2')
     expected = Path('url___subdomain_domain_toplevel_path_param1_value1_param2_value2')
     assert result == expected
 
+    sink_filename = tmp_path / f'testsink{sm.SINK_FILENAME_STEM_MARKER}.txt'
+    monkeypatch.setattr(sm, 'generate_sink_filename', lambda _: sink_filename)
     result = list(sm.single_url_handler(SAMPLE_URLS[0]))
+    assert sink_filename.is_file()
     assert result == EXPECTED[0:3]
 
 
-def test_textfile_handler(tmp_path):  # pylint: disable=unused-variable
+def test_textfile_handler(monkeypatch, tmp_path):  # pylint: disable=unused-variable
     """Test textfile handler."""
-    filename = tmp_path / 'urls.txt'
-    filename.write_text('\n'.join(SAMPLE_URLS), encoding='utf-8')
-    result = list(sm.textfile_handler(filename))
+    source_filename = tmp_path / 'urls.txt'
+    source_filename.write_text('\n'.join(SAMPLE_URLS), encoding='utf-8')
+    sink_filename = tmp_path / f'testsink{sm.SINK_FILENAME_STEM_MARKER}.txt'
+    monkeypatch.setattr(sm, 'generate_sink_filename', lambda _: sink_filename)
+    result = list(sm.textfile_handler(source_filename))
+    assert sink_filename.is_file()
     assert result == EXPECTED
 
 
-def test_spreadsheet_handler(tmp_path):  # pylint: disable=unused-variable
+def test_spreadsheet_handler(monkeypatch, tmp_path):  # pylint: disable=unused-variable
     """Test spreadsheet handler."""
     columns = 10
-    filename = tmp_path / 'urls.xlsx'
+    source_filename = tmp_path / 'urls.xlsx'
     headings = [f'Heading_{i}' for i in range(columns)]
 
     workbook = Workbook()
@@ -52,10 +58,13 @@ def test_spreadsheet_handler(tmp_path):  # pylint: disable=unused-variable
         row.insert(randrange(len(row)), url)
         sheet.append(row)
 
-    workbook.save(filename)
+    workbook.save(source_filename)
     workbook.close()
 
-    result = list(sm.spreadsheet_handler(filename))
+    sink_filename = tmp_path / f'testsink{sm.SINK_FILENAME_STEM_MARKER}.xlsx'
+    monkeypatch.setattr(sm, 'generate_sink_filename', lambda _: sink_filename)
+    result = list(sm.spreadsheet_handler(source_filename))
+    assert sink_filename.is_file()
     assert result == EXPECTED
 
 
@@ -84,21 +93,9 @@ def test_input_no_permission(unreadable_file, handler):  # pylint: disable=unuse
 
 
 @pytest.mark.parametrize('source, filename, handler', [
-    (
-        'http://s.url',
-        Path(str(sm.url_to_filename('http://s.url')) + sm.OUTPUT_FILE_STEM_MARKER).with_suffix('.txt'),
-        sm.single_url_handler
-    ),
-    (
-        Path('s.txt'),
-        Path('s.txt').with_stem(Path('s.txt').stem + sm.OUTPUT_FILE_STEM_MARKER),
-        sm.textfile_handler
-    ),
-    (
-        Path('s.xlsx'),
-        Path('s.xlsx').with_stem(Path('s.xlsx').stem + sm.OUTPUT_FILE_STEM_MARKER),
-        sm.spreadsheet_handler
-    )
+    ('http://s.url', sm.generate_sink_filename(sm.url_to_filename('http://s.url').with_suffix('.txt')), sm.single_url_handler),
+    (Path('s.txt'), sm.generate_sink_filename(Path('s.txt')), sm.textfile_handler),
+    (Path('s.xlsx'), sm.generate_sink_filename(Path('s.xlsx')), sm.spreadsheet_handler)
 ])
 def test_output_no_permission(source, unreadable_file, handler):  # pylint: disable=unused-variable
     """."""
