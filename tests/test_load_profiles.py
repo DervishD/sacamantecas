@@ -13,7 +13,7 @@ def test_missing(tmp_path):  # pylint: disable=unused-variable
     filename = str(tmp_path / 'non_existent.ini')
     with pytest.raises(ProfilesError) as excinfo:
         load_profiles(filename)
-    assert excinfo.value.details == Messages.MISSING_PROFILES.format(filename)
+    assert str(excinfo.value) == Messages.MISSING_PROFILES.format(filename)
 
 
 @pytest.mark.parametrize('unreadable_file', ['unreadable_profiles.ini'])
@@ -21,7 +21,7 @@ def test_unreadable(unreadable_file):  # pylint: disable=unused-variable
     """Test for unreadable profiles configuration file."""
     with pytest.raises(ProfilesError) as excinfo:
         load_profiles(str(unreadable_file))
-    assert excinfo.value.details == Messages.MISSING_PROFILES.format(unreadable_file)
+    assert str(excinfo.value) == Messages.MISSING_PROFILES.format(unreadable_file)
 
 
 @pytest.mark.parametrize('text', ['', '[s]'])
@@ -46,7 +46,7 @@ def test_syntax_errors(tmp_path, text, error):  # pylint: disable=unused-variabl
 
     with pytest.raises(ProfilesError) as excinfo:
         load_profiles(str(filename))
-    assert excinfo.value.details.startswith(Messages.PROFILES_WRONG_SYNTAX.format(error, ''))
+    assert str(excinfo.value).startswith(Messages.PROFILES_WRONG_SYNTAX.format(error, ''))
 
     filename.unlink()
 

@@ -76,7 +76,7 @@ def test_missing_source(tmp_path, suffix, handler):  # pylint: disable=unused-va
     handler = handler(tmp_path / f'non_existent{suffix}')
     with pytest.raises(sm.SourceError) as excinfo:
         sm.bootstrap(handler)
-    assert excinfo.value.details.startswith(sm.Messages.INPUT_FILE_NOT_FOUND)
+    assert str(excinfo.value).startswith(sm.Messages.INPUT_FILE_NOT_FOUND)
 
 
 @pytest.mark.parametrize('unreadable_file, handler', [
@@ -88,7 +88,7 @@ def test_input_no_permission(unreadable_file, handler):  # pylint: disable=unuse
     handler = handler(unreadable_file)
     with pytest.raises(sm.SourceError) as excinfo:
         sm.bootstrap(handler)
-    assert excinfo.value.details.startswith(sm.Messages.INPUT_FILE_NO_PERMISSION)
+    assert str(excinfo.value).startswith(sm.Messages.INPUT_FILE_NO_PERMISSION)
 
 
 @pytest.mark.parametrize('source, unwritable_file, handler', [
@@ -105,4 +105,4 @@ def test_output_no_permission(tmp_path, monkeypatch, source, unwritable_file, ha
     handler = handler(source)
     with pytest.raises(sm.SourceError) as excinfo:
         sm.bootstrap(handler)
-    assert excinfo.value.details.startswith(sm.Messages.OUTPUT_FILE_NO_PERMISSION)
+    assert str(excinfo.value).startswith(sm.Messages.OUTPUT_FILE_NO_PERMISSION)

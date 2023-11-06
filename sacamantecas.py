@@ -126,13 +126,9 @@ sys.stderr.reconfigure(encoding='utf-8')
 # Custom errors.
 class ProfilesError(Exception):
     """Raise for profile-related errors."""
-    def __init__ (self, details):
-        self.details = details
 
 class SourceError(Exception):
     """Raise for source-related errors."""
-    def __init__ (self, details):
-        self.details = details
 
 
 def error(message, *args, **kwargs):
@@ -779,7 +775,7 @@ def main(*args):
             raise ProfilesError(Messages.EMPTY_PROFILES.format(INIFILE_PATH))
         logging.debug('Se obtuvieron los siguientes perfiles: %s.', list(profiles.keys()))
     except ProfilesError as exc:
-        error(exc.details)
+        error(exc)
         return ExitCodes.ERROR
 
     logging.info(Messages.SKIMMING_MARKER)
@@ -788,7 +784,7 @@ def main(*args):
         try:
             bootstrap(handler)
         except SourceError as exc:
-            warning(exc.details)
+            warning(exc)
             exitcode = ExitCodes.WARNING
             continue
 
