@@ -10,6 +10,7 @@ import configparser
 from ctypes import byref, c_uint, create_unicode_buffer, WinDLL, wintypes
 from enum import IntEnum, StrEnum
 import errno
+from http.client import HTTPException
 import logging
 from logging.config import dictConfig
 from msvcrt import get_osfhandle, getch
@@ -21,7 +22,7 @@ import sys
 import time
 import traceback as tb
 from types import SimpleNamespace
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 from urllib.parse import quote, unquote, urlparse, urlunparse
 from urllib.request import urlopen, Request
 from zipfile import BadZipFile
@@ -79,6 +80,10 @@ class Messages(StrEnum):
     INPUT_FILE_NOT_FOUND = 'No se encontró el fichero de entrada.'
     OUTPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para crear el fichero de salida.'
     INPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para leer el fichero de entrada.'
+    HTTP_PROTOCOL_ERROR = 'Error de protocolo HTTP {}: {}.'
+    URL_ACCESS_ERROR = 'Error accediendo a «{}».'
+    HTTP_RETRIEVAL_ERROR = 'Error obteniendo los contenidos de «{}».'
+    CONNECTION_ERROR = 'Error de conexión «{}» accediendo a «{}».'
     HANDLER_ERROR = '     ↪ ERROR, {}.'
     APP_DONE = '\nProceso finalizado.'
     DEBUGGING_DONE = 'Registro de depuración finalizado.'
@@ -129,6 +134,12 @@ class ProfilesError(Exception):
 
 class SourceError(Exception):
     """Raise for source-related errors."""
+
+class SkimmingError(Exception):
+    """Raise for skimming-related errors."""
+    def __init__ (self, message, reason, *args, **kwargs):
+        self.reason = reason
+        super().__init__(message, *args, **kwargs)
 
 
 def error(message, *args, **kwargs):
@@ -652,7 +663,40 @@ def saca_las_mantecas(url):
 
     Return obtained metadata as a dictionary.
     """
-    retrieve_url(url)
+    try:
+        retrieve_url(url)
+    except URLError as exc:
+        # Depending on the particular error which happened, the reason attribute
+        # of the URLError exception can be a simple error message, an instance
+        # of some OSError derived Exception, etc. So, in order to have useful
+        # messages, some discrimination has to be done here.
+        if isinstance(exc.reason, OSError):
+            try:
+                error_code = f' [{errno.errorcode[exc.reason.errno]}]'
+            except KeyError:
+                error_code = f' [{exc.reason.errno}]'
+            except AttributeError:
+                error_code = ''
+            reason = f'{exc.reason.strerror.capitalize()}{error_code}.'
+        elif isinstance(exc, HTTPError):
+            reason = Messages.HTTP_PROTOCOL_ERROR.format(exc.code, exc.reason.capitalize())
+        else:
+            reason = exc.reason
+        raise SkimmingError(Messages.URL_ACCESS_ERROR.format(url), reason) from exc
+    # Apparently, HTTPException, ConnectionError and derived exceptions are
+    # masked or wrapped by urllib, and documentation is not very informative.
+    # So, just in case something weird happen, it is better to handle these
+    # exception types as well.
+    except HTTPException as exc:
+        raise SkimmingError(Messages.HTTP_RETRIEVAL_ERROR.format(url), type(exc).__name__) from exc
+    except ConnectionError as exc:
+        try:
+            error_code = errno.errorcode[exc.errno]
+        except (AttributeError, KeyError):
+            error_code = 'desconocido'
+        reason = f'{exc.strerror.capitalize().rstrip(".")}.'
+        raise SkimmingError(Messages.CONNECTION_ERROR.format(error_code, url), reason) from exc
+
     return {'key_1': 'value_1', 'key_2': 'value_2', 'key_3': 'value_3'}
 
 
@@ -790,7 +834,12 @@ def main(*args):
 
         for url in handler:
             logging.info('    %s', url)
-            metadata = saca_las_mantecas(url)
+            try:
+                metadata = saca_las_mantecas(url)
+            except SkimmingError as exc:
+                warning(exc)
+                exitcode = ExitCodes.WARNING
+                continue
             if metadata is None:
                 logging.info(Messages.HANDLER_ERROR.format(HandlerErrors.NO_METADATA))
                 logging.debug('ERROR, %s.', HandlerErrors.NO_METADATA)
