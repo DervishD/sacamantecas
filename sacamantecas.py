@@ -688,7 +688,8 @@ def saca_las_mantecas(url):
     # So, just in case something weird happen, it is better to handle these
     # exception types as well.
     except HTTPException as exc:
-        raise SkimmingError(Messages.HTTP_RETRIEVAL_ERROR.format(url), type(exc).__name__) from exc
+        reason = f'{type(exc).__name__}: {str(exc)}.'
+        raise SkimmingError(Messages.HTTP_RETRIEVAL_ERROR.format(url), reason) from exc
     except ConnectionError as exc:
         try:
             error_code = errno.errorcode[exc.errno]
