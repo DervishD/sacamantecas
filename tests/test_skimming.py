@@ -1,7 +1,8 @@
 #! /usr/bin/env python3
 """Test suite for the skimming process (sacar las mantecas)."""
-from socket import socket
 from errno import errorcode
+from http.client import HTTPConnection, HTTPException
+from socket import socket
 
 import pytest
 
@@ -18,14 +19,24 @@ CONNREFUSED_MSG = 'No se puede establecer una conexión ya que el equipo de dest
     ('http://nonexistent', 'Getaddrinfo failed [11001].')
 ])
 def test_url_errors(url, expected):  # pylint: disable=unused-variable
-    """Test connection errors."""
+    """Test URL retrieval errors."""
     with pytest.raises(SkimmingError) as excinfo:
         saca_las_mantecas(url)
     assert str(excinfo.value) == Messages.URL_ACCESS_ERROR.format(url)
     assert excinfo.value.reason == expected
 
 
-# FIXME: add test for HTTPException errors, too
+def test_http_errors(monkeypatch):  # pylint: disable=unused-variable
+    """Test HTTP errors."""
+    host = 'domain.tld'
+    port = 'port'
+    url = f'http://{host}:{port}'
+    monkeypatch.setattr('sacamantecas.retrieve_url', lambda _: HTTPConnection(f'{host}:{port}'))
+    with pytest.raises(SkimmingError) as excinfo:
+        saca_las_mantecas(url)
+    assert isinstance(excinfo.value.__cause__, HTTPException)
+    assert str(excinfo.value) == Messages.HTTP_RETRIEVAL_ERROR.format(url)
+    assert excinfo.value.reason == f"InvalidURL: nonnumeric port: '{port}'."
 
 
 def test_connection_errors(monkeypatch):  # pylint: disable=unused-variable
