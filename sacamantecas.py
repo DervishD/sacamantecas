@@ -802,7 +802,7 @@ def main(*args):
     """."""
     exitcode = ExitCodes.SUCCESS
 
-    if len(args) == 0:
+    if not args:
         # Input arguments should be provided automatically to the application if
         # it is used as a drag'n'drop target which is actually the intended way
         # of operation, generally speaking.
