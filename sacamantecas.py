@@ -1,8 +1,11 @@
 #! /usr/bin/env python3
 """See "README.md" for details."""
 
-__version__ = 'v5.0alpha'
-__appname__ = f'sacamantecas {__version__}'
+__v_major__ = '5'
+__v_minor__ = '0'
+__v_patch__ = '0'
+__v_alpha__ = 'alpha'
+__appname__ = f'sacamantecas v{__v_major__}.{__v_minor__}.{__v_patch__}-{__v_alpha__}'
 
 
 import atexit

@@ -350,12 +350,17 @@ def main():
         return 1
 
     with open(CONFIG.program_path, encoding='utf-8') as program:
+        CONFIG.program_version = ''
+        semver = {}
         for line in program.readlines():
-            if line.startswith('__version__'):
-                CONFIG.program_version = line.strip().split(' = ')[1].strip("'")
+            if line.startswith('__v_'):
+                v_key, v_value = line.strip().split(' = ')
+                semver[v_key] = v_value.strip("'")
+            if line.startswith('__appname__'):
+                CONFIG.program_version = f'''{{{line.strip().split(' = ')[1].split(' v{')[1][:-1]}'''.format(**semver)
                 break
 
-    if (target := process_argv()) is None:
+    if not CONFIG.program_version or (target := process_argv()) is None:
         return 1
 
     if target.__name__ == 'target_help':
