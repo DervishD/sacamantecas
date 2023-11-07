@@ -84,14 +84,10 @@ class Messages(StrEnum):
     URL_ACCESS_ERROR = 'Error accediendo a «{}».'
     HTTP_RETRIEVAL_ERROR = 'Error obteniendo los contenidos de «{}».'
     CONNECTION_ERROR = 'Error de conexión «{}» accediendo a «{}».'
+    NO_CONTENTS_ERROR = 'No se recibieron contenidos de «{}».'
     HANDLER_ERROR = '     ↪ ERROR, {}.'
     APP_DONE = '\nProceso finalizado.'
     DEBUGGING_DONE = 'Registro de depuración finalizado.'
-
-
-class HandlerErrors(StrEnum):
-    """Errors for source handlers."""
-    NO_METADATA = 'no hay metadatos'
 
 
 try:
@@ -664,7 +660,7 @@ def saca_las_mantecas(url):
     Return obtained metadata as a dictionary.
     """
     try:
-        retrieve_url(url)
+        contents = retrieve_url(url)
     except URLError as exc:
         # Depending on the particular error which happened, the reason attribute
         # of the URLError exception can be a simple error message, an instance
@@ -697,6 +693,9 @@ def saca_las_mantecas(url):
             error_code = 'desconocido'
         reason = f'{exc.strerror.capitalize().rstrip(".")}.'
         raise SkimmingError(Messages.CONNECTION_ERROR.format(error_code, url), reason) from exc
+
+    if not contents:
+        raise SkimmingError(Messages.NO_CONTENTS_ERROR.format(url), '')
 
     return {'key_1': 'value_1', 'key_2': 'value_2', 'key_3': 'value_3'}
 
@@ -835,16 +834,18 @@ def main(*args):
 
         for url in handler:
             logging.info('    %s', url)
+            metadata = {}
             try:
                 metadata = saca_las_mantecas(url)
             except SkimmingError as exc:
                 warning(exc)
+                logging.debug(exc.reason)
                 exitcode = ExitCodes.WARNING
-                continue
-            if metadata is None:
-                logging.info(Messages.HANDLER_ERROR.format(HandlerErrors.NO_METADATA))
-                logging.debug('ERROR, %s.', HandlerErrors.NO_METADATA)
-            handler.send(metadata)
+            finally:
+                # No matter if metadata has actual contents or not, the handler
+                # has to be 'advanced' to the next URL, so the metadata it is
+                # expecting has to be sent to the handler.
+                handler.send(metadata)
 
     return exitcode
 
