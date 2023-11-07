@@ -99,10 +99,12 @@ except NameError:
     sys.exit(Messages.INITIALIZATION_ERROR)
 SCRIPT_PATH = Path(SCRIPT_PATH).resolve()
 INIFILE_PATH = SCRIPT_PATH.with_suffix('.ini')
-DEBUGFILE_PATH = Path(f'{SCRIPT_PATH.with_suffix("")}_debug_{TIMESTAMP}.txt')
 LOGFILE_PATH = Path(f'{SCRIPT_PATH.with_suffix("")}_log_{TIMESTAMP}.txt')
+DEBUGFILE_PATH = Path(f'{SCRIPT_PATH.with_suffix("")}_debug_{TIMESTAMP}.txt')
 
 
+# Stem marker for sink filenames.
+SINK_FILENAME_STEM_MARKER = '_out'
 # Accepted set of URL schemes.
 ACCEPTED_URL_SCHEMES = ('https', 'http', 'file')
 # Regex for <meta http-equiv="refresh"…> detection and parsing.
@@ -111,8 +113,7 @@ META_REFRESH_RE = rb'<meta http-equiv="refresh" content="(?:[^;]+;\s+)?URL=([^"]
 META_HTTP_EQUIV_CHARSET_RE = rb'<meta http-equiv="content-type".*charset="([^"]+)"'
 # Regex for <meta charset…> detection and parsing.
 META_CHARSET_RE = rb'<meta charset="([^"]+)"'
-# Stem marker for sink filenames.
-SINK_FILENAME_STEM_MARKER = '_out'
+
 
 # Needed for having VERY basic logging when the code is imported rather than run.
 logging.basicConfig(level=logging.NOTSET, format='%(levelname).1s %(message)s', force=True)
