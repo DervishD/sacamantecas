@@ -89,7 +89,7 @@ class Messages(StrEnum):
     CONNECTION_ERROR = 'Error de conexión «{}» accediendo a «{}».'
     NO_CONTENTS_ERROR = 'No se recibieron contenidos de «{}».'
     HANDLER_ERROR = '     ↪ ERROR, {}.'
-    APP_DONE = '\nProceso finalizado.'
+    APP_DONE = 'Proceso finalizado.'
     DEBUGGING_DONE = 'Registro de depuración finalizado.'
 
 
@@ -108,6 +108,8 @@ DEBUGFILE_PATH = Path(f'{SCRIPT_PATH.with_suffix("")}_debug_{TIMESTAMP}.txt')
 
 # Stem marker for sink filenames.
 SINK_FILENAME_STEM_MARKER = '_out'
+# Logging messages indentation character.
+LOGGING_INDENTCHAR = ' '
 # Accepted set of URL schemes.
 ACCEPTED_URL_SCHEMES = ('https', 'http', 'file')
 # Regex for <meta http-equiv="refresh"…> detection and parsing.
@@ -144,7 +146,11 @@ class SkimmingError(Exception):
 
 def error(message, *args, **kwargs):
     """Helper for prepending a header to error messages."""
-    logging.error(f'{Messages.ERROR_HEADER}{message}', *args, **kwargs)
+    logging.indent(0)
+    logging.error(Messages.ERROR_HEADER)
+    logging.indent(len(Messages.ERROR_HEADER.split(' ')[0]))
+    logging.error(message, *args, **kwargs)
+    logging.indent(0)
 
 
 def warning(message, *args, **kwargs):
@@ -281,34 +287,35 @@ def setup_logging(log_filename, debug_filename):
     Finally, messages with levels over logging.INFO are sent to sys.stderr, also
     without a timestamp.
     """
-    class MultilineFormatter(logging.Formatter):
-        """Simple multiline formatter for logging messages."""
+    class CustomFormatter(logging.Formatter):
+        """Simple custom formatter for logging messages."""
         def format(self, record):
-            """Format multiline records so they look like multiple records."""
+            """
+            Format multiline records so they look like multiple records.
+            Indent message according to current indentation level.
+            """
             message = super().format(record)
             preamble, message = message.partition(record.message)[:2]
-            preamble = preamble.rstrip()
-            message = [f' {line.rstrip()}' if line.strip() else '' for line in message.splitlines()]
-            return '\n'.join([f'{preamble}{line}' for line in message])
-
+            return '\n'.join([f'{preamble}{record.indent}{line.strip()}'.rstrip() for line in message.splitlines()])
 
     logging_configuration = {
         'version': 1,
         'disable_existing_loggers': True,
         'formatters': {
             'debug': {
-                '()': MultilineFormatter,
+                '()': CustomFormatter,
                 'style': '{',
-                'format': '{asctime}.{msecs:04.0f} [{levelname}] {message}',
+                'format': '{asctime}.{msecs:04.0f} {levelname}| {message}',
                 'datefmt': '%Y%m%d_%H%M%S'
             },
             'log': {
-                '()': MultilineFormatter,
+                '()': CustomFormatter,
                 'style': '{',
                 'format': '{asctime} {message}',
                 'datefmt': '%Y%m%d_%H%M%S'
             },
             'console': {
+                '()': CustomFormatter,
                 'style': '{',
                 'format': '{message}'
             },
@@ -379,6 +386,37 @@ def setup_logging(log_filename, debug_filename):
     logging_configuration['loggers']['']['handlers'].append('stderr')
 
     dictConfig(logging_configuration)
+
+    setattr(logging.getLogger(), 'indentlevel', 0)
+
+    current_factory = logging.getLogRecordFactory()
+    longest_level_name_length = len(max(logging.getLevelNamesMapping(), key=len))
+    def record_factory(*args, **kwargs):
+        """LogRecord factory which supports indentation."""
+        record = current_factory(*args, **kwargs)
+        record.indent = LOGGING_INDENTCHAR * logging.getLogger().indentlevel
+        record.levelname = f'{record.levelname:{longest_level_name_length}}'
+        return record
+    logging.setLogRecordFactory(record_factory)
+
+
+def set_logging_indent_level(level):
+    """
+    Set current indentation level.
+    If level is '+', current indentation level is increased.
+    If level is '-', current indentation level is decreased.
+    For any other value, indentation level is set to the provided value.
+    """
+    match level:
+        case '+': logging.getLogger().indentlevel += 1
+        case '-': logging.getLogger().indentlevel -= 1
+        case _: logging.getLogger().indentlevel = level
+# Both logging.indent() and logging.dedent() support a parameter specifying an
+# exact FINAL indentation level, not an indentation increment/decrement!
+# These two helpers are provided in order to improve readability, since the
+# set_logging_indent_level() function can be used directly.
+logging.indent = lambda level = None: set_logging_indent_level('+' if level is None else level)
+logging.dedent = lambda level = None: set_logging_indent_level('-' if level is None else level)
 
 
 def keyboard_interrupt_handler(function):
@@ -822,34 +860,41 @@ def main(*args):
             raise ProfilesError(Messages.EMPTY_PROFILES.format(INIFILE_PATH))
         logging.debug('Se obtuvieron los siguientes perfiles: %s.', list(profiles.keys()))
     except ProfilesError as exc:
-        error(exc)
+        error(str(exc))
         return ExitCodes.ERROR
 
     logging.info(Messages.SKIMMING_MARKER)
+    logging.indent()
     for source, handler in parse_arguments(*args):
-        logging.info('  Fuente: %s', source)
+        logging.info('Fuente: %s', source)
         try:
             bootstrap(handler)
         except SourceError as exc:
-            warning(exc)
+            logging.indent()
+            warning(str(exc))
+            logging.dedent()
             exitcode = ExitCodes.WARNING
             continue
 
+        logging.indent()
         for url in handler:
-            logging.info('    %s', url)
+            logging.info(url)
             metadata = {}
             try:
                 metadata = saca_las_mantecas(url)
             except SkimmingError as exc:
+                logging.indent()
                 warning(exc)
                 logging.debug(exc.reason)
+                logging.dedent()
                 exitcode = ExitCodes.WARNING
             finally:
                 # No matter if metadata has actual contents or not, the handler
                 # has to be 'advanced' to the next URL, so the metadata it is
                 # expecting has to be sent to the handler.
                 handler.send(metadata)
-
+        logging.dedent()
+    logging.dedent()
     return exitcode
 
 

@@ -26,19 +26,24 @@ def test_no_arguments(log_paths, monkeypatch):  # pylint: disable=unused-variabl
 
     result = log_paths.log.read_text(encoding='utf-8').splitlines()
     result = '\n'.join([' '.join(line.split(' ')[1:]) for line in result])
-    expected = f'{Messages.APP_INIT}\n{Messages.ERROR_HEADER}{Messages.NO_ARGUMENTS}\n{Messages.APP_DONE}'
+    expected = '\n'.join((
+        Messages.APP_INIT,
+        Messages.ERROR_HEADER.rstrip(),
+        '\n'.join(f'{"    " if line else ""}{line}' for line in Messages.NO_ARGUMENTS.splitlines()),
+        Messages.APP_DONE
+    ))
     assert result == expected
 
     result = log_paths.debug.read_text(encoding='utf-8').splitlines()
     result = '\n'.join([' '.join(line.split(' ')[1:]) for line in result])
     expected = '\n'.join((
-        f'[DEBUG] {Messages.DEBUGGING_INIT}',
-        f'[INFO] {Messages.APP_INIT}',
-        f'[DEBUG] {Messages.USER_AGENT}',
-        '\n'.join(f'[ERROR]{" " if line else ""}{line}' for line in Messages.ERROR_HEADER.splitlines()),
-        '\n'.join(f'[ERROR]{" " if line else ""}{line}' for line in Messages.NO_ARGUMENTS.splitlines()),
-        '\n'.join(f'[INFO]{" " if line else ""}{line}' for line in Messages.APP_DONE.splitlines()),
-        f'[DEBUG] {Messages.DEBUGGING_DONE}'
+        f'DEBUG   | {Messages.DEBUGGING_INIT}',
+        f'INFO    | {Messages.APP_INIT}',
+        f'DEBUG   | {Messages.USER_AGENT}',
+        '\n'.join(f'ERROR   |{" " if line else ""}{line}' for line in Messages.ERROR_HEADER.splitlines()),
+        '\n'.join(f'ERROR   |{"     " if line else ""}{line}' for line in Messages.NO_ARGUMENTS.splitlines()),
+        '\n'.join(f'INFO    |{" " if line else ""}{line}' for line in Messages.APP_DONE.splitlines()),
+        f'DEBUG   | {Messages.DEBUGGING_DONE}'
     ))
     assert result == expected
 
@@ -53,7 +58,7 @@ def test_missing_ini(log_paths, tmp_path, monkeypatch, capsys):  # pylint: disab
     monkeypatch.setattr('sacamantecas.INIFILE_PATH', filename)
     assert main('') == ExitCodes.ERROR
 
-    result = capsys.readouterr().err.splitlines()[2]
+    result = capsys.readouterr().err.splitlines()[2].strip()
     expected = f'No se encontró o no se pudo leer el fichero de perfiles «{filename}».'
 
     assert result == expected
@@ -70,7 +75,7 @@ def test_ini_syntax_error(log_paths, tmp_path, monkeypatch, capsys):  # pylint: 
     monkeypatch.setattr('sacamantecas.INIFILE_PATH', filename)
     assert main('') == ExitCodes.ERROR
 
-    result = capsys.readouterr().err.splitlines()[2]
+    result = capsys.readouterr().err.splitlines()[2].strip()
     expected = 'Error de sintaxis «MissingSectionHeader» leyendo el fichero de perfiles.'
 
     assert result == expected

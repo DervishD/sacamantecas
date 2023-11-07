@@ -33,39 +33,43 @@ Expected = namedtuple('Expected', ['log', 'debug', 'out','err'])
 @pytest.mark.parametrize('logfunc, expected', [
     (logging.debug, Expected(
         '',
-        f'[DEBUG] {TEST_MESSAGE}',
+        f'DEBUG   | {TEST_MESSAGE}',
         '',
         ''
     )),
     (logging.info, Expected(
         TEST_MESSAGE,
-        f'[INFO] {TEST_MESSAGE}',
+        f'INFO    | {TEST_MESSAGE}',
         f'{TEST_MESSAGE}\n',
         ''
     )),
     (logging.warning, Expected(
         TEST_MESSAGE,
-        f'[WARNING] {TEST_MESSAGE}',
+        f'WARNING | {TEST_MESSAGE}',
         '',
         f'{TEST_MESSAGE}\n'
     )),
     (logging.error, Expected(
         TEST_MESSAGE,
-        f'[ERROR] {TEST_MESSAGE}',
+        f'ERROR   | {TEST_MESSAGE}',
         '',
         f'{TEST_MESSAGE}\n'
     )),
     (warning, Expected(
         f'{WARNING_HEADER}{TEST_MESSAGE}',
-        f'[WARNING] {WARNING_HEADER}{TEST_MESSAGE}',
+        f'WARNING | {WARNING_HEADER}{TEST_MESSAGE}',
         '',
         f'{WARNING_HEADER}{TEST_MESSAGE}\n'
     )),
     (error, Expected(
-        f'{ERROR_HEADER}{TEST_MESSAGE}',
-        '\n'.join(f'[ERROR]{" " if line else ""}{line}' for line in f'{ERROR_HEADER}{TEST_MESSAGE}'.splitlines()),
+        f'{ERROR_HEADER}    {TEST_MESSAGE}',
+        '\n'.join((
+            'ERROR   |',
+            f'ERROR   | {ERROR_HEADER.strip()}',
+            '\n'.join(f'ERROR   |{"     " if line else ""}{line}' for line in TEST_MESSAGE.splitlines())
+        )),
         '',
-        f'{ERROR_HEADER}{TEST_MESSAGE}\n'
+        f'{ERROR_HEADER}    {TEST_MESSAGE}\n'
     ))
 ])
 def test_logging_functions(log_paths, capsys, logfunc, expected):  # pylint: disable=unused-variable
