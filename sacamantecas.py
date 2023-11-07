@@ -67,7 +67,7 @@ class Messages(StrEnum):
     DEBUGGING_INIT = 'Registro de depuración iniciado.'
     APP_INIT = f'{__appname__.replace(" v", " versión ")}'
     USER_AGENT = f'User-Agent: {USER_AGENT}'
-    KEYBOARD_INTERRUPT = '\nEl usuario interrumpión la operación de la aplicación.'
+    KEYBOARD_INTERRUPT = 'El usuario interrumpió la operación de la aplicación.'
     NO_ARGUMENTS = (
         'No se ha especificado un fichero de entrada para ser procesado.\n'
         '\n'
