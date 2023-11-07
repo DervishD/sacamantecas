@@ -552,7 +552,6 @@ def spreadsheet_handler(source_filename):
     except (KeyError, BadZipFile) as exc:
         details = str(exc).strip('"')
         details = details[0].lower() + details[1:]
-        logging.error('Invalid spreadsheet file (%s): %s.', type(exc).__name__, details)
         raise SourceError(Messages.INPUT_FILE_INVALID.format(type(exc).__name__)) from exc
     sink_workbook = load_workbook(sink_filename)
     yield True  # Successful initialization.
