@@ -78,6 +78,7 @@ class Messages(StrEnum):
     MISSING_PROFILES = 'No se encontró o no se pudo leer el fichero de perfiles «{}».'
     PROFILES_WRONG_SYNTAX = 'Error de sintaxis «{}» leyendo el fichero de perfiles.\n{}'
     SKIMMING_MARKER = '\nSacando las mantecas:'
+    SOURCE_LABEL = 'Fuente: {}'
     UNSUPPORTED_SOURCE = 'La fuente no es de un tipo admitido.'
     INPUT_FILE_INVALID = 'El fichero de entrada es inválido ({}).'
     INPUT_FILE_NOT_FOUND = 'No se encontró el fichero de entrada.'
@@ -866,7 +867,7 @@ def main(*args):
     logging.info(Messages.SKIMMING_MARKER)
     logging.indent()
     for source, handler in parse_arguments(*args):
-        logging.info('Fuente: %s', source)
+        logging.info(Messages.SOURCE_LABEL.format(source))
         try:
             bootstrap(handler)
         except SourceError as exc:
