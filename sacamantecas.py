@@ -149,7 +149,7 @@ def error(message, *args, **kwargs):
     logging.indent(0)
     logging.error(Messages.ERROR_HEADER)
     logging.indent(len(Messages.ERROR_HEADER.split(' ')[0]))
-    logging.error(message, *args, **kwargs)
+    logging.error(f'{message}', *args, **kwargs)
     logging.indent(0)
 
 
@@ -860,7 +860,7 @@ def main(*args):
             raise ProfilesError(Messages.EMPTY_PROFILES.format(INIFILE_PATH))
         logging.debug('Se obtuvieron los siguientes perfiles: %s.', list(profiles.keys()))
     except ProfilesError as exc:
-        error(str(exc))
+        error(exc)
         return ExitCodes.ERROR
 
     logging.info(Messages.SKIMMING_MARKER)
@@ -871,7 +871,7 @@ def main(*args):
             bootstrap(handler)
         except SourceError as exc:
             logging.indent()
-            warning(str(exc))
+            warning(exc)
             logging.dedent()
             exitcode = ExitCodes.WARNING
             continue
