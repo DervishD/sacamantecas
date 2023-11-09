@@ -532,8 +532,10 @@ def single_url_handler(url):
             if metadata:
                 sink.write(f'{url}\n')
                 for key, value in metadata.items():
-                    message = f'      {key}: {value}'
+                    message = f'{key}: {value}'
+                    logging.indent()
                     logging.info(message)  # Output allowed here because it is part of the handler.
+                    logging.dedent()
                     sink.write(f'{message}\n')
 
 
