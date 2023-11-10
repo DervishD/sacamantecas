@@ -90,7 +90,7 @@ class Messages(StrEnum):
     CONNECTION_ERROR = 'Error de conexión «{}» accediendo a «{}».'
     NO_CONTENTS_ERROR = 'No se recibieron contenidos de «{}».'
     HANDLER_ERROR = '     ↪ ERROR, {}.'
-    APP_DONE = 'Proceso finalizado.'
+    APP_DONE = '\nProceso finalizado.'
     DEBUGGING_DONE = 'Registro de depuración finalizado.'
 
 
