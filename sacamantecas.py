@@ -123,6 +123,22 @@ META_HTTP_EQUIV_CHARSET_RE = rb'<meta http-equiv="content-type".*charset="([^"]+
 META_CHARSET_RE = rb'<meta charset="([^"]+)"'
 
 
+# Supported profiles schemas, for validation.
+# The 'url' key in 'keys' is MANDATORY for ALL SCHEMAS.
+PROFILE_SCHEMAS = (
+    {  # Old Regime schema.
+        'id': 'Old Regime',
+        'keys': ('url', 'k_class', 'v_class'),
+        'parser': None
+    },
+    {  # Baratz schema.
+        'id': 'Baratz',
+        'keys': ('url', 'm_tag', 'm_attr', 'm_value'),
+        'parser': None
+    }
+)
+
+
 # Needed for having VERY basic logging when the code is imported rather than run.
 logging.basicConfig(level=logging.NOTSET, format='%(levelname).1s %(message)s', force=True)
 
@@ -479,6 +495,13 @@ def load_profiles(filename):
                 message += '  ' + '_' * (exc.pos + len(key) + len(' = ')) + '^'
                 raise ProfilesError(Messages.PROFILES_WRONG_SYNTAX.format('BadRegex'), message) from exc
     return {key: value for key, value in profiles.items() if value}
+
+
+def validate_profiles(profiles):
+    """Validate the list of profiles against the supported profiles schemas."""
+    for profile_id, profile in profiles.items():
+        if not any(set(schema['keys']) == profile.keys() for schema in PROFILE_SCHEMAS):
+            raise ProfilesError(Messages.INVALID_PROFILE.format(profile_id))
 
 
 def parse_arguments(*args):
@@ -872,6 +895,7 @@ def main(*args):
         if not profiles:
             raise ProfilesError(Messages.EMPTY_PROFILES.format(INIFILE_PATH))
         logging.debug('Se obtuvieron los siguientes perfiles: %s.', list(profiles.keys()))
+        validate_profiles(profiles)
     except ProfilesError as exc:
         error(exc, exc.details)
         return ExitCodes.ERROR
