@@ -477,7 +477,7 @@ def load_profiles(filename):
                 message = f'Perfil «{profile}»: {exc.msg[0].upper() + exc.msg[1:]}.\n'
                 message += f'  {key} = {exc.pattern}\n'
                 message += '  ' + '_' * (exc.pos + len(key) + len(' = ')) + '^'
-                raise ProfilesError(Messages.PROFILES_WRONG_SYNTAX.format('BadRegex', message)) from exc
+                raise ProfilesError(Messages.PROFILES_WRONG_SYNTAX.format('BadRegex'), message) from exc
     return {key: value for key, value in profiles.items() if value}
 
 
