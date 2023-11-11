@@ -335,7 +335,7 @@ def setup_logging(log_filename, debug_filename):
             'debug': {
                 '()': lambda: lambda log_record: log_record.msg.strip() and log_record.levelno > logging.NOTSET
             },
-            'info': {
+            'log': {
                 '()': lambda: lambda log_record: log_record.msg.strip() and log_record.levelno >= logging.INFO
             },
             'stdout': {
@@ -368,7 +368,7 @@ def setup_logging(log_filename, debug_filename):
     logging_configuration['handlers']['logfile'] = {
         'level': 'NOTSET',
         'formatter': 'log',
-        'filters': ['info'],
+        'filters': ['log'],
         'class': 'logging.FileHandler',
         'filename': log_filename,
         'mode': 'w',
