@@ -1,5 +1,5 @@
 #! /usr/bin/env python3
-"""Test suite for load_profiles()."""
+"""Test suite for profiles handling."""
 from pathlib import Path
 import re
 

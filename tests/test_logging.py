@@ -1,5 +1,5 @@
 #! /usr/bin/env python3
-"""Test suite for setup_logging()."""
+"""Test suite for the logging system."""
 from collections import namedtuple
 import logging
 

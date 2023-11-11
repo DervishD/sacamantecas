@@ -1,5 +1,5 @@
 #! /usr/bin/env python3
-"""Test suite for main()."""
+"""Test suite for main() function."""
 from sacamantecas import ExitCodes, main, Messages
 
 

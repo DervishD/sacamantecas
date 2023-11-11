@@ -1,5 +1,5 @@
 #! /usr/bin/env python3
-"""Test suite for parse_arguments()."""
+"""Test suite for argument handling."""
 import inspect
 
 import pytest

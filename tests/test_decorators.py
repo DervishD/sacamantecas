@@ -1,5 +1,5 @@
 #! /usr/bin/env python3
-"""Test suite for main decorators."""
+"""Test suite for decorators."""
 import logging
 
 import pytest
