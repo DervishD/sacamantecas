@@ -145,18 +145,18 @@ class SkimmingError(Exception):
         super().__init__(message, *args, **kwargs)
 
 
-def error(message, *args, **kwargs):
+def error(message):
     """Helper for prepending a header to error messages."""
     logging.indent(0)
     logging.error(Messages.ERROR_HEADER)
     logging.indent(len(Messages.ERROR_HEADER.split(' ')[0]))
-    logging.error(f'{message}', *args, **kwargs)
+    logging.error('%s', message)
     logging.indent(0)
 
 
-def warning(message, *args, **kwargs):
+def warning(message):
     """Helper for prepending a header to warning messages."""
-    logging.warning(f'{Messages.WARNING_HEADER}{message}', *args, **kwargs)
+    logging.warning('%s%s', Messages.WARNING_HEADER, message)
 
 
 def is_accepted_url(value):
