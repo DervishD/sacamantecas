@@ -77,7 +77,8 @@ class Messages(StrEnum):
     )
     EMPTY_PROFILES = 'No hay perfiles definidos en el fichero de perfiles «{}».'
     MISSING_PROFILES = 'No se encontró o no se pudo leer el fichero de perfiles «{}».'
-    PROFILES_WRONG_SYNTAX = 'Error de sintaxis «{}» leyendo el fichero de perfiles.\n{}'
+    PROFILES_WRONG_SYNTAX = 'Error de sintaxis «{}» leyendo el fichero de perfiles.'
+    INVALID_PROFILE = 'El perfil «{}» es inválido.'
     SKIMMING_MARKER = '\nSacando las mantecas:'
     SOURCE_LABEL = 'Fuente: {}'
     UNSUPPORTED_SOURCE = 'La fuente no es de un tipo admitido.'
@@ -132,18 +133,21 @@ sys.stdout.reconfigure(encoding='utf-8')
 sys.stderr.reconfigure(encoding='utf-8')
 
 
-# Custom errors.
-class ProfilesError(Exception):
+# Custom exceptions.
+class BaseApplicationError(Exception):
+    """Base class for all custom application exceptions."""
+    def __init__ (self, message, details='', *args, **kwargs):  # pylint: disable=keyword-arg-before-vararg
+        self.details = details
+        super().__init__(message, *args, **kwargs)
+
+class ProfilesError(BaseApplicationError):
     """Raise for profile-related errors."""
 
-class SourceError(Exception):
+class SourceError(BaseApplicationError):
     """Raise for source-related errors."""
 
-class SkimmingError(Exception):
+class SkimmingError(BaseApplicationError):
     """Raise for skimming-related errors."""
-    def __init__ (self, message, reason, *args, **kwargs):
-        self.reason = reason
-        super().__init__(message, *args, **kwargs)
 
 
 def error(message, details=''):
@@ -461,7 +465,7 @@ def load_profiles(filename):
         raise ProfilesError(Messages.MISSING_PROFILES.format(exc.filename)) from exc
     except configparser.Error as exc:
         errorname = type(exc).__name__.removesuffix('Error')
-        raise ProfilesError(Messages.PROFILES_WRONG_SYNTAX.format(errorname, exc)) from exc
+        raise ProfilesError(Messages.PROFILES_WRONG_SYNTAX.format(errorname), exc) from exc
 
     profiles = {}
     for profile in parser.sections():
@@ -723,29 +727,29 @@ def saca_las_mantecas(url):
                 error_code = f' [{exc.reason.errno}]'
             except AttributeError:
                 error_code = ''
-            reason = f'{exc.reason.strerror.capitalize()}{error_code}.'
+            details = f'{exc.reason.strerror.capitalize()}{error_code}.'
         elif isinstance(exc, HTTPError):
-            reason = Messages.HTTP_PROTOCOL_ERROR.format(exc.code, exc.reason.capitalize())
+            details = Messages.HTTP_PROTOCOL_ERROR.format(exc.code, exc.reason.capitalize())
         else:
-            reason = exc.reason
-        raise SkimmingError(Messages.URL_ACCESS_ERROR.format(url), reason) from exc
+            details = exc.reason
+        raise SkimmingError(Messages.URL_ACCESS_ERROR.format(url), details) from exc
     # Apparently, HTTPException, ConnectionError and derived exceptions are
     # masked or wrapped by urllib, and documentation is not very informative.
     # So, just in case something weird happen, it is better to handle these
     # exception types as well.
     except HTTPException as exc:
-        reason = f'{type(exc).__name__}: {str(exc)}.'
-        raise SkimmingError(Messages.HTTP_RETRIEVAL_ERROR.format(url), reason) from exc
+        details = f'{type(exc).__name__}: {str(exc)}.'
+        raise SkimmingError(Messages.HTTP_RETRIEVAL_ERROR.format(url), details) from exc
     except ConnectionError as exc:
         try:
             error_code = errno.errorcode[exc.errno]
         except (AttributeError, KeyError):
             error_code = 'desconocido'
-        reason = f'{exc.strerror.capitalize().rstrip(".")}.'
-        raise SkimmingError(Messages.CONNECTION_ERROR.format(error_code, url), reason) from exc
+        details = f'{exc.strerror.capitalize().rstrip(".")}.'
+        raise SkimmingError(Messages.CONNECTION_ERROR.format(error_code, url), details) from exc
 
     if not contents:
-        raise SkimmingError(Messages.NO_CONTENTS_ERROR.format(url), '')
+        raise SkimmingError(Messages.NO_CONTENTS_ERROR.format(url))
 
     return {'key_1': 'value_1', 'key_2': 'value_2', 'key_3': 'value_3'}
 
@@ -869,7 +873,7 @@ def main(*args):
             raise ProfilesError(Messages.EMPTY_PROFILES.format(INIFILE_PATH))
         logging.debug('Se obtuvieron los siguientes perfiles: %s.', list(profiles.keys()))
     except ProfilesError as exc:
-        error(exc)
+        error(exc, exc.details)
         return ExitCodes.ERROR
 
     logging.info(Messages.SKIMMING_MARKER)
@@ -894,7 +898,7 @@ def main(*args):
             except SkimmingError as exc:
                 logging.indent()
                 warning(exc)
-                logging.debug(exc.reason)
+                logging.debug(exc.details)
                 logging.dedent()
                 exitcode = ExitCodes.WARNING
             finally:

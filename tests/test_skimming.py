@@ -23,7 +23,7 @@ def test_url_errors(url, expected):  # pylint: disable=unused-variable
     with pytest.raises(SkimmingError) as excinfo:
         saca_las_mantecas(url)
     assert str(excinfo.value) == Messages.URL_ACCESS_ERROR.format(url)
-    assert excinfo.value.reason == expected
+    assert excinfo.value.details == expected
 
 
 def test_http_errors(monkeypatch):  # pylint: disable=unused-variable
@@ -36,7 +36,7 @@ def test_http_errors(monkeypatch):  # pylint: disable=unused-variable
         saca_las_mantecas(url)
     assert isinstance(excinfo.value.__cause__, HTTPException)
     assert str(excinfo.value) == Messages.HTTP_RETRIEVAL_ERROR.format(url)
-    assert excinfo.value.reason == f"InvalidURL: nonnumeric port: '{port}'."
+    assert excinfo.value.details == f"InvalidURL: nonnumeric port: '{port}'."
 
 
 def test_connection_errors(monkeypatch):  # pylint: disable=unused-variable
@@ -49,4 +49,4 @@ def test_connection_errors(monkeypatch):  # pylint: disable=unused-variable
         saca_las_mantecas(url)
     assert isinstance(excinfo.value.__cause__, ConnectionError)
     assert str(excinfo.value) == Messages.CONNECTION_ERROR.format(errorcode[CONNREFUSED_ERRNO], url)
-    assert excinfo.value.reason == f'{CONNREFUSED_MSG}.'
+    assert excinfo.value.details == f'{CONNREFUSED_MSG}.'
