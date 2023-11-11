@@ -63,6 +63,7 @@ class Messages(StrEnum):
     """Messages for the application."""
     INITIALIZATION_ERROR = 'Error de inicialización de la aplicación.'
     ERROR_HEADER = f'\n*** Error en {__appname__}\n'
+    ERROR_DETAILS_HEADING = '\nInformación adicional sobre el error:'
     WARNING_HEADER = '* Warning: '
     DEBUGGING_INIT = 'Registro de depuración iniciado.'
     APP_INIT = f'{__appname__.replace(" v", " versión ")}'
@@ -145,12 +146,17 @@ class SkimmingError(Exception):
         super().__init__(message, *args, **kwargs)
 
 
-def error(message):
-    """Helper for prepending a header to error messages."""
+def error(message, details=''):
+    """Helper for preprocessing error messages."""
     logging.indent(0)
     logging.error(Messages.ERROR_HEADER)
     logging.indent(len(Messages.ERROR_HEADER.split(' ')[0]))
     logging.error('%s', message)
+    details = str(details)
+    if details.strip():
+        logging.error(Messages.ERROR_DETAILS_HEADING)
+        logging.error('\n'.join(f'| {line}' for line in details.splitlines()))
+        logging.error('·')
     logging.indent(0)
 
 
