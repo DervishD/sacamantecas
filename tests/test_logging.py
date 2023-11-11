@@ -9,6 +9,7 @@ from sacamantecas import error, Messages, setup_logging, warning
 
 
 ERROR_HEADER = Messages.ERROR_HEADER
+ERROR_DETAILS_HEADING = Messages.ERROR_DETAILS_HEADING
 WARNING_HEADER = Messages.WARNING_HEADER
 
 
@@ -91,3 +92,27 @@ def test_logging_functions(log_paths, capsys, logfunc, expected):  # pylint: dis
     captured_output = capsys.readouterr()
     assert captured_output.out == expected.out
     assert captured_output.err == expected.err
+
+
+def test_error_details(log_paths, capsys):  # pylint: disable=unused-variable
+    """Test handling of details by the error() function."""
+    details = 'Additional details in multiple lines.'.replace(' ', '\n')
+    expected = f'{ERROR_HEADER}    {TEST_MESSAGE}\n\n    {ERROR_DETAILS_HEADING.lstrip()}\n'
+    expected += '\n'.join(f'    | {line}' for line in details.splitlines()) + '\n    ·'
+    setup_logging(log_paths.log, log_paths.debug)
+    error(TEST_MESSAGE, details)
+    logging.shutdown()
+
+    log_file_contents = log_paths.log.read_text(encoding='utf-8').splitlines()
+    log_file_contents = [' '.join(line.split(' ')[1:]) for line in log_file_contents]
+    log_file_contents = '\n'.join(log_file_contents)
+    assert log_file_contents == expected
+
+    debug_file_contents = log_paths.debug.read_text(encoding='utf-8').splitlines()
+    debug_file_contents = [' '.join(line.split(' ')[1:]) for line in debug_file_contents]
+    debug_file_contents = '\n'.join(debug_file_contents)
+    assert debug_file_contents == '\n'.join(f'ERROR   |{" " if line else ""}{line}' for line in expected.splitlines())
+
+    captured_output = capsys.readouterr()
+    assert not captured_output.out
+    assert captured_output.err == f'{expected}\n'
