@@ -87,10 +87,10 @@ class Messages(StrEnum):
     OUTPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para crear el fichero de salida.'
     INPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para leer el fichero de entrada.'
     HTTP_PROTOCOL_ERROR = 'Error de protocolo HTTP {}: {}.'
-    URL_ACCESS_ERROR = 'Error accediendo a «{}».'
-    HTTP_RETRIEVAL_ERROR = 'Error obteniendo los contenidos de «{}».'
-    CONNECTION_ERROR = 'Error de conexión «{}» accediendo a «{}».'
-    NO_CONTENTS_ERROR = 'No se recibieron contenidos de «{}».'
+    URL_ACCESS_ERROR = 'No resultó posible acceder a la dirección especificada.'
+    HTTP_RETRIEVAL_ERROR = 'No se obtuvieron contenidos.'
+    CONNECTION_ERROR = 'Se produjo un error de conexión «{}» accediendo al URL.'
+    NO_CONTENTS_ERROR = 'No se recibieron contenidos del URL.'
     HANDLER_ERROR = '     ↪ ERROR, {}.'
     APP_DONE = '\nProceso finalizado.'
     DEBUGGING_DONE = 'Registro de depuración finalizado.'
@@ -757,24 +757,24 @@ def saca_las_mantecas(url):
             details = Messages.HTTP_PROTOCOL_ERROR.format(exc.code, exc.reason.capitalize())
         else:
             details = exc.reason
-        raise SkimmingError(Messages.URL_ACCESS_ERROR.format(url), details) from exc
+        raise SkimmingError(Messages.URL_ACCESS_ERROR, details) from exc
     # Apparently, HTTPException, ConnectionError and derived exceptions are
     # masked or wrapped by urllib, and documentation is not very informative.
     # So, just in case something weird happen, it is better to handle these
     # exception types as well.
     except HTTPException as exc:
         details = f'{type(exc).__name__}: {str(exc)}.'
-        raise SkimmingError(Messages.HTTP_RETRIEVAL_ERROR.format(url), details) from exc
+        raise SkimmingError(Messages.HTTP_RETRIEVAL_ERROR, details) from exc
     except ConnectionError as exc:
         try:
             error_code = errno.errorcode[exc.errno]
         except (AttributeError, KeyError):
             error_code = 'desconocido'
         details = f'{exc.strerror.capitalize().rstrip(".")}.'
-        raise SkimmingError(Messages.CONNECTION_ERROR.format(error_code, url), details) from exc
+        raise SkimmingError(Messages.CONNECTION_ERROR.format(error_code), details) from exc
 
     if not contents:
-        raise SkimmingError(Messages.NO_CONTENTS_ERROR.format(url))
+        raise SkimmingError(Messages.NO_CONTENTS_ERROR)
 
     return {'key_1': 'value_1', 'key_2': 'value_2', 'key_3': 'value_3'}
 
