@@ -66,15 +66,15 @@ v_class = value_class
 """
 EXPECTED_PROFILES_DICT = {
     'profile1': {
-        'url': re.compile('profile1.domain.tld', re.IGNORECASE),
-        'm_tag': re.compile('tag', re.IGNORECASE),
-        'm_attr': re.compile('attr', re.IGNORECASE),
-        'm_value': re.compile('value', re.IGNORECASE),
+        'url': re.compile(r'profile1.domain.tld', re.IGNORECASE),
+        'm_tag': re.compile(r'tag', re.IGNORECASE),
+        'm_attr': re.compile(r'attr', re.IGNORECASE),
+        'm_value': re.compile(r'value', re.IGNORECASE),
     },
-   'profile2': {
-        'url': re.compile('profile2.domain.tld', re.IGNORECASE),
-        'k_class': re.compile('key_class', re.IGNORECASE),
-        'v_class': re.compile('value_class', re.IGNORECASE),
+    'profile2': {
+        'url': re.compile(r'profile2.domain.tld', re.IGNORECASE),
+        'k_class': re.compile(r'key_class', re.IGNORECASE),
+        'v_class': re.compile(r'value_class', re.IGNORECASE),
     }
 }
 def test_profile_loading(tmp_path):  # pylint: disable=unused-variable
