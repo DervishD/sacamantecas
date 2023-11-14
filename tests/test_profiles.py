@@ -46,7 +46,7 @@ def test_syntax_errors(tmp_path, text, error):  # pylint: disable=unused-variabl
 
     with pytest.raises(ProfilesError) as excinfo:
         load_profiles(str(filename))
-    assert str(excinfo.value).startswith(Messages.PROFILES_WRONG_SYNTAX.format(error, ''))
+    assert str(excinfo.value).startswith(Messages.PROFILES_WRONG_SYNTAX.format(error))
 
     filename.unlink()
 
@@ -59,7 +59,7 @@ m_attr = attr
 m_value = value
 
 [profile2]
-url = profile1.domain.tld
+url = profile2.domain.tld
 k_class = key_class
 v_class = value_class
 """
@@ -71,7 +71,7 @@ EXPECTED_PROFILES_DICT = {
         'm_value': re.compile('value', re.IGNORECASE),
     },
    'profile2': {
-        'url': re.compile('profile1.domain.tld', re.IGNORECASE),
+        'url': re.compile('profile2.domain.tld', re.IGNORECASE),
         'k_class': re.compile('key_class', re.IGNORECASE),
         'v_class': re.compile('value_class', re.IGNORECASE),
     }
