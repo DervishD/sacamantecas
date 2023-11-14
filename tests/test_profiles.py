@@ -6,7 +6,7 @@ import re
 
 import pytest
 
-from sacamantecas import INIFILE_PATH, load_profiles, Messages, validate_profiles, ProfilesError
+from sacamantecas import get_url_profile, INIFILE_PATH, load_profiles, Messages, validate_profiles, ProfilesError
 
 
 def test_missing(tmp_path):  # pylint: disable=unused-variable
@@ -102,3 +102,25 @@ def test_schemas(monkeypatch, profiles, exception):  # pylint: disable=unused-va
     monkeypatch.setattr('sacamantecas.PROFILE_SCHEMAS', PROFILE_SCHEMAS)
     with exception:
         validate_profiles(profiles)
+
+
+PROFILES = {
+    'profile1': {
+        'url': re.compile(r'(optional\.)?(?<!forbidden\.)profile1\.tld'),
+    },
+    'profile2': {
+        'url': re.compile(r'(optional\.)?mandatory\.profile2\.tld'),
+    }
+}
+@pytest.mark.parametrize('url, expected', [
+    ('http://profile1.tld', PROFILES['profile1']),
+    ('http://optional.profile1.tld', PROFILES['profile1']),
+    ('http://mandatory.profile2.tld', PROFILES['profile2']),
+    ('http://optional.mandatory.profile2.tld', PROFILES['profile2']),
+    ('http://optional.forbidden.profile1.tld', None),
+    ('http://profile2.tld', None),
+])
+def test_get_url_profile(url, expected):  # pylint: disable=unused-variable
+    """Test finding profile for URL."""
+    result = get_url_profile(url, PROFILES)
+    assert result == expected
