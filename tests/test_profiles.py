@@ -1,11 +1,12 @@
 #! /usr/bin/env python3
 """Test suite for profiles handling."""
+from contextlib import nullcontext
 from pathlib import Path
 import re
 
 import pytest
 
-from sacamantecas import INIFILE_PATH, load_profiles, Messages, ProfilesError
+from sacamantecas import INIFILE_PATH, load_profiles, Messages, validate_profiles, ProfilesError
 
 
 def test_missing(tmp_path):  # pylint: disable=unused-variable
@@ -83,3 +84,20 @@ def test_profile_loading(tmp_path):  # pylint: disable=unused-variable
     profiles = load_profiles(filename)
     filename.unlink()
     assert profiles == EXPECTED_PROFILES_DICT
+
+PROFILE_SCHEMAS = (
+    {'id': 'Schema A', 'keys': ('url', 'akey_1', 'akey_2', 'akey_3'), 'parser': None},
+    {'id': 'Schema B', 'keys': ('url', 'bkey_1', 'bkey_2', 'bkey_3'), 'parser': None},
+)
+@pytest.mark.parametrize('profiles, exception', [
+    ({'ok_a': {'url': '', 'akey_1': '','akey_2': '', 'akey_3': ''}}, nullcontext()),
+    ({'ok_b': {'url': '', 'bkey_1': '','bkey_2': '', 'bkey_3': ''}}, nullcontext()),
+    ({'bad_extra_keys': {'url': '', 'akey_1': '','akey_2': '', 'akey_3': '', 'k': ''}}, pytest.raises(ProfilesError)),
+    ({'bad_missing_keys': {'url': '', 'bkey_1': '','bkey_2': ''}}, pytest.raises(ProfilesError)),
+    ({'bad_different': {'key1': '', 'key2': '', 'key3': ''}}, pytest.raises(ProfilesError))
+])
+def test_schemas(monkeypatch, profiles, exception):  # pylint: disable=unused-variable
+    """Test profile validation using schemas."""
+    monkeypatch.setattr('sacamantecas.PROFILE_SCHEMAS', PROFILE_SCHEMAS)
+    with exception:
+        validate_profiles(profiles)
