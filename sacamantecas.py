@@ -64,7 +64,7 @@ class Messages(StrEnum):
     INITIALIZATION_ERROR = 'Error de inicialización de la aplicación.'
     ERROR_HEADER = f'\n*** Error en {__appname__}\n'
     ERROR_DETAILS_HEADING = '\nInformación adicional sobre el error:'
-    WARNING_HEADER = '* Warning: '
+    WARNING_HEADER = '* Advertencia: '
     DEBUGGING_INIT = 'Registro de depuración iniciado.'
     APP_INIT = f'{__appname__.replace(" v", " versión ")}'
     USER_AGENT = f'User-Agent: {USER_AGENT}'
@@ -182,6 +182,8 @@ def error(message, details=''):
 
 def warning(message):
     """Helper for prepending a header to warning messages."""
+    message = str(message)
+    message = f'{message[0].lower()}{message[1:]}'
     logging.warning('%s%s', Messages.WARNING_HEADER, message)
 
 

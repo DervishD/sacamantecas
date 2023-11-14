@@ -57,10 +57,10 @@ Expected = namedtuple('Expected', ['log', 'debug', 'out','err'])
         f'{TEST_MESSAGE}\n'
     )),
     (warning, Expected(
-        f'{WARNING_HEADER}{TEST_MESSAGE}',
-        f'WARNING | {WARNING_HEADER}{TEST_MESSAGE}',
+        f'{WARNING_HEADER}{TEST_MESSAGE[0].lower()}{TEST_MESSAGE[1:]}',
+        f'WARNING | {WARNING_HEADER}{TEST_MESSAGE[0].lower()}{TEST_MESSAGE[1:]}',
         '',
-        f'{WARNING_HEADER}{TEST_MESSAGE}\n'
+        f'{WARNING_HEADER}{TEST_MESSAGE[0].lower()}{TEST_MESSAGE[1:]}\n'
     )),
     (error, Expected(
         f'{ERROR_HEADER}    {TEST_MESSAGE}',
