@@ -85,6 +85,7 @@ def test_profile_loading(tmp_path):  # pylint: disable=unused-variable
     filename.unlink()
     assert profiles == EXPECTED_PROFILES_DICT
 
+
 PROFILE_SCHEMAS = (
     {'id': 'Schema A', 'keys': ('url', 'akey_1', 'akey_2', 'akey_3'), 'parser': None},
     {'id': 'Schema B', 'keys': ('url', 'bkey_1', 'bkey_2', 'bkey_3'), 'parser': None},
