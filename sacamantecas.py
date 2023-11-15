@@ -91,7 +91,6 @@ class Messages(StrEnum):
     HTTP_RETRIEVAL_ERROR = 'No se obtuvieron contenidos.'
     CONNECTION_ERROR = 'Se produjo un error de conexión «{}» accediendo al URL.'
     NO_CONTENTS_ERROR = 'No se recibieron contenidos del URL.'
-    HANDLER_ERROR = '     ↪ ERROR, {}.'
     APP_DONE = '\nProceso finalizado.'
     DEBUGGING_DONE = 'Registro de depuración finalizado.'
 
