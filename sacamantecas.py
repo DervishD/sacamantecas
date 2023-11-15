@@ -105,8 +105,13 @@ except NameError:
     sys.exit(Messages.INITIALIZATION_ERROR)
 SCRIPT_PATH = Path(SCRIPT_PATH).resolve()
 INIFILE_PATH = SCRIPT_PATH.with_suffix('.ini')
-LOGFILE_PATH = Path(f'{SCRIPT_PATH.with_suffix("")}_log_{TIMESTAMP}.txt')
-DEBUGFILE_PATH = Path(f'{SCRIPT_PATH.with_suffix("")}_debug_{TIMESTAMP}.txt')
+LOGFILE_PATH = Path(f'{SCRIPT_PATH.with_suffix("")}_log.txt')
+DEBUGFILE_PATH = Path(f'{SCRIPT_PATH.with_suffix("")}_debug.txt')
+if sys.prefix == sys.base_prefix or not __v_alpha__:
+    # Unless running and alpha version within a virtual environment,
+    # add a timestamp marker to log and debug filenames.
+    LOGFILE_PATH = LOGFILE_PATH.with_stem(f'{LOGFILE_PATH.stem}_{TIMESTAMP}')
+    DEBUGFILE_PATH = DEBUGFILE_PATH.with_stem(f'{DEBUGFILE_PATH.stem}_{TIMESTAMP}')
 
 
 # Stem marker for sink filenames.
