@@ -118,7 +118,7 @@ class BParser(BaseParser):  # pylint: disable=unused-variable
     ('[bad_different]\nkey_1= \nkey_2= \nkey_3= \n', pytest.raises(ProfilesError)),
 ])
 def test_profile_validation(monkeypatch, tmp_path, inifile_contents, exception):  # pylint: disable=unused-variable
-    """Test profile validation using schemas."""
+    """Test profile validation using declared parsers."""
     monkeypatch.setattr('sacamantecas.BaseParser', BaseParser)
     with exception:
         inifile = tmp_path / INIFILE_PATH.name

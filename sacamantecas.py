@@ -557,11 +557,11 @@ def load_profiles(filename):
                 raise ProfilesError(Messages.PROFILES_WRONG_SYNTAX.format('BadRegex'), message) from exc
 
     profiles = {key: value for key, value in profiles.items() if value}
-    profile_schemas = [{'keys': parser.REGEX_KEYS, 'parser': parser()} for parser in BaseParser.__subclasses__()]
+    parsers = [parser() for parser in BaseParser.__subclasses__()]
     for profile_id, profile in profiles.items():
-        for schema in profile_schemas:
-            if profile.keys() - {PROFILE_URL_RE_KEY} == set(schema['keys']):
-                profile['parser'] = schema['parser']
+        for parser in parsers:
+            if profile.keys() - {PROFILE_URL_RE_KEY} == parser.REGEX_KEYS:
+                profile['parser'] = parser
                 break
         else:
             raise ProfilesError(Messages.INVALID_PROFILE.format(profile_id))
