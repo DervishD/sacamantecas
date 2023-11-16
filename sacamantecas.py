@@ -534,11 +534,11 @@ def load_profiles(filename):
     The returned dictionary will be empty if no profiles or only empty profiles
     are present in filename.
     """
-    parser = configparser.ConfigParser()
+    config = configparser.ConfigParser()
     logging.debug('Obteniendo perfiles desde «%s».', filename)
     try:
         with open(filename, encoding='utf-8') as inifile:
-            parser.read_file(inifile)
+            config.read_file(inifile)
     except (FileNotFoundError, PermissionError) as exc:
         raise ProfilesError(Messages.MISSING_PROFILES.format(exc.filename)) from exc
     except configparser.Error as exc:
@@ -546,9 +546,9 @@ def load_profiles(filename):
         raise ProfilesError(Messages.PROFILES_WRONG_SYNTAX.format(errorname), exc) from exc
 
     profiles = {}
-    for profile in parser.sections():
+    for profile in config.sections():
         profiles[profile] = {}
-        for key, value in parser[profile].items():
+        for key, value in config[profile].items():
             try:
                 profiles[profile][key] = re.compile(value, re.IGNORECASE) if value else None
             except re.error as exc:
