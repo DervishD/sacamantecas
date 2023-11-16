@@ -114,12 +114,12 @@ if sys.prefix == sys.base_prefix or not __v_alpha__:
     DEBUGFILE_PATH = DEBUGFILE_PATH.with_stem(f'{DEBUGFILE_PATH.stem}_{TIMESTAMP}')
 
 
+# Accepted set of URL schemes.
+ACCEPTED_URL_SCHEMES = ('https', 'http', 'file')
 # Stem marker for sink filenames.
 SINK_FILENAME_STEM_MARKER = '_out'
 # Logging messages indentation character.
 LOGGING_INDENTCHAR = ' '
-# Accepted set of URL schemes.
-ACCEPTED_URL_SCHEMES = ('https', 'http', 'file')
 # Regex for <meta http-equiv="refresh"…> detection and parsing.
 META_REFRESH_RE = rb'<meta http-equiv="refresh" content="(?:[^;]+;\s+)?URL=([^"]+)"'
 # Regex for <meta http-equiv="content-type" charset…> detection and parsing.
