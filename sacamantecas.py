@@ -143,6 +143,7 @@ sys.stderr.reconfigure(encoding='utf-8')
 # Custom exceptions.
 class BaseApplicationError(Exception):
     """Base class for all custom application exceptions."""
+    # cSpell:ignore vararg
     def __init__ (self, message, details='', *args, **kwargs):  # pylint: disable=keyword-arg-before-vararg
         self.details = details
         super().__init__(message, *args, **kwargs)
