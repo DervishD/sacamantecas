@@ -120,6 +120,8 @@ ACCEPTED_URL_SCHEMES = ('https', 'http', 'file')
 SINK_FILENAME_STEM_MARKER = '_out'
 # Logging messages indentation character.
 LOGGING_INDENTCHAR = ' '
+# Key in profiles containing the URL regex.
+PROFILE_URL_RE_KEY = 'url'
 # Regex for <meta http-equiv="refresh"…> detection and parsing.
 META_REFRESH_RE = rb'<meta http-equiv="refresh" content="(?:[^;]+;\s+)?URL=([^"]+)"'
 # Regex for <meta http-equiv="content-type" charset…> detection and parsing.
