@@ -103,13 +103,13 @@ def test_profile_loading(tmp_path):  # pylint: disable=unused-variable
 
 class BaseParser(HTMLParser):
     """Mock base parser."""
-    PARSER_KEYS = {'url'}
+    REGEX_KEYS = set()
 class AParser(BaseParser):  # pylint: disable=unused-variable
     """Mock 'Type A' parser."""
-    PARSER_KEYS = BaseParser.PARSER_KEYS | {'akey_1', 'akey_2', 'akey_3'}
+    REGEX_KEYS = BaseParser.REGEX_KEYS | {'akey_1', 'akey_2', 'akey_3'}
 class BParser(BaseParser):  # pylint: disable=unused-variable
     """Mock 'Type B' parser."""
-    PARSER_KEYS = BaseParser.PARSER_KEYS | {'bkey_1', 'bkey_2', 'bkey_3'}
+    REGEX_KEYS = BaseParser.REGEX_KEYS | {'bkey_1', 'bkey_2', 'bkey_3'}
 @pytest.mark.parametrize('inifile_contents, exception', [
     ('[ok_a]\nurl= \nakey_1= \nakey_2= \nakey_3= \n', nullcontext()),
     ('[ok_b]\nurl= \nbkey_1= \nbkey_2= \nbkey_3= \n', nullcontext()),
