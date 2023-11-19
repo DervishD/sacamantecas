@@ -89,6 +89,7 @@ class Messages(StrEnum):
     INPUT_FILE_NOT_FOUND = 'No se encontró el fichero de entrada.'
     OUTPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para crear el fichero de salida.'
     INPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para leer el fichero de entrada.'
+    NO_MATCHING_PROFILE = 'No se encontró un perfil para procesar el URL.'
     HTTP_PROTOCOL_ERROR = 'Error de protocolo HTTP {}: {}.'
     URL_ACCESS_ERROR = 'No resultó posible acceder a la dirección especificada.'
     HTTP_RETRIEVAL_ERROR = 'No se obtuvieron contenidos.'
@@ -801,11 +802,20 @@ def bootstrap(handler):
         raise SourceError(Messages.INPUT_FILE_NO_PERMISSION) from exc
 
 
-def saca_las_mantecas(url):
+def get_parser(url, profiles):
+    """Find and return parser for url according to its maching profile."""
+    for profile_name, profile in profiles.items():
+        if profile.url_pattern.search(url):
+            logging.debug('Perfil detectado: «%s».', profile_name)
+            parser = profile.parser
+            return parser
+    return None
+
+
+def saca_las_mantecas(url, parser):
     """
     Saca las mantecas from the provided url, that is, retrieve its contents,
-    parse it using the appropriate parser for the URL type, and obtain library
-    catalogue metadata, if any.
+    parse them using parser, and obtain library catalogue metadata, if any.
 
     Return obtained metadata as a dictionary.
     """
@@ -847,6 +857,8 @@ def saca_las_mantecas(url):
     if not contents:
         raise SkimmingError(Messages.NO_CONTENTS_ERROR)
 
+    parser.feed(contents)
+    parser.close()
     return {'key_1': 'value_1', 'key_2': 'value_2', 'key_3': 'value_3'}
 
 
@@ -990,7 +1002,9 @@ def main(*args):
             logging.info(url)
             metadata = {}
             try:
-                metadata = saca_las_mantecas(url)
+                if (parser := get_parser(url, profiles)) is None:
+                    raise SkimmingError(Messages.NO_MATCHING_PROFILE)
+                metadata = saca_las_mantecas(url, parser)
             except SkimmingError as exc:
                 logging.indent()
                 warning(exc)

@@ -8,7 +8,7 @@ import pytest
 
 from sacamantecas import (
     BaratzParser,
-    get_url_profile,
+    get_parser,
     INIFILE_PATH,
     load_profiles,
     Messages,
@@ -133,22 +133,33 @@ def test_profile_validation(monkeypatch, tmp_path, inifile_contents, exception):
 
 
 PROFILES = {
-    'profile1': {
-        'url': re.compile(r'(optional\.)?(?<!forbidden\.)profile1\.tld'),
-    },
-    'profile2': {
-        'url': re.compile(r'(optional\.)?mandatory\.profile2\.tld'),
-    }
+    'profile1': Profile(
+        url_pattern = re.compile(r'(optional\.)?(?<!forbidden\.)profile1\.tld'),
+        parser = BaratzParser(),
+        config = {
+            'm_tag': re.compile(r'tag', re.IGNORECASE),
+            'm_attr': re.compile(r'attr', re.IGNORECASE),
+            'm_value': re.compile(r'value', re.IGNORECASE)
+        }
+    ),
+    'profile2': Profile(
+        url_pattern = re.compile(r'(optional\.)?mandatory\.profile2\.tld'),
+        parser = OldRegimeParser(),
+        config = {
+            'k_class': re.compile(r'key_class', re.IGNORECASE),
+            'v_class': re.compile(r'value_class', re.IGNORECASE)
+        }
+    )
 }
 @pytest.mark.parametrize('url, expected', [
     ('http://profile1.tld', PROFILES['profile1']),
     ('http://optional.profile1.tld', PROFILES['profile1']),
     ('http://mandatory.profile2.tld', PROFILES['profile2']),
     ('http://optional.mandatory.profile2.tld', PROFILES['profile2']),
-    ('http://optional.forbidden.profile1.tld', None),
-    ('http://profile2.tld', None),
+    ('http://optional.forbidden.profile1.tld', Profile(None, None, None)),
+    ('http://profile2.tld', Profile(None, None, None)),
 ])
-def test_get_url_profile(url, expected):  # pylint: disable=unused-variable
-    """Test finding profile for URL."""
-    result = get_url_profile(url, PROFILES)
-    assert result == expected
+def test_get_url_parser(url, expected):  # pylint: disable=unused-variable
+    """Test finding parser for URL."""
+    result = get_parser(url, PROFILES)
+    assert type(result).__name__ == type(expected.parser).__name__

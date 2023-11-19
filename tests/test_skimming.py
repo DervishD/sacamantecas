@@ -21,7 +21,7 @@ CONNREFUSED_MSG = 'No se puede establecer una conexión ya que el equipo de dest
 def test_url_errors(url, expected):  # pylint: disable=unused-variable
     """Test URL retrieval errors."""
     with pytest.raises(SkimmingError) as excinfo:
-        saca_las_mantecas(url)
+        saca_las_mantecas(url, None)
     assert str(excinfo.value) == Messages.URL_ACCESS_ERROR
     assert excinfo.value.details == expected
 
@@ -33,7 +33,7 @@ def test_http_errors(monkeypatch):  # pylint: disable=unused-variable
     url = f'http://{host}:{port}'
     monkeypatch.setattr('sacamantecas.retrieve_url', lambda _: HTTPConnection(f'{host}:{port}'))
     with pytest.raises(SkimmingError) as excinfo:
-        saca_las_mantecas(url)
+        saca_las_mantecas(url, None)
     assert isinstance(excinfo.value.__cause__, HTTPException)
     assert str(excinfo.value) == Messages.HTTP_RETRIEVAL_ERROR
     assert excinfo.value.details == f"InvalidURL: nonnumeric port: '{port}'."
@@ -46,7 +46,7 @@ def test_connection_errors(monkeypatch):  # pylint: disable=unused-variable
     url = f'http://{host}:{port}'
     monkeypatch.setattr('sacamantecas.retrieve_url', lambda _: socket().connect((host, port)))
     with pytest.raises(SkimmingError) as excinfo:
-        saca_las_mantecas(url)
+        saca_las_mantecas(url, None)
     assert isinstance(excinfo.value.__cause__, ConnectionError)
     assert str(excinfo.value) == Messages.CONNECTION_ERROR.format(errorcode[CONNREFUSED_ERRNO])
     assert excinfo.value.details == f'{CONNREFUSED_MSG}.'
