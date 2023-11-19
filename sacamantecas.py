@@ -166,14 +166,14 @@ Profile = namedtuple('Profile', ['url_pattern', 'parser', 'config'])
 # Parsers
 class BaseParser(HTMLParser):
     """Base class for catalogue parsers."""
-    REGEX_KEYS = set()
+    PARAMETERS = set()
 
     def __init__(self, *args, **kwargs):
         """Initialize object."""
         super().__init__(*args, **kwargs)
-        self.regexes = {}
-        for key in self.__class__.REGEX_KEYS:
-            self.regexes[key] = None
+        self.config = {}
+        for key in self.PARAMETERS:
+            self.config[key] = None
 
     def reset(self):
         """Reset parser state. Called implicitly from __init__()."""
@@ -185,13 +185,20 @@ class BaseParser(HTMLParser):
         self.last_k = ''
         self.retrieved_metadata = {}
 
-    def setup(self, regexes):
+    def configure(self, config):
         """
-        Set up the parser with a different set of regexes.
-        This operation implicitly resets the parser.
+        Set up the parser with a different configuration, that is, a different
+        set of values for the suppported parameters.
+
+        Only supported config parameters are used, the rest are ignored.
+
+        This operation also resets the parser.
         """
         self.reset()
-        self.regexes.update(regexes)
+        for key in config:
+            if key not in self.PARAMETERS:
+                continue
+            self.config[key] = config[key]
 
 
 class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
@@ -206,7 +213,7 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
     """
     K_CLASS = 'k_class'
     V_CLASS = 'v_class'
-    REGEX_KEYS = BaseParser.REGEX_KEYS | {K_CLASS, V_CLASS}
+    PARAMETERS = BaseParser.PARAMETERS | {K_CLASS, V_CLASS}
 
 
 # cSpell:ignore Baratz
@@ -227,7 +234,7 @@ class BaratzParser(BaseParser):   # pylint: disable=unused-variable
     M_TAG = 'm_tag'
     M_ATTR = 'm_attr'
     M_VALUE = 'm_value'
-    REGEX_KEYS = BaseParser.REGEX_KEYS | {M_TAG, M_ATTR, M_VALUE}
+    PARAMETERS = BaseParser.PARAMETERS | {M_TAG, M_ATTR, M_VALUE}
 
 
 # Functions
