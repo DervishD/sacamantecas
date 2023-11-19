@@ -134,7 +134,7 @@ def test_profile_validation(monkeypatch, tmp_path, inifile_contents, exception):
 
 PROFILES = {
     'profile1': Profile(
-        url_pattern = re.compile(r'(optional\.)?(?<!forbidden\.)profile1\.tld'),
+        url_pattern = re.compile(r'(optional\.)?(?<!forbidden\.)profile1\.tld', re.IGNORECASE),
         parser = BaratzParser(),
         config = {
             'm_tag': re.compile(r'tag', re.IGNORECASE),
@@ -143,7 +143,7 @@ PROFILES = {
         }
     ),
     'profile2': Profile(
-        url_pattern = re.compile(r'(optional\.)?mandatory\.profile2\.tld'),
+        url_pattern = re.compile(r'(optional\.)?mandatory\.profile2\.tld', re.IGNORECASE),
         parser = OldRegimeParser(),
         config = {
             'k_class': re.compile(r'key_class', re.IGNORECASE),
