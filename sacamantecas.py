@@ -9,6 +9,7 @@ __appname__ = f'sacamantecas v{__v_major__}.{__v_minor__}.{__v_patch__}-{__v_alp
 
 
 import atexit
+from collections import namedtuple
 import configparser
 from ctypes import byref, c_uint, create_unicode_buffer, WinDLL, wintypes
 from enum import IntEnum, StrEnum
@@ -80,6 +81,7 @@ class Messages(StrEnum):
     MISSING_PROFILES = 'No se encontró o no se pudo leer el fichero de perfiles «{}».'
     PROFILES_WRONG_SYNTAX = 'Error de sintaxis «{}» leyendo el fichero de perfiles.'
     INVALID_PROFILE = 'El perfil «{}» es inválido.'
+    PROFILE_WITHOUT_URL = 'El perfil no incluye un patrón de URL.'
     SKIMMING_MARKER = '\nSacando las mantecas:'
     SOURCE_LABEL = 'Fuente: {}'
     UNSUPPORTED_SOURCE = 'La fuente no es de un tipo admitido.'
@@ -120,8 +122,6 @@ ACCEPTED_URL_SCHEMES = ('https', 'http', 'file')
 SINK_FILENAME_STEM_MARKER = '_out'
 # Logging messages indentation character.
 LOGGING_INDENTCHAR = ' '
-# Key in profiles containing the URL regex.
-PROFILE_URL_RE_KEY = 'url'
 # Regex for <meta http-equiv="refresh"…> detection and parsing.
 META_REFRESH_RE = rb'<meta http-equiv="refresh" content="(?:[^;]+;\s+)?URL=([^"]+)"'
 # Regex for <meta http-equiv="content-type" charset…> detection and parsing.
@@ -156,6 +156,10 @@ class SourceError(BaseApplicationError):
 
 class SkimmingError(BaseApplicationError):
     """Raise for skimming-related errors."""
+
+
+# For storing profiles.
+Profile = namedtuple('Profile', ['url_pattern', 'parser', 'config'])
 
 
 # Parsers
@@ -546,26 +550,30 @@ def load_profiles(filename):
         raise ProfilesError(Messages.PROFILES_WRONG_SYNTAX.format(errorname), exc) from exc
 
     profiles = {}
-    for profile in config.sections():
-        profiles[profile] = {}
-        for key, value in config[profile].items():
+    parsers = [parser() for parser in BaseParser.__subclasses__()]
+    for section in config.sections():
+        if not config[section]:
+            continue
+        options = {}
+        for key, value in config[section].items():
+            if not value:
+                continue
             try:
-                profiles[profile][key] = re.compile(value, re.IGNORECASE) if value else None
+                options[key] = re.compile(value, re.IGNORECASE)
             except re.error as exc:
-                message = f'Perfil «{profile}»: {exc.msg[0].upper() + exc.msg[1:]}.\n'
+                message = f'Perfil «{section}»: {exc.msg[0].upper() + exc.msg[1:]}.\n'
                 message += f'  {key} = {exc.pattern}\n'
                 message += '  ' + '_' * (exc.pos + len(key) + len(' = ')) + '^'
                 raise ProfilesError(Messages.PROFILES_WRONG_SYNTAX.format('BadRegex'), message) from exc
-
-    profiles = {key: value for key, value in profiles.items() if value}
-    parsers = [parser() for parser in BaseParser.__subclasses__()]
-    for profile_id, profile in profiles.items():
+        url_pattern = options.pop('url', None)
+        if url_pattern is None:
+            raise ProfilesError(Messages.INVALID_PROFILE.format(section), Messages.PROFILE_WITHOUT_URL)
         for parser in parsers:
-            if profile.keys() - {PROFILE_URL_RE_KEY} == parser.REGEX_KEYS:
-                profile['parser'] = parser
+            if options.keys() == parser.PARAMETERS:
                 break
         else:
-            raise ProfilesError(Messages.INVALID_PROFILE.format(profile_id))
+            raise ProfilesError(Messages.INVALID_PROFILE.format(section))
+        profiles[section] = Profile(url_pattern, parser, options)
     return profiles
 
 

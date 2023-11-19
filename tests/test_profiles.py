@@ -2,7 +2,6 @@
 """Test suite for profiles handling."""
 from contextlib import nullcontext
 from html.parser import HTMLParser
-from pathlib import Path
 import re
 
 import pytest
@@ -14,6 +13,7 @@ from sacamantecas import (
     load_profiles,
     Messages,
     OldRegimeParser,
+    Profile,
     ProfilesError
 )
 
@@ -35,12 +35,12 @@ def test_unreadable(unreadable_file):  # pylint: disable=unused-variable
 
 
 @pytest.mark.parametrize('text', ['', '[s]'])
-def test_empty(tmp_path: Path, text: str) -> None:  # pylint: disable=unused-variable
+def test_empty(tmp_path, text):  # pylint: disable=unused-variable
     """Test for empty profiles configuration file."""
     filename = tmp_path / 'profiles_empty.ini'
     filename.write_text(text)
 
-    assert load_profiles(str(filename)) == {}
+    assert not load_profiles(str(filename))
 
 
 @pytest.mark.parametrize('text, error', [
@@ -74,19 +74,23 @@ k_class = key_class
 v_class = value_class
 """
 EXPECTED_PROFILES = {
-    'profile1': {
-        'url': re.compile(r'profile1.domain.tld', re.IGNORECASE),
-        'm_tag': re.compile(r'tag', re.IGNORECASE),
-        'm_attr': re.compile(r'attr', re.IGNORECASE),
-        'm_value': re.compile(r'value', re.IGNORECASE),
-        'parser': BaratzParser()
-    },
-    'profile2': {
-        'url': re.compile(r'profile2.domain.tld', re.IGNORECASE),
-        'k_class': re.compile(r'key_class', re.IGNORECASE),
-        'v_class': re.compile(r'value_class', re.IGNORECASE),
-        'parser': OldRegimeParser()
-    }
+    'profile1': Profile(
+        url_pattern = re.compile(r'profile1.domain.tld', re.IGNORECASE),
+        parser = BaratzParser(),
+        config = {
+            'm_tag': re.compile(r'tag', re.IGNORECASE),
+            'm_attr': re.compile(r'attr', re.IGNORECASE),
+            'm_value': re.compile(r'value', re.IGNORECASE)
+        }
+    ),
+    'profile2': Profile(
+        url_pattern = re.compile(r'profile2.domain.tld', re.IGNORECASE),
+        parser = OldRegimeParser(),
+        config = {
+            'k_class': re.compile(r'key_class', re.IGNORECASE),
+            'v_class': re.compile(r'value_class', re.IGNORECASE)
+        }
+    )
 }
 def test_profile_loading(tmp_path):  # pylint: disable=unused-variable
     """Test full profile loading."""
@@ -95,27 +99,28 @@ def test_profile_loading(tmp_path):  # pylint: disable=unused-variable
     profiles = load_profiles(filename)
     filename.unlink()
     for profile_id, profile in profiles.items():
-        assert type(profile['parser']).__name__ == type(EXPECTED_PROFILES[profile_id]['parser']).__name__
+        assert type(profile.parser).__name__ == type(EXPECTED_PROFILES[profile_id].parser).__name__
         # Parser objects will be different, and their type is already checked, so get rid of them.
-        EXPECTED_PROFILES[profile_id]['parser'] = profile['parser'] = None
+        EXPECTED_PROFILES[profile_id] = EXPECTED_PROFILES[profile_id]._replace(parser=profile.parser)
     assert profiles == EXPECTED_PROFILES
 
 
 class BaseParser(HTMLParser):
     """Mock base parser."""
-    REGEX_KEYS = set()
+    PARAMETERS = set()
 class AParser(BaseParser):  # pylint: disable=unused-variable
     """Mock 'Type A' parser."""
-    REGEX_KEYS = BaseParser.REGEX_KEYS | {'akey_1', 'akey_2', 'akey_3'}
+    PARAMETERS = BaseParser.PARAMETERS | {'akey_1', 'akey_2', 'akey_3'}
 class BParser(BaseParser):  # pylint: disable=unused-variable
     """Mock 'Type B' parser."""
-    REGEX_KEYS = BaseParser.REGEX_KEYS | {'bkey_1', 'bkey_2', 'bkey_3'}
+    PARAMETERS = BaseParser.PARAMETERS | {'bkey_1', 'bkey_2', 'bkey_3'}
 @pytest.mark.parametrize('inifile_contents, exception', [
-    ('[ok_a]\nurl= \nakey_1= \nakey_2= \nakey_3= \n', nullcontext()),
-    ('[ok_b]\nurl= \nbkey_1= \nbkey_2= \nbkey_3= \n', nullcontext()),
-    ('[bad_extra_keys]\nurl= \nakey_1= \nakey_2= \nakey_3= \nk= \n', pytest.raises(ProfilesError)),
-    ('[bad_missing_keys]\nurl= \nbkey_1= \nbkey_2= \n', pytest.raises(ProfilesError)),
-    ('[bad_different]\nkey_1= \nkey_2= \nkey_3= \n', pytest.raises(ProfilesError)),
+    ('[ok_a]\nurl=v\nakey_1=v\nakey_2=v\nakey_3=v\n', nullcontext()),
+    ('[ok_b]\nurl=v\nbkey_1=v\nbkey_2=v\nbkey_3=v\n', nullcontext()),
+    ('[bad_extra_keys]\nurl=v\nakey_1=v\nakey_2=v\nakey_3=v\nk=v\n', pytest.raises(ProfilesError)),
+    ('[bad_missing_keys]\nurl=url\nbkey_1=v\nbkey_2=v\n', pytest.raises(ProfilesError)),
+    ('[bad_empty_keys]\nurl=url\nbkey_1=v\nbkey_2=v\nbkey= ', pytest.raises(ProfilesError)),
+    ('[bad_different]\nkey_1=url\nkey_2=v\nkey_3=v\n', pytest.raises(ProfilesError)),
 ])
 def test_profile_validation(monkeypatch, tmp_path, inifile_contents, exception):  # pylint: disable=unused-variable
     """Test profile validation using declared parsers."""
