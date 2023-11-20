@@ -566,10 +566,10 @@ def load_profiles(filename):
             try:
                 options[key] = re.compile(value, re.IGNORECASE)
             except re.error as exc:
-                message = f'Perfil «{section}»: {exc.msg[0].upper() + exc.msg[1:]}.\n'
-                message += f'  {key} = {exc.pattern}\n'
-                message += '  ' + '_' * (exc.pos + len(key) + len(' = ')) + '^'
-                raise ProfilesError(Messages.PROFILES_WRONG_SYNTAX.format('BadRegex'), message) from exc
+                details = f'Perfil «{section}»: {exc.msg[0].upper() + exc.msg[1:]}.\n'
+                details += f'  {key} = {exc.pattern}\n'
+                details += '  ' + '_' * (exc.pos + len(key) + len(' = ')) + '^'
+                raise ProfilesError(Messages.PROFILES_WRONG_SYNTAX.format('BadRegex'), details) from exc
         url_pattern = options.pop('url', None)
         if url_pattern is None:
             raise ProfilesError(Messages.INVALID_PROFILE.format(section), Messages.PROFILE_WITHOUT_URL)
