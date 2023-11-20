@@ -106,7 +106,8 @@ try:
     else:
         SCRIPT_PATH = __file__
 except NameError:
-    sys.exit(Messages.INITIALIZATION_ERROR)
+    print(Messages.INITIALIZATION_ERROR, file=sys.stderr)
+    sys.exit(ExitCodes.ERROR)
 SCRIPT_PATH = Path(SCRIPT_PATH).resolve()
 INIFILE_PATH = SCRIPT_PATH.with_suffix('.ini')
 LOGFILE_PATH = Path(f'{SCRIPT_PATH.with_suffix("")}_log.txt')
