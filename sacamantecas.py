@@ -323,37 +323,41 @@ def wait_for_keypress():
 
 def excepthook(exc_type, exc_value, exc_traceback):
     """Handle unhandled exceptions, default exception hook."""
-    message = '✱ '
     if isinstance(exc_value, OSError):
-        message += f'Error inesperado del sistema operativo.\n{exc_type.__name__}'
+        message = 'Error inesperado del sistema operativo.'
+        details = f'Error: {exc_type.__name__}'
         if exc_value.errno is not None:
-            message += f'/{errno.errorcode[exc_value.errno]}'
+            details += f' / {errno.errorcode[exc_value.errno]}'
         if exc_value.winerror is not None:
-            message += f'/Win{exc_value.winerror}'
-        message += f': {exc_value.strerror}.\n'
+            details += f' / Win_{exc_value.winerror}'
+        details += f'\nMensaje: {exc_value.strerror}.\n'
         if exc_value.filename is not None:
-            message += 'Fichero'
+            details += 'Fichero'
             if exc_value.filename2 is not None:
-                message += f' de origen:  «{exc_value.filename}».\n'
-                message += f'Fichero de destino: «{exc_value.filename2}».\n'
+                details += f' de origen:  «{exc_value.filename}»\n'
+                details += f'Fichero de destino: «{exc_value.filename2}»\n'
             else:
-                message += f': «{exc_value.filename}».\n'
+                details += f': «{exc_value.filename}»\n'
     else:
-        message += f'Excepción sin gestionar.\n«{exc_type.__name__}»'
-        message += f': {str(exc_value).rstrip(".")}.' if str(exc_value) else ''
-        message += '\n'
-    message += '\n'
+        message = 'Excepción sin gestionar.'
+        details = f'Excepción: {exc_type.__name__}\n'
+        details += f'Mensaje: {str(exc_value).rstrip(".")}.\n' if str(exc_value) else ''
+        details += 'Argumentos:\n' if exc_value.args else ''
+        for arg in exc_value.args:
+            details += f'  [{type(arg).__name__}] {arg}\n'
     current_filename = None
+    traceback = ''
     for frame in tb.extract_tb(exc_traceback):
         if current_filename != frame.filename:
-            message += f'▸ Fichero {frame.filename}\n'
+            traceback += f'▸ Fichero {frame.filename}\n'
             current_filename = frame.filename
-        message += f'  Línea {frame.lineno} ['
-        message += SCRIPT_PATH.name if frame.name == '<module>' else frame.name
-        message += ']'
-        message += f': {frame.line}' if frame.line else ''
-        message += '\n'
-    error(message.rstrip())
+        traceback += f'  Línea {frame.lineno} ['
+        traceback += SCRIPT_PATH.name if frame.name == '<module>' else frame.name
+        traceback += ']'
+        traceback += f': {frame.line}' if frame.line else ''
+        traceback += '\n'
+    details += f'\nTraceback:\n{traceback}' if traceback else ''
+    error(message, details)
 
 
 def loggerize(function):
