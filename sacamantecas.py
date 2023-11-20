@@ -37,39 +37,15 @@ from openpyxl.utils.cell import get_column_letter
 from openpyxl.styles import Font, PatternFill
 
 
-if sys.platform != 'win32':
-    sys.exit(f'{__appname__} solo funciona en la plataforma Win32.')
-
-
-# Computed as early as possible.
-TIMESTAMP = time.strftime('%Y%m%d_%H%M%S')
-USER_AGENT = ' '.join((
-    f'{__appname__.replace(" v", "/")}',
-    '+https://github.com/DervishD/sacamantecas',
-    f'(Windows {platform.version()};',
-    f'{platform.architecture()[0]};',
-    f'{platform.machine()})'
-))
-
-
-class ExitCodes(IntEnum):
-    """Standardized exit codes for the application."""
-    SUCCESS = 0
-    NO_ARGUMENTS = 1
-    WARNING = 2
-    ERROR = 3
-    KEYBOARD_INTERRUPT = 127
-
-
 class Messages(StrEnum):
     """Messages for the application."""
+    WRONG_PLATFORM_ERROR = f'\n*** Error, {__appname__} solo funciona en la plataforma Win32.'
     INITIALIZATION_ERROR = 'Error de inicialización de la aplicación.'
     ERROR_HEADER = f'\n*** Error en {__appname__}\n'
     ERROR_DETAILS_HEADING = '\nInformación adicional sobre el error:'
     WARNING_HEADER = '* Advertencia: '
     DEBUGGING_INIT = 'Registro de depuración iniciado.'
-    APP_INIT = f'{__appname__.replace(" v", " versión ")}'
-    USER_AGENT = f'User-Agent: {USER_AGENT}'
+    APP_BANNER = f'{__appname__.replace(" v", " versión ")}'
     KEYBOARD_INTERRUPT = 'El usuario interrumpió la operación de la aplicación.'
     NO_ARGUMENTS = (
         'No se ha especificado un fichero de entrada para ser procesado.\n'
@@ -95,8 +71,33 @@ class Messages(StrEnum):
     HTTP_RETRIEVAL_ERROR = 'No se obtuvieron contenidos.'
     CONNECTION_ERROR = 'Se produjo un error de conexión «{}» accediendo al URL.'
     NO_CONTENTS_ERROR = 'No se recibieron contenidos del URL.'
-    APP_DONE = '\nProceso finalizado.'
+    PROCESS_DONE = '\nProceso finalizado.'
     DEBUGGING_DONE = 'Registro de depuración finalizado.'
+
+
+class ExitCodes(IntEnum):
+    """Standardized exit codes for the application."""
+    SUCCESS = 0
+    NO_ARGUMENTS = 1
+    WARNING = 2
+    ERROR = 3
+    KEYBOARD_INTERRUPT = 127
+
+
+if sys.platform != 'win32':
+    print(Messages.WRONG_PLATFORM_ERROR, file=sys.stderr)
+    sys.exit(ExitCodes.ERROR)
+
+
+# Computed as early as possible.
+TIMESTAMP = time.strftime('%Y%m%d_%H%M%S')
+USER_AGENT = ' '.join((
+    f'{__appname__.replace(" v", "/")}',
+    '+https://github.com/DervishD/sacamantecas',
+    f'(Windows {platform.version()};',
+    f'{platform.architecture()[0]};',
+    f'{platform.machine()})'
+))
 
 
 try:
@@ -361,12 +362,12 @@ def loggerize(function):
         setup_logging(LOGFILE_PATH, DEBUGFILE_PATH)
 
         logging.debug(Messages.DEBUGGING_INIT)
-        logging.info(Messages.APP_INIT)
-        logging.debug(Messages.USER_AGENT)
+        logging.info(Messages.APP_BANNER)
+        logging.debug(USER_AGENT)
 
         status = function(*args, **kwargs)
 
-        logging.info(Messages.APP_DONE)
+        logging.info(Messages.PROCESS_DONE)
         logging.debug(Messages.DEBUGGING_DONE)
         logging.shutdown()
         return status

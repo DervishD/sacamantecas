@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 """Test suite for main() function."""
-from sacamantecas import ExitCodes, main, Messages
+from sacamantecas import ExitCodes, main, Messages, USER_AGENT
 
 
 def test_logging_setup(log_paths, monkeypatch):  # pylint: disable=unused-variable
@@ -27,10 +27,10 @@ def test_no_arguments(log_paths, monkeypatch):  # pylint: disable=unused-variabl
     result = log_paths.log.read_text(encoding='utf-8').splitlines()
     result = '\n'.join([' '.join(line.split(' ')[1:]) for line in result])
     expected = '\n'.join((
-        Messages.APP_INIT,
+        Messages.APP_BANNER,
         Messages.ERROR_HEADER.rstrip(),
         '\n'.join(f'{"    " if line else ""}{line}' for line in Messages.NO_ARGUMENTS.splitlines()),
-        Messages.APP_DONE
+        Messages.PROCESS_DONE
     ))
     assert result == expected
 
@@ -38,11 +38,11 @@ def test_no_arguments(log_paths, monkeypatch):  # pylint: disable=unused-variabl
     result = '\n'.join([' '.join(line.split(' ')[1:]) for line in result])
     expected = '\n'.join((
         f'DEBUG   | {Messages.DEBUGGING_INIT}',
-        f'INFO    | {Messages.APP_INIT}',
-        f'DEBUG   | {Messages.USER_AGENT}',
+        f'INFO    | {Messages.APP_BANNER}',
+        f'DEBUG   | {USER_AGENT}',
         '\n'.join(f'ERROR   |{" " if line else ""}{line}' for line in Messages.ERROR_HEADER.splitlines()),
         '\n'.join(f'ERROR   |{"     " if line else ""}{line}' for line in Messages.NO_ARGUMENTS.splitlines()),
-        '\n'.join(f'INFO    |{" " if line else ""}{line}' for line in Messages.APP_DONE.splitlines()),
+        '\n'.join(f'INFO    |{" " if line else ""}{line}' for line in Messages.PROCESS_DONE.splitlines()),
         f'DEBUG   | {Messages.DEBUGGING_DONE}'
     ))
     assert result == expected
