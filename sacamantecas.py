@@ -141,7 +141,6 @@ sys.stdout.reconfigure(encoding='utf-8')
 sys.stderr.reconfigure(encoding='utf-8')
 
 
-# Custom exceptions.
 class BaseApplicationError(Exception):
     """Base class for all custom application exceptions."""
     # cSpell:ignore vararg
@@ -159,11 +158,9 @@ class SkimmingError(BaseApplicationError):
     """Raise for skimming-related errors."""
 
 
-# For storing profiles.
 Profile = namedtuple('Profile', ['url_pattern', 'parser', 'config'])
 
 
-# Parsers
 class BaseParser(HTMLParser):
     """Base class for catalogue parsers."""
     PARAMETERS = set()
@@ -237,7 +234,6 @@ class BaratzParser(BaseParser):   # pylint: disable=unused-variable
     PARAMETERS = BaseParser.PARAMETERS | {M_TAG, M_ATTR, M_VALUE}
 
 
-# Functions
 def error(message, details=''):
     """Helper for preprocessing error messages."""
     logging.indent(0)
