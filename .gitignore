@@ -3,4 +3,6 @@
 # The virtual environment directory name MUST CONTAIN 'venv' somewhere.
 sacamantecas_v*.zip
 sacamantecas_log_*
+sacamantecas_log.txt
 sacamantecas_debug_*
+sacamantecas_debug.txt
