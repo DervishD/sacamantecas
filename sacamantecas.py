@@ -421,18 +421,18 @@ def setup_logging(log_filename, debug_filename):
                 '()': CustomFormatter,
                 'style': '{',
                 'format': '{asctime}.{msecs:04.0f} {levelname}| {message}',
-                'datefmt': '%Y%m%d_%H%M%S'
+                'datefmt': '%Y%m%d_%H%M%S',
             },
             'log': {
                 '()': CustomFormatter,
                 'style': '{',
                 'format': '{asctime} {message}',
-                'datefmt': '%Y%m%d_%H%M%S'
+                'datefmt': '%Y%m%d_%H%M%S',
             },
             'console': {
                 '()': CustomFormatter,
                 'style': '{',
-                'format': '{message}'
+                'format': '{message}',
             },
         },
         'filters': {
@@ -449,56 +449,48 @@ def setup_logging(log_filename, debug_filename):
                 '()': lambda: lambda log_record: log_record.msg.strip() and log_record.levelno > logging.INFO
             },
         },
-        'handlers': {},
+        'handlers': {
+            'debugfile': {
+                'level': 'NOTSET',
+                'formatter': 'debug',
+                'filters': ['debug'],
+                'class': 'logging.FileHandler',
+                'filename': debug_filename,
+                'mode': 'w',
+                'encoding': UTF8_ENCODING,
+            },
+            'logfile':{
+                'level': 'NOTSET',
+                'formatter': 'log',
+                'filters': ['log'],
+                'class': 'logging.FileHandler',
+                'filename': log_filename,
+                'mode': 'w',
+                'encoding': UTF8_ENCODING,
+            },
+            'stdout': {
+                'level': 'NOTSET',
+                'formatter': 'console',
+                'filters': ['stdout'],
+                'class': 'logging.StreamHandler',
+                'stream': sys.stdout,
+            },
+            'stderr': {
+                'level': 'NOTSET',
+                'formatter': 'console',
+                'filters': ['stderr'],
+                'class': 'logging.StreamHandler',
+                'stream': sys.stderr,
+            },
+        },
         'loggers': {
             '': {
                 'level': 'NOTSET',
-                'handlers': [],
+                'handlers': ['debugfile', 'logfile', 'stdout', 'stderr'],
                 'propagate': False,
             },
         },
     }
-
-    logging_configuration['handlers']['debugfile'] = {
-        'level': 'NOTSET',
-        'formatter': 'debug',
-        'filters': ['debug'],
-        'class': 'logging.FileHandler',
-        'filename': debug_filename,
-        'mode': 'w',
-        'encoding': UTF8_ENCODING
-    }
-
-    logging_configuration['handlers']['logfile'] = {
-        'level': 'NOTSET',
-        'formatter': 'log',
-        'filters': ['log'],
-        'class': 'logging.FileHandler',
-        'filename': log_filename,
-        'mode': 'w',
-        'encoding': UTF8_ENCODING
-    }
-
-    logging_configuration['handlers']['stdout'] = {
-        'level': 'NOTSET',
-        'formatter': 'console',
-        'filters': ['stdout'],
-        'class': 'logging.StreamHandler',
-        'stream': sys.stdout
-    }
-
-    logging_configuration['handlers']['stderr'] = {
-        'level': 'NOTSET',
-        'formatter': 'console',
-        'filters': ['stderr'],
-        'class': 'logging.StreamHandler',
-        'stream': sys.stderr
-    }
-
-    logging_configuration['loggers']['']['handlers'].append('debugfile')
-    logging_configuration['loggers']['']['handlers'].append('logfile')
-    logging_configuration['loggers']['']['handlers'].append('stdout')
-    logging_configuration['loggers']['']['handlers'].append('stderr')
 
     dictConfig(logging_configuration)
 
