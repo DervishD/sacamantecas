@@ -131,40 +131,21 @@ if sys.prefix == sys.base_prefix or not __v_alpha__:
     LOGFILE_PATH = LOGFILE_PATH.with_stem(f'{LOGFILE_PATH.stem}_{TIMESTAMP}')
     DEBUGFILE_PATH = DEBUGFILE_PATH.with_stem(f'{DEBUGFILE_PATH.stem}_{TIMESTAMP}')
 
+# Stem marker for sink filenames.
+SINK_FILENAME_STEM_MARKER = '_out'
+
+# Accepted set of URL schemes.
+ACCEPTED_URL_SCHEMES = ('https', 'http', 'file')
 
 # Just to avoid mistyping.
 UTF8_ENCODING = 'utf-8'
 ASCII_ENCODING = 'ascii'
 LATIN1_ENCODING = 'iso-8859-1'
 
-# Suffixes for supported source files.
-TEXTFILE_SOURCE_SUFFIX = '.txt'
-SPREADSHEET_SOURCE_SUFFIX = '.xlsx'
-
-# Stem marker for sink filenames.
-SINK_FILENAME_STEM_MARKER = '_out'
-# For sink spreadsheet generation.
-SPREADSHEET_METADATA_COLUMN_MARKER = '[sm]'
-SPREADSHEET_CELL_FONT = 'Calibri'
-SPREADSHEET_CELL_COLOR = 'baddad'
-SPREADSHEET_CELL_FILL = 'solid'
-
-# Regex for <meta http-equiv="refresh"…> detection and parsing.
-META_REFRESH_RE = rb'<meta http-equiv="refresh" content="(?:[^;]+;\s+)?URL=([^"]+)"'
-# Regex for <meta http-equiv="content-type" charset…> detection and parsing.
-META_HTTP_EQUIV_CHARSET_RE = rb'<meta http-equiv="content-type".*charset="([^"]+)"'
-# Regex for <meta charset…> detection and parsing.
-META_CHARSET_RE = rb'<meta charset="([^"]+)"'
-
-# Accepted set of URL schemes.
-ACCEPTED_URL_SCHEMES = ('https', 'http', 'file')
-
-# Logging messages indentation character.
-LOGGING_INDENTCHAR = ' '
-
 
 # Needed for having VERY basic logging when the code is imported rather than run.
-logging.basicConfig(level=logging.NOTSET, format='%(levelname).1s %(message)s', force=True)
+BASIC_LOGGING_FORMAT = '%(levelname).1s %(message)s'
+logging.basicConfig(level=logging.NOTSET, format=BASIC_LOGGING_FORMAT, force=True)
 
 
 # Reconfigure standard output streams so they use UTF-8 encoding, even if
@@ -410,6 +391,7 @@ def loggerize(function):
     return loggerize_wrapper
 
 
+LOGGING_INDENTCHAR = ' '
 def setup_logging(log_filename, debug_filename):
     """
     Sets up logging system, disabling all existing loggers.
@@ -618,6 +600,8 @@ def load_profiles(filename):
     return profiles
 
 
+TEXTFILE_SOURCE_SUFFIX = '.txt'
+SPREADSHEET_SOURCE_SUFFIX = '.xlsx'
 def parse_arguments(*args):
     """
     Parse each argument in args to check if it is a valid source, identify its
@@ -720,6 +704,10 @@ def textfile_handler(source_filename):
                     sink.write('\n')
 
 
+SPREADSHEET_METADATA_COLUMN_MARKER = '[sm]'
+SPREADSHEET_CELL_FONT = 'Calibri'
+SPREADSHEET_CELL_COLOR = 'baddad'
+SPREADSHEET_CELL_FILL = 'solid'
 def spreadsheet_handler(source_filename):
     """
     Handle spreadsheets containing URLs, one per row. Ish.
@@ -852,6 +840,7 @@ def get_parser(url, profiles):
     return None
 
 
+UNKNOWN_ERRNO = 'desconocido'
 def saca_las_mantecas(url, parser):
     """
     Saca las mantecas from the provided url, that is, retrieve its contents,
@@ -890,7 +879,7 @@ def saca_las_mantecas(url, parser):
         try:
             error_code = errno.errorcode[exc.errno]
         except (AttributeError, KeyError):
-            error_code = 'desconocido'
+            error_code = UNKNOWN_ERRNO
         details = f'{exc.strerror.capitalize().rstrip(".")}.'
         raise SkimmingError(Messages.CONNECTION_ERROR.format(error_code), details) from exc
 
@@ -948,6 +937,7 @@ def resolve_file_url(url):
     return parsed_url._replace(path=resolved_path).geturl()
 
 
+META_REFRESH_RE = rb'<meta http-equiv="refresh" content="(?:[^;]+;\s+)?URL=([^"]+)"'
 def get_redirected_url(base_url, contents):
     """
     Get redirected URL from a meta http-equiv="refresh" pragma in contents. Use
@@ -972,6 +962,8 @@ def get_redirected_url(base_url, contents):
     return None
 
 
+META_HTTP_EQUIV_CHARSET_RE = rb'<meta http-equiv="content-type".*charset="([^"]+)"'
+META_CHARSET_RE = rb'<meta charset="([^"]+)"'
 def detect_html_charset(contents):
     """
     Detect contents charset from HTML tags, if any, and return it.
