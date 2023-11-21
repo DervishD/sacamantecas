@@ -50,7 +50,7 @@ class Messages(StrEnum):
 
         Arrastre y suelte un fichero de entrada sobre el icono de la aplicación,
         o bien proporcione los nombres de las fuentes de entrada como argumentos.
-    '''.lstrip())
+    ''').lstrip()
 
     DEBUGGING_INIT = 'Registro de depuración iniciado.'
     APP_BANNER = f'{__appname__.replace(" v", " versión ")}'
@@ -110,7 +110,7 @@ USER_AGENT = ' '.join(dedent(f'''
     (Windows {platform.version()};
     {platform.architecture()[0]};
     {platform.machine()})
-''').splitlines())
+''').splitlines()).lstrip()
 
 
 try:
