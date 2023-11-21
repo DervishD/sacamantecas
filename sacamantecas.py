@@ -42,15 +42,8 @@ class Messages(StrEnum):
     """Messages for the application."""
     WRONG_PLATFORM_ERROR = f'\n*** Error, {__appname__} solo funciona en la plataforma Win32.'
     INITIALIZATION_ERROR = 'Error de inicialización de la aplicación.'
-    ERROR_HEADER = f'\n*** Error en {__appname__}\n'
-    ERROR_DETAILS_HEADING = '\nInformación adicional sobre el error:'
-    ERROR_DETAILS_TAIL = '·'
-    WARNING_HEADER = '* Advertencia: '
+
     PRESS_ANY_KEY = '\nPulse cualquier tecla para continuar...'
-    UNEXPECTED_OSERROR = 'Error inesperado del sistema operativo.'
-    UNHANDLED_EXCEPTION = 'Excepción sin gestionar.'
-    DEBUGGING_INIT = 'Registro de depuración iniciado.'
-    APP_BANNER = f'{__appname__.replace(" v", " versión ")}'
     KEYBOARD_INTERRUPT = 'El usuario interrumpió la operación de la aplicación.'
     NO_ARGUMENTS = dedent('''
         No se han especificado fuentes de entrada para ser procesadas.
@@ -58,27 +51,41 @@ class Messages(StrEnum):
         Arrastre y suelte un fichero de entrada sobre el icono de la aplicación,
         o bien proporcione los nombres de las fuentes de entrada como argumentos.
     '''.lstrip())
+
+    DEBUGGING_INIT = 'Registro de depuración iniciado.'
+    APP_BANNER = f'{__appname__.replace(" v", " versión ")}'
+    PROCESS_DONE = '\nProceso finalizado.'
+    DEBUGGING_DONE = 'Registro de depuración finalizado.'
+
+    ERROR_HEADER = f'\n*** Error en {__appname__}\n'
+    WARNING_HEADER = '* Advertencia: '
+    ERROR_DETAILS_HEADING = '\nInformación adicional sobre el error:'
+    ERROR_DETAILS_TAIL_CHAR = '·'
+
+    UNEXPECTED_OSERROR = 'Error inesperado del sistema operativo.'
+    UNHANDLED_EXCEPTION = 'Excepción sin gestionar.'
+
     EMPTY_PROFILES = 'No hay perfiles definidos en el fichero de perfiles «{}».'
     MISSING_PROFILES = 'No se encontró o no se pudo leer el fichero de perfiles «{}».'
     PROFILES_WRONG_SYNTAX = 'Error de sintaxis «{}» leyendo el fichero de perfiles.'
     INVALID_PROFILE = 'El perfil «{}» es inválido.'
     PROFILE_WITHOUT_URL = 'El perfil no incluye un patrón de URL.'
-    SKIMMING_MARKER = '\nSacando las mantecas:'
-    SOURCE_LABEL = 'Fuente: {}'
-    UNSUPPORTED_SOURCE = 'La fuente no es de un tipo admitido.'
-    INPUT_FILE_INVALID = 'El fichero de entrada es inválido ({}).'
-    INPUT_FILE_NOT_FOUND = 'No se encontró el fichero de entrada.'
-    OUTPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para crear el fichero de salida.'
-    INPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para leer el fichero de entrada.'
+    UNKNOWN_URL_TYPE = 'El URL «{}» es de tipo desconocido.'
     NO_MATCHING_PROFILE = 'No se encontró un perfil para procesar el URL.'
+
     HTTP_PROTOCOL_ERROR = 'Error de protocolo HTTP {}: {}.'
     URL_ACCESS_ERROR = 'No resultó posible acceder a la dirección especificada.'
     HTTP_RETRIEVAL_ERROR = 'No se obtuvieron contenidos.'
     CONNECTION_ERROR = 'Se produjo un error de conexión «{}» accediendo al URL.'
     NO_CONTENTS_ERROR = 'No se recibieron contenidos del URL.'
-    UNKNOWN_URL_TYPE = 'El URL «{}» es de tipo desconocido.'
-    PROCESS_DONE = '\nProceso finalizado.'
-    DEBUGGING_DONE = 'Registro de depuración finalizado.'
+
+    SKIMMING_MARKER = '\nSacando las mantecas:'
+    SOURCE_LABEL = 'Fuente: {}'
+    UNSUPPORTED_SOURCE = 'La fuente no es de un tipo admitido.'
+    INPUT_FILE_INVALID = 'El fichero de entrada es inválido ({}).'
+    INPUT_FILE_NOT_FOUND = 'No se encontró el fichero de entrada.'
+    INPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para leer el fichero de entrada.'
+    OUTPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para crear el fichero de salida.'
 
 
 class ExitCodes(IntEnum):
@@ -269,7 +276,7 @@ def error(message, details=''):
     if details.strip():
         logging.error(Messages.ERROR_DETAILS_HEADING)
         logging.error('\n'.join(f'| {line}' for line in details.splitlines()))
-        logging.error(Messages.ERROR_DETAILS_TAIL)
+        logging.error(Messages.ERROR_DETAILS_TAIL_CHAR)
     logging.indent(0)
 
 
