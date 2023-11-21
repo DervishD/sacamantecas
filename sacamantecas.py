@@ -125,31 +125,23 @@ if sys.prefix == sys.base_prefix or not __v_alpha__:
     DEBUGFILE_PATH = DEBUGFILE_PATH.with_stem(f'{DEBUGFILE_PATH.stem}_{TIMESTAMP}')
 
 
-# Basic logging format when the logging system is not yet configured.
-BASIC_LOGGING_FORMAT = '%(levelname).1s %(message)s'
 # Just to avoid mistyping.
 UTF8_ENCODING = 'utf-8'
 ASCII_ENCODING = 'ascii'
-# Accepted set of URL schemes.
-ACCEPTED_URL_SCHEMES = ('https', 'http', 'file')
-# Stem marker for sink filenames.
-SINK_FILENAME_STEM_MARKER = '_out'
-# Symbol for kernel32.dll library.
-KERNEL32_DLL = 'kernel32'
-# Logging messages indentation character.
-LOGGING_INDENTCHAR = ' '
+LATIN1_ENCODING = 'iso-8859-1'
+
 # Suffixes for supported source files.
 TEXTFILE_SOURCE_SUFFIX = '.txt'
 SPREADSHEET_SOURCE_SUFFIX = '.xlsx'
-# For output spreadsheet generation.
+
+# Stem marker for sink filenames.
+SINK_FILENAME_STEM_MARKER = '_out'
+# For sink spreadsheet generation.
 SPREADSHEET_METADATA_COLUMN_MARKER = '[sm]'
 SPREADSHEET_CELL_FONT = 'Calibri'
 SPREADSHEET_CELL_COLOR = 'baddad'
 SPREADSHEET_CELL_FILL = 'solid'
-# Text for converting unknown errno values into strings.
-UNKNOWN_ERRNO = 'desconocido'
-# Just to avoid mistyping.
-LATIN1_CHARSET = 'iso-8859-1'
+
 # Regex for <meta http-equiv="refresh"…> detection and parsing.
 META_REFRESH_RE = rb'<meta http-equiv="refresh" content="(?:[^;]+;\s+)?URL=([^"]+)"'
 # Regex for <meta http-equiv="content-type" charset…> detection and parsing.
@@ -157,9 +149,15 @@ META_HTTP_EQUIV_CHARSET_RE = rb'<meta http-equiv="content-type".*charset="([^"]+
 # Regex for <meta charset…> detection and parsing.
 META_CHARSET_RE = rb'<meta charset="([^"]+)"'
 
+# Accepted set of URL schemes.
+ACCEPTED_URL_SCHEMES = ('https', 'http', 'file')
+
+# Logging messages indentation character.
+LOGGING_INDENTCHAR = ' '
+
 
 # Needed for having VERY basic logging when the code is imported rather than run.
-logging.basicConfig(level=logging.NOTSET, format=BASIC_LOGGING_FORMAT, force=True)
+logging.basicConfig(level=logging.NOTSET, format='%(levelname).1s %(message)s', force=True)
 
 
 # Reconfigure standard output streams so they use UTF-8 encoding, even if
@@ -298,6 +296,7 @@ def generate_sink_filename(base_filename):
     return base_filename.with_stem(base_filename.stem + SINK_FILENAME_STEM_MARKER)
 
 
+KERNEL32_DLL = 'kernel32'
 def wait_for_keypress():
     """Wait for a keypress to continue if sys.stdout is a real console AND the console is transient."""
     # First of all, if this script is being imported rather than run,
@@ -884,7 +883,7 @@ def saca_las_mantecas(url, parser):
         try:
             error_code = errno.errorcode[exc.errno]
         except (AttributeError, KeyError):
-            error_code = UNKNOWN_ERRNO
+            error_code = 'desconocido'
         details = f'{exc.strerror.capitalize().rstrip(".")}.'
         raise SkimmingError(Messages.CONNECTION_ERROR.format(error_code), details) from exc
 
@@ -978,7 +977,7 @@ def detect_html_charset(contents):
     this application which does not specify a charset will in fact be using
     iso-8859-1 anyway, so in the end that is a safer fallback.
     """
-    charset = LATIN1_CHARSET
+    charset = LATIN1_ENCODING
     if match := re.search(META_HTTP_EQUIV_CHARSET_RE, contents, re.I):
         # Next best thing, from the meta http-equiv="content-type".
         logging.debug('Charset detectado mediante meta http-equiv.')
