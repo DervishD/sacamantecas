@@ -6,7 +6,7 @@ __v_minor__ = '0'
 __v_patch__ = '0'
 __v_alpha__ = 'alpha'
 __appname__ = f'sacamantecas v{__v_major__}.{__v_minor__}.{__v_patch__}-{__v_alpha__}'
-
+__supported_platform__ = 'win32'
 
 import atexit
 from collections import namedtuple
@@ -24,6 +24,7 @@ import platform
 import re
 from shutil import copy2
 import sys
+from textwrap import dedent
 import time
 import traceback as tb
 from types import SimpleNamespace
@@ -43,16 +44,20 @@ class Messages(StrEnum):
     INITIALIZATION_ERROR = 'Error de inicialización de la aplicación.'
     ERROR_HEADER = f'\n*** Error en {__appname__}\n'
     ERROR_DETAILS_HEADING = '\nInformación adicional sobre el error:'
+    ERROR_DETAILS_TAIL = '·'
     WARNING_HEADER = '* Advertencia: '
+    PRESS_ANY_KEY = '\nPulse cualquier tecla para continuar...'
+    UNEXPECTED_OSERROR = 'Error inesperado del sistema operativo.'
+    UNHANDLED_EXCEPTION = 'Excepción sin gestionar.'
     DEBUGGING_INIT = 'Registro de depuración iniciado.'
     APP_BANNER = f'{__appname__.replace(" v", " versión ")}'
     KEYBOARD_INTERRUPT = 'El usuario interrumpió la operación de la aplicación.'
-    NO_ARGUMENTS = (
-        'No se ha especificado un fichero de entrada para ser procesado.\n'
-        '\n'
-        'Arrastre y suelte un fichero de entrada sobre el icono de la aplicación, '
-        'o proporcione el nombre del fichero como argumento.'
-    )
+    NO_ARGUMENTS = dedent('''
+        No se han especificado fuentes de entrada para ser procesadas.
+
+        Arrastre y suelte un fichero de entrada sobre el icono de la aplicación,
+        o bien proporcione los nombres de las fuentes de entrada como argumentos.
+    '''.lstrip())
     EMPTY_PROFILES = 'No hay perfiles definidos en el fichero de perfiles «{}».'
     MISSING_PROFILES = 'No se encontró o no se pudo leer el fichero de perfiles «{}».'
     PROFILES_WRONG_SYNTAX = 'Error de sintaxis «{}» leyendo el fichero de perfiles.'
@@ -71,6 +76,7 @@ class Messages(StrEnum):
     HTTP_RETRIEVAL_ERROR = 'No se obtuvieron contenidos.'
     CONNECTION_ERROR = 'Se produjo un error de conexión «{}» accediendo al URL.'
     NO_CONTENTS_ERROR = 'No se recibieron contenidos del URL.'
+    UNKNOWN_URL_TYPE = 'El URL «{}» es de tipo desconocido.'
     PROCESS_DONE = '\nProceso finalizado.'
     DEBUGGING_DONE = 'Registro de depuración finalizado.'
 
@@ -84,20 +90,20 @@ class ExitCodes(IntEnum):
     KEYBOARD_INTERRUPT = 127
 
 
-if sys.platform != 'win32':
+if sys.platform != __supported_platform__:
     print(Messages.WRONG_PLATFORM_ERROR, file=sys.stderr)
     sys.exit(ExitCodes.ERROR)
 
 
 # Computed as early as possible.
 TIMESTAMP = time.strftime('%Y%m%d_%H%M%S')
-USER_AGENT = ' '.join((
-    f'{__appname__.replace(" v", "/")}',
-    '+https://github.com/DervishD/sacamantecas',
-    f'(Windows {platform.version()};',
-    f'{platform.architecture()[0]};',
-    f'{platform.machine()})'
-))
+USER_AGENT = ' '.join(dedent(f'''
+    {__appname__.replace(" v", "/")}
+    +https://github.com/DervishD/sacamantecas
+    (Windows {platform.version()};
+    {platform.architecture()[0]};
+    {platform.machine()})
+''').splitlines())
 
 
 try:
@@ -119,12 +125,31 @@ if sys.prefix == sys.base_prefix or not __v_alpha__:
     DEBUGFILE_PATH = DEBUGFILE_PATH.with_stem(f'{DEBUGFILE_PATH.stem}_{TIMESTAMP}')
 
 
+# Basic logging format when the logging system is not yet configured.
+BASIC_LOGGING_FORMAT = '%(levelname).1s %(message)s'
+# Just to avoid mistyping.
+UTF8_ENCODING = 'utf-8'
+ASCII_ENCODING = 'ascii'
 # Accepted set of URL schemes.
 ACCEPTED_URL_SCHEMES = ('https', 'http', 'file')
 # Stem marker for sink filenames.
 SINK_FILENAME_STEM_MARKER = '_out'
+# Symbol for kernel32.dll library.
+KERNEL32_DLL = 'kernel32'
 # Logging messages indentation character.
 LOGGING_INDENTCHAR = ' '
+# Suffixes for supported source files.
+TEXTFILE_SOURCE_SUFFIX = '.txt'
+SPREADSHEET_SOURCE_SUFFIX = '.xlsx'
+# For output spreadsheet generation.
+SPREADSHEET_METADATA_COLUMN_MARKER = '[sm]'
+SPREADSHEET_CELL_FONT = 'Calibri'
+SPREADSHEET_CELL_COLOR = 'baddad'
+SPREADSHEET_CELL_FILL = 'solid'
+# Text for converting unknown errno values into strings.
+UNKNOWN_ERRNO = 'desconocido'
+# Just to avoid mistyping.
+LATIN1_CHARSET = 'iso-8859-1'
 # Regex for <meta http-equiv="refresh"…> detection and parsing.
 META_REFRESH_RE = rb'<meta http-equiv="refresh" content="(?:[^;]+;\s+)?URL=([^"]+)"'
 # Regex for <meta http-equiv="content-type" charset…> detection and parsing.
@@ -134,13 +159,13 @@ META_CHARSET_RE = rb'<meta charset="([^"]+)"'
 
 
 # Needed for having VERY basic logging when the code is imported rather than run.
-logging.basicConfig(level=logging.NOTSET, format='%(levelname).1s %(message)s', force=True)
+logging.basicConfig(level=logging.NOTSET, format=BASIC_LOGGING_FORMAT, force=True)
 
 
 # Reconfigure standard output streams so they use UTF-8 encoding, even if
 # they are redirected to a file when running the application from a shell.
-sys.stdout.reconfigure(encoding='utf-8')
-sys.stderr.reconfigure(encoding='utf-8')
+sys.stdout.reconfigure(encoding=UTF8_ENCODING)
+sys.stderr.reconfigure(encoding=UTF8_ENCODING)
 
 
 class BaseApplicationError(Exception):
@@ -246,7 +271,7 @@ def error(message, details=''):
     if details.strip():
         logging.error(Messages.ERROR_DETAILS_HEADING)
         logging.error('\n'.join(f'| {line}' for line in details.splitlines()))
-        logging.error('·')
+        logging.error(Messages.ERROR_DETAILS_TAIL)
     logging.indent(0)
 
 
@@ -285,7 +310,7 @@ def wait_for_keypress():
     # Since sys.stdout.isatty() returns True under Windows when sys.stdout
     # is redirected to NUL, another (more complex) method, is needed here.
     # The test below has been adapted from https://stackoverflow.com/a/33168697
-    if not WinDLL('kernel32').GetConsoleMode(get_osfhandle(sys.stdout.fileno()), byref(c_uint())):
+    if not WinDLL(KERNEL32_DLL).GetConsoleMode(get_osfhandle(sys.stdout.fileno()), byref(c_uint())):
         return
 
     # If there is a console attached, the application must pause ONLY if that
@@ -300,7 +325,7 @@ def wait_for_keypress():
     # In both cases, the console title has to be obtained.
     buffer_size = wintypes.MAX_PATH + 1
     console_title = create_unicode_buffer(buffer_size)
-    if not WinDLL('kernel32').GetConsoleTitleW(console_title, buffer_size):
+    if not WinDLL(KERNEL32_DLL).GetConsoleTitleW(console_title, buffer_size):
         return
     console_title = console_title.value
 
@@ -318,14 +343,14 @@ def wait_for_keypress():
     elif console_title.find(SCRIPT_PATH.name) != -1:
         return
 
-    print('\nPulse cualquier tecla para continuar...', end='', flush=True)
+    print(Messages.PRESS_ANY_KEY, end='', flush=True)
     getch()
 
 
 def excepthook(exc_type, exc_value, exc_traceback):
     """Handle unhandled exceptions, default exception hook."""
     if isinstance(exc_value, OSError):
-        message = 'Error inesperado del sistema operativo.'
+        message = Messages.UNEXPECTED_OSERROR
         details = f'Error: {exc_type.__name__}'
         if exc_value.errno is not None:
             details += f' / {errno.errorcode[exc_value.errno]}'
@@ -340,7 +365,7 @@ def excepthook(exc_type, exc_value, exc_traceback):
             else:
                 details += f': «{exc_value.filename}»\n'
     else:
-        message = 'Excepción sin gestionar.'
+        message = Messages.UNHANDLED_EXCEPTION
         details = f'Excepción: {exc_type.__name__}\n'
         details += f'Mensaje: {str(exc_value).rstrip(".")}.\n' if str(exc_value) else ''
         details += 'Argumentos:\n' if exc_value.args else ''
@@ -454,7 +479,7 @@ def setup_logging(log_filename, debug_filename):
         'class': 'logging.FileHandler',
         'filename': debug_filename,
         'mode': 'w',
-        'encoding': 'utf8'
+        'encoding': UTF8_ENCODING
     }
 
     logging_configuration['handlers']['logfile'] = {
@@ -464,7 +489,7 @@ def setup_logging(log_filename, debug_filename):
         'class': 'logging.FileHandler',
         'filename': log_filename,
         'mode': 'w',
-        'encoding': 'utf8'
+        'encoding': UTF8_ENCODING
     }
 
     logging_configuration['handlers']['stdout'] = {
@@ -551,7 +576,7 @@ def load_profiles(filename):
     config = configparser.ConfigParser()
     logging.debug('Obteniendo perfiles desde «%s».', filename)
     try:
-        with open(filename, encoding='utf-8') as inifile:
+        with open(filename, encoding=UTF8_ENCODING) as inifile:
             config.read_file(inifile)
     except (FileNotFoundError, PermissionError) as exc:
         raise ProfilesError(Messages.MISSING_PROFILES.format(exc.filename)) from exc
@@ -600,10 +625,10 @@ def parse_arguments(*args):
         if is_accepted_url(arg):
             logging.debug('El argumento es una fuente de tipo single_url.')
             handler = single_url_handler(arg)
-        elif arg.endswith('.txt'):
+        elif arg.endswith(TEXTFILE_SOURCE_SUFFIX):
             logging.debug('El argumento es una fuente de tipo textfile.')
             handler = textfile_handler(Path(arg))
-        elif arg.endswith('.xlsx'):
+        elif arg.endswith(SPREADSHEET_SOURCE_SUFFIX):
             logging.debug('El argumento es una fuente de tipo spreadsheet.')
             handler = spreadsheet_handler(Path(arg))
         else:
@@ -639,7 +664,7 @@ def single_url_handler(url):
     The output file has UTF-8 encoding.
     """
     sink_filename = generate_sink_filename(url_to_filename(url).with_suffix('.txt'))
-    with open(sink_filename, 'w+', encoding='utf-8') as sink:
+    with open(sink_filename, 'w+', encoding=UTF8_ENCODING) as sink:
         logging.debug('Volcando metadatos a «%s».', sink_filename)
         yield True  # Successful initialization.
         if is_accepted_url(url):
@@ -671,8 +696,8 @@ def textfile_handler(source_filename):
     All files are assumed to have UTF-8 encoding.
     """
     sink_filename = generate_sink_filename(source_filename)
-    with open(source_filename, encoding='utf-8') as source:
-        with open(sink_filename, 'w', encoding='utf-8') as sink:
+    with open(source_filename, encoding=UTF8_ENCODING) as source:
+        with open(sink_filename, 'w', encoding=UTF8_ENCODING) as sink:
             logging.debug('Volcando metadatos a «%s».', sink_filename)
             yield True  # Successful initialization.
             for url in source.readlines():
@@ -762,15 +787,15 @@ def store_metadata_in_sheet(sheet, row, metadata, static = SimpleNamespace(known
     if not metadata:
         return
     for key, value in metadata.items():
-        key = '[sm] ' + key
+        key = f'{SPREADSHEET_METADATA_COLUMN_MARKER} {key}'
         if key not in static.known_metadata:
             logging.debug('Se encontró un metadato nuevo, «%s».', key)
             column = sheet.max_column + 1
             static.known_metadata[key] = column
             logging.debug('El metadato «%s» irá en la columna «%s».', key, get_column_letter(column))
             cell = sheet.cell(row=1, column=column, value=key)
-            cell.font = Font(name='Calibri')
-            cell.fill = PatternFill(start_color='baddad', fill_type='solid')
+            cell.font = Font(name=SPREADSHEET_CELL_FONT)
+            cell.fill = PatternFill(start_color=SPREADSHEET_CELL_COLOR, fill_type=SPREADSHEET_CELL_FILL)
                 # Set column width.
                 #
                 # As per Excel specification, the width units are the width of
@@ -859,7 +884,7 @@ def saca_las_mantecas(url, parser):
         try:
             error_code = errno.errorcode[exc.errno]
         except (AttributeError, KeyError):
-            error_code = 'desconocido'
+            error_code = UNKNOWN_ERRNO
         details = f'{exc.strerror.capitalize().rstrip(".")}.'
         raise SkimmingError(Messages.CONNECTION_ERROR.format(error_code), details) from exc
 
@@ -884,7 +909,7 @@ def retrieve_url(url):
 
     """
     if not is_accepted_url(url):
-        raise URLError(f'El URL «{url}» es de tipo desconocido.')
+        raise URLError(Messages.UNKNOWN_URL_TYPE.format(url))
 
     if url.startswith('file://'):
         url = resolve_file_url(url)
@@ -927,7 +952,7 @@ def get_redirected_url(base_url, contents):
     """
     if match := re.search(META_REFRESH_RE, contents, re.I):
         base_url = urlparse(base_url)
-        redirected_url = urlparse(match.group(1).decode('ascii'))
+        redirected_url = urlparse(match.group(1).decode(ASCII_ENCODING))
         for field in base_url._fields:
             value = getattr(base_url, field)
             # If not specified in the redirected URL, both the scheme and netloc
@@ -953,15 +978,15 @@ def detect_html_charset(contents):
     this application which does not specify a charset will in fact be using
     iso-8859-1 anyway, so in the end that is a safer fallback.
     """
-    charset = 'iso-8859-1'
+    charset = LATIN1_CHARSET
     if match := re.search(META_HTTP_EQUIV_CHARSET_RE, contents, re.I):
         # Next best thing, from the meta http-equiv="content-type".
         logging.debug('Charset detectado mediante meta http-equiv.')
-        charset = match.group(1).decode('ascii')
+        charset = match.group(1).decode(ASCII_ENCODING)
     elif match := re.search(META_CHARSET_RE, contents, re.I):
         # Last resort, from some meta charset, if any…
         logging.debug('Charset detectado mediante meta charset.')
-        charset = match.group(1).decode('ascii')
+        charset = match.group(1).decode(ASCII_ENCODING)
     else:
         logging.debug('Charset not detectado, usando valor por defecto.')
     return charset
