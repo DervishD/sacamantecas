@@ -134,8 +134,6 @@ if sys.prefix == sys.base_prefix or not __v_alpha__:
 # Stem marker for sink filenames.
 SINK_FILENAME_STEM_MARKER = '_out'
 
-# Accepted set of URL schemes.
-ACCEPTED_URL_SCHEMES = ('https', 'http', 'file')
 
 # Just to avoid mistyping.
 UTF8_ENCODING = 'utf-8'
@@ -268,6 +266,7 @@ def warning(message):
     logging.warning('%s%s', Messages.WARNING_HEADER, message)
 
 
+ACCEPTED_URL_SCHEMES = ('https', 'http', 'file')
 def is_accepted_url(value):
     """Check if value is an accepted URL or not."""
     # The check is quite crude but works for the application's needs.
