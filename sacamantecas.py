@@ -712,7 +712,7 @@ def single_url_handler(url):
                     sink.write(f'{message}\n')
 
 
-FILESYSTEM_UNSAFE_RE = r'\w'
+FILESYSTEM_UNSAFE_RE = r'\W'
 FILESYSTEM_SAFE_CHAR = '_'
 def url_to_filename(url):
     """Convert the given URL to a valid filename."""
