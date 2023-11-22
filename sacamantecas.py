@@ -451,7 +451,7 @@ def setup_logging(log_filename, debug_filename):
         },
         'handlers': {
             'debugfile': {
-                'level': 'NOTSET',
+                'level': logging.NOTSET,
                 'formatter': 'debug',
                 'filters': ['debug'],
                 'class': 'logging.FileHandler',
@@ -460,7 +460,7 @@ def setup_logging(log_filename, debug_filename):
                 'encoding': UTF8_ENCODING,
             },
             'logfile':{
-                'level': 'NOTSET',
+                'level': logging.NOTSET,
                 'formatter': 'log',
                 'filters': ['log'],
                 'class': 'logging.FileHandler',
@@ -469,14 +469,14 @@ def setup_logging(log_filename, debug_filename):
                 'encoding': UTF8_ENCODING,
             },
             'stdout': {
-                'level': 'NOTSET',
+                'level': logging.NOTSET,
                 'formatter': 'console',
                 'filters': ['stdout'],
                 'class': 'logging.StreamHandler',
                 'stream': sys.stdout,
             },
             'stderr': {
-                'level': 'NOTSET',
+                'level': logging.NOTSET,
                 'formatter': 'console',
                 'filters': ['stderr'],
                 'class': 'logging.StreamHandler',
@@ -485,7 +485,7 @@ def setup_logging(log_filename, debug_filename):
         },
         'loggers': {
             '': {
-                'level': 'NOTSET',
+                'level': logging.NOTSET,
                 'handlers': ['debugfile', 'logfile', 'stdout', 'stderr'],
                 'propagate': False,
             },
