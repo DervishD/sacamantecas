@@ -97,11 +97,6 @@ class ExitCodes(IntEnum):
     KEYBOARD_INTERRUPT = 127
 
 
-if sys.platform != 'win32':
-    print(Messages.WRONG_PLATFORM_ERROR, file=sys.stderr)
-    sys.exit(ExitCodes.ERROR)
-
-
 # Computed as early as possible.
 TIMESTAMP_FORMAT = '%Y%m%d_%H%M%S'
 TIMESTAMP = time.strftime(TIMESTAMP_FORMAT)
@@ -116,6 +111,8 @@ USER_AGENT = ' '.join(dedent(f'''
 
 # Just to avoid mistyping.
 EMPTY_STRING = ''
+MANDATORY_PLATFORM = 'win32'
+MAIN_MODULE = '__main__'
 UTF8_ENCODING = 'utf-8'
 ASCII_ENCODING = 'ascii'
 LATIN1_ENCODING = 'iso-8859-1'
@@ -128,6 +125,10 @@ EXCEPTION_SUFFIX = 'Error'
 SINK_FILENAME_STEM_MARKER = '_out'
 SINK_FILEMODE = 'w'
 
+
+if sys.platform != MANDATORY_PLATFORM:
+    print(Messages.WRONG_PLATFORM_ERROR, file=sys.stderr)
+    sys.exit(ExitCodes.ERROR)
 
 
 try:
@@ -296,7 +297,7 @@ def wait_for_keypress():
     """Wait for a keypress to continue if sys.stdout is a real console AND the console is transient."""
     # First of all, if this script is being imported rather than run,
     # then the application must NOT pause. Absolutely NOT.
-    if __name__ != '__main__':
+    if __name__ != MAIN_MODULE:
         return
 
     # If no console is attached, then the application must NOT pause.
@@ -1103,5 +1104,5 @@ def main(*args):
 
 atexit.register(wait_for_keypress)
 sys.excepthook = excepthook
-if __name__ == '__main__':
+if __name__ == MAIN_MODULE:
     sys.exit(main(*sys.argv[1:]))
