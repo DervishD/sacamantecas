@@ -6,7 +6,6 @@ __v_minor__ = '0'
 __v_patch__ = '0'
 __v_alpha__ = 'alpha'
 __appname__ = f'sacamantecas v{__v_major__}.{__v_minor__}.{__v_patch__}-{__v_alpha__}'
-__supported_platform__ = 'win32'
 
 import atexit
 from collections import namedtuple
@@ -68,6 +67,7 @@ class Messages(StrEnum):
     EMPTY_PROFILES = 'No hay perfiles definidos en el fichero de perfiles «{}».'
     MISSING_PROFILES = 'No se encontró o no se pudo leer el fichero de perfiles «{}».'
     PROFILES_WRONG_SYNTAX = 'Error de sintaxis «{}» leyendo el fichero de perfiles.'
+    PROFILES_WRONG_SYNTAX_DETAILS = 'Perfil «{}», {}:\n  {}{}{}\n  {:_<{}}^'
     INVALID_PROFILE = 'El perfil «{}» es inválido.'
     PROFILE_WITHOUT_URL = 'El perfil no incluye un patrón de URL.'
     UNKNOWN_URL_TYPE = 'El URL «{}» es de tipo desconocido.'
@@ -97,13 +97,14 @@ class ExitCodes(IntEnum):
     KEYBOARD_INTERRUPT = 127
 
 
-if sys.platform != __supported_platform__:
+if sys.platform != 'win32':
     print(Messages.WRONG_PLATFORM_ERROR, file=sys.stderr)
     sys.exit(ExitCodes.ERROR)
 
 
 # Computed as early as possible.
-TIMESTAMP = time.strftime('%Y%m%d_%H%M%S')
+TIMESTAMP_FORMAT = '%Y%m%d_%H%M%S'
+TIMESTAMP = time.strftime(TIMESTAMP_FORMAT)
 USER_AGENT = ' '.join(dedent(f'''
     {__appname__.replace(" v", "/")}
     +https://github.com/DervishD/sacamantecas
@@ -113,8 +114,24 @@ USER_AGENT = ' '.join(dedent(f'''
 ''').splitlines()).lstrip()
 
 
+# Just to avoid mistyping.
+EMPTY_STRING = ''
+UTF8_ENCODING = 'utf-8'
+ASCII_ENCODING = 'ascii'
+LATIN1_ENCODING = 'iso-8859-1'
+BUNDLED_EXE_MARKER = 'frozen'
+CONFIG_FILE_SUFFIX = '.ini'
+TEXT_FILE_SUFFIX = '.txt'
+LOGFILE_STEM = '_log'
+DEBUGFILE_STEM = '_debug'
+EXCEPTION_SUFFIX = 'Error'
+SINK_FILENAME_STEM_MARKER = '_out'
+SINK_FILEMODE = 'w'
+
+
+
 try:
-    if getattr(sys, 'frozen', False):
+    if getattr(sys, BUNDLED_EXE_MARKER, False):
         SCRIPT_PATH = sys.executable
     else:
         SCRIPT_PATH = __file__
@@ -122,23 +139,14 @@ except NameError:
     print(Messages.INITIALIZATION_ERROR, file=sys.stderr)
     sys.exit(ExitCodes.ERROR)
 SCRIPT_PATH = Path(SCRIPT_PATH).resolve()
-INIFILE_PATH = SCRIPT_PATH.with_suffix('.ini')
-LOGFILE_PATH = Path(f'{SCRIPT_PATH.with_suffix("")}_log.txt')
-DEBUGFILE_PATH = Path(f'{SCRIPT_PATH.with_suffix("")}_debug.txt')
+INIFILE_PATH = SCRIPT_PATH.with_suffix(CONFIG_FILE_SUFFIX)
+LOGFILE_PATH = SCRIPT_PATH.with_stem(f'{SCRIPT_PATH.stem}{LOGFILE_STEM}').with_suffix(TEXT_FILE_SUFFIX)
+DEBUGFILE_PATH = SCRIPT_PATH.with_stem(f'{SCRIPT_PATH.stem}{DEBUGFILE_STEM}').with_suffix(TEXT_FILE_SUFFIX)
 if sys.prefix == sys.base_prefix or not __v_alpha__:
     # Unless running and alpha version within a virtual environment,
     # add a timestamp marker to log and debug filenames.
     LOGFILE_PATH = LOGFILE_PATH.with_stem(f'{LOGFILE_PATH.stem}_{TIMESTAMP}')
     DEBUGFILE_PATH = DEBUGFILE_PATH.with_stem(f'{DEBUGFILE_PATH.stem}_{TIMESTAMP}')
-
-# Stem marker for sink filenames.
-SINK_FILENAME_STEM_MARKER = '_out'
-
-
-# Just to avoid mistyping.
-UTF8_ENCODING = 'utf-8'
-ASCII_ENCODING = 'ascii'
-LATIN1_ENCODING = 'iso-8859-1'
 
 
 # Needed for having VERY basic logging when the code is imported rather than run.
@@ -155,7 +163,7 @@ sys.stderr.reconfigure(encoding=UTF8_ENCODING)
 class BaseApplicationError(Exception):
     """Base class for all custom application exceptions."""
     # cSpell:ignore vararg
-    def __init__ (self, message, details='', *args, **kwargs):  # pylint: disable=keyword-arg-before-vararg
+    def __init__ (self, message, details=EMPTY_STRING, *args, **kwargs):  # pylint: disable=keyword-arg-before-vararg
         self.details = details
         super().__init__(message, *args, **kwargs)
 
@@ -188,9 +196,9 @@ class BaseParser(HTMLParser):
         super().reset()
         self.within_k = False
         self.within_v = False
-        self.current_k = ''
-        self.current_v = ''
-        self.last_k = ''
+        self.current_k = EMPTY_STRING
+        self.current_v = EMPTY_STRING
+        self.last_k = EMPTY_STRING
         self.retrieved_metadata = {}
 
     def configure(self, config):
@@ -245,7 +253,7 @@ class BaratzParser(BaseParser):   # pylint: disable=unused-variable
     PARAMETERS = BaseParser.PARAMETERS | {M_TAG, M_ATTR, M_VALUE}
 
 
-def error(message, details=''):
+def error(message, details=EMPTY_STRING):
     """Helper for preprocessing error messages."""
     logging.indent(0)
     logging.error(Messages.ERROR_HEADER)
@@ -323,52 +331,65 @@ def wait_for_keypress():
     # For a .py file, it is a bit more complicated, but in most cases if the
     # console title contains the name of the .py file, the console is NOT a
     # transient console.
-    if getattr(sys, 'frozen', False):
+    if getattr(sys, BUNDLED_EXE_MARKER, False):
         if console_title != sys.executable:
             return
     elif console_title.find(SCRIPT_PATH.name) != -1:
         return
 
-    print(Messages.PRESS_ANY_KEY, end='', flush=True)
+    print(Messages.PRESS_ANY_KEY, end=EMPTY_STRING, flush=True)
     getch()
 
 
+EXCHOOK_DETAILS_ERROR = 'Error:'
+EXCHOOK_DETAILS_EXCEPTION = 'Excepción:'
+EXCHOOK_DETAILS_ERRCONST_SEP = ' / '
+EXCHOOK_DETAILS_WINERROR_PREFIX = 'Win_'
+EXCHOOK_DETAILS_MESSAGE = 'Mensaje:'
+EXCHOOK_DETAILS_FILENAME = 'Fichero'
+EXCHOOK_DETAILS_ARGUMENTS = 'Argumentos:'
+EXCHOOK_DETAILS_SRC = 'de origen:'
+EXCHOOK_DETAILS_DST = 'de destino:'
+EXCHOOK_TB_HEADER = 'Traceback:'
+EXCHOOK_TB_MARKER = '▸'
+EXCHOOK_TB_FILENAME = 'Fichero'
+EXCHOOK_TB_LINE = 'Línea'
+EXCHOOK_TB_MODULE = '<module>'
 def excepthook(exc_type, exc_value, exc_traceback):
     """Handle unhandled exceptions, default exception hook."""
     if isinstance(exc_value, OSError):
         message = Messages.UNEXPECTED_OSERROR
-        details = f'Error: {exc_type.__name__}'
+        details = f'{EXCHOOK_DETAILS_ERROR} {exc_type.__name__}'
         if exc_value.errno is not None:
-            details += f' / {errno.errorcode[exc_value.errno]}'
+            details += f'{EXCHOOK_DETAILS_ERRCONST_SEP}{errno.errorcode[exc_value.errno]}'
         if exc_value.winerror is not None:
-            details += f' / Win_{exc_value.winerror}'
-        details += f'\nMensaje: {exc_value.strerror}.\n'
+            details += f'{EXCHOOK_DETAILS_ERRCONST_SEP}{EXCHOOK_DETAILS_WINERROR_PREFIX}{exc_value.winerror}'
+        details += f'\n{EXCHOOK_DETAILS_MESSAGE} {exc_value.strerror}.\n'
         if exc_value.filename is not None:
-            details += 'Fichero'
+            details += EXCHOOK_DETAILS_FILENAME
             if exc_value.filename2 is not None:
-                details += f' de origen:  «{exc_value.filename}»\n'
-                details += f'Fichero de destino: «{exc_value.filename2}»\n'
+                details += f' {EXCHOOK_DETAILS_SRC}  «{exc_value.filename}»\n'
+                details += f'{EXCHOOK_DETAILS_FILENAME} {EXCHOOK_DETAILS_DST} «{exc_value.filename2}»\n'
             else:
                 details += f': «{exc_value.filename}»\n'
     else:
         message = Messages.UNHANDLED_EXCEPTION
-        details = f'Excepción: {exc_type.__name__}\n'
-        details += f'Mensaje: {str(exc_value).rstrip(".")}.\n' if str(exc_value) else ''
-        details += 'Argumentos:\n' if exc_value.args else ''
+        details = f'{EXCHOOK_DETAILS_EXCEPTION} {exc_type.__name__}\n'
+        details += f'{EXCHOOK_DETAILS_MESSAGE} {str(exc_value).rstrip(".")}.\n' if str(exc_value) else EMPTY_STRING
+        details += f'{EXCHOOK_DETAILS_ARGUMENTS}\n' if exc_value.args else EMPTY_STRING
         for arg in exc_value.args:
             details += f'  [{type(arg).__name__}] {arg}\n'
     current_filename = None
-    traceback = ''
+    traceback = EMPTY_STRING
     for frame in tb.extract_tb(exc_traceback):
         if current_filename != frame.filename:
-            traceback += f'▸ Fichero {frame.filename}\n'
+            traceback += f'{EXCHOOK_TB_MARKER} {EXCHOOK_TB_FILENAME} {frame.filename}\n'
             current_filename = frame.filename
-        traceback += f'  Línea {frame.lineno} ['
-        traceback += SCRIPT_PATH.name if frame.name == '<module>' else frame.name
-        traceback += ']'
-        traceback += f': {frame.line}' if frame.line else ''
+        traceback += f'  {EXCHOOK_TB_LINE} {frame.lineno}'
+        traceback += f' [{SCRIPT_PATH.name if frame.name == EXCHOOK_TB_MODULE else frame.name}]'
+        traceback += f': {frame.line}' if frame.line else EMPTY_STRING
         traceback += '\n'
-    details += f'\nTraceback:\n{traceback}' if traceback else ''
+    details += f'\n{EXCHOOK_TB_HEADER}\n{traceback}' if traceback else EMPTY_STRING
     error(message, details)
 
 
@@ -391,6 +412,25 @@ def loggerize(function):
 
 
 LOGGING_INDENTCHAR = ' '
+LOGGING_FORMAT_STYLE = '{'
+LOGGING_DEBUG_FORMAT = '{asctime}.{msecs:04.0f} {levelname}| {message}'
+LOGGING_LOG_FORMAT = '{asctime} {message}'
+LOGGING_CONSOLE_FORMAT = '{message}'
+LOGGING_DATE_FORMAT = '%Y%m%d_%H%M%S'
+LOGGING_FILE_MODE = 'w'
+LOGGING_FILEHANDLER_CLASS = 'logging.FileHandler'
+LOGGING_STREAMHANDLER_CLASS = 'logging.StreamHandler'
+LOGGING_DEBUG_FORMATTER = 'debug_formatter'
+LOGGING_LOG_FORMATTER = 'log_formatter'
+LOGGING_CONSOLE_FORMATTER = 'console_formatter'
+LOGGING_DEBUG_FILTER = 'debug_filter'
+LOGGING_LOG_FILTER = 'log_filter'
+LOGGING_STDOUT_FILTER = 'stdout_filter'
+LOGGING_STDERR_FILTER = 'stderr_filter'
+LOGGING_DEBUGFILE_HANDLER = 'debugfile_handler'
+LOGGING_LOGFILE_HANDLER = 'logfile_handler'
+LOGGING_STDOUT_HANDLER = 'stdout_handler'
+LOGGING_STDERR_HANDLER = 'stderr_handler'
 def setup_logging(log_filename, debug_filename):
     """
     Sets up logging system, disabling all existing loggers.
@@ -417,76 +457,81 @@ def setup_logging(log_filename, debug_filename):
         'version': 1,
         'disable_existing_loggers': True,
         'formatters': {
-            'debug': {
+            LOGGING_DEBUG_FORMATTER: {
                 '()': CustomFormatter,
-                'style': '{',
-                'format': '{asctime}.{msecs:04.0f} {levelname}| {message}',
-                'datefmt': '%Y%m%d_%H%M%S',
+                'style': LOGGING_FORMAT_STYLE,
+                'format': LOGGING_DEBUG_FORMAT,
+                'datefmt': LOGGING_DATE_FORMAT,
             },
-            'log': {
+            LOGGING_LOG_FORMATTER: {
                 '()': CustomFormatter,
-                'style': '{',
-                'format': '{asctime} {message}',
-                'datefmt': '%Y%m%d_%H%M%S',
+                'style': LOGGING_FORMAT_STYLE,
+                'format': LOGGING_LOG_FORMAT,
+                'datefmt': LOGGING_DATE_FORMAT,
             },
-            'console': {
+            LOGGING_CONSOLE_FORMATTER: {
                 '()': CustomFormatter,
-                'style': '{',
-                'format': '{message}',
+                'style': LOGGING_FORMAT_STYLE,
+                'format': LOGGING_CONSOLE_FORMAT,
             },
         },
         'filters': {
-            'debug': {
+            LOGGING_DEBUG_FILTER: {
                 '()': lambda: lambda log_record: log_record.msg.strip() and log_record.levelno > logging.NOTSET
             },
-            'log': {
+            LOGGING_LOG_FILTER: {
                 '()': lambda: lambda log_record: log_record.msg.strip() and log_record.levelno >= logging.INFO
             },
-            'stdout': {
+            LOGGING_STDOUT_FILTER: {
                 '()': lambda: lambda log_record: log_record.msg.strip() and log_record.levelno == logging.INFO
             },
-            'stderr': {
+            LOGGING_STDERR_FILTER: {
                 '()': lambda: lambda log_record: log_record.msg.strip() and log_record.levelno > logging.INFO
             },
         },
         'handlers': {
-            'debugfile': {
+            LOGGING_DEBUGFILE_HANDLER: {
                 'level': logging.NOTSET,
-                'formatter': 'debug',
-                'filters': ['debug'],
-                'class': 'logging.FileHandler',
+                'formatter': LOGGING_DEBUG_FORMATTER,
+                'filters': [LOGGING_DEBUG_FILTER],
+                'class': LOGGING_FILEHANDLER_CLASS,
                 'filename': debug_filename,
-                'mode': 'w',
+                'mode': LOGGING_FILE_MODE,
                 'encoding': UTF8_ENCODING,
             },
-            'logfile':{
+            LOGGING_LOGFILE_HANDLER: {
                 'level': logging.NOTSET,
-                'formatter': 'log',
-                'filters': ['log'],
-                'class': 'logging.FileHandler',
+                'formatter': LOGGING_LOG_FORMATTER,
+                'filters': [LOGGING_LOG_FILTER],
+                'class': LOGGING_FILEHANDLER_CLASS,
                 'filename': log_filename,
-                'mode': 'w',
+                'mode': LOGGING_FILE_MODE,
                 'encoding': UTF8_ENCODING,
             },
-            'stdout': {
+            LOGGING_STDOUT_HANDLER: {
                 'level': logging.NOTSET,
-                'formatter': 'console',
-                'filters': ['stdout'],
-                'class': 'logging.StreamHandler',
+                'formatter': LOGGING_CONSOLE_FORMATTER,
+                'filters': [LOGGING_STDOUT_FILTER],
+                'class': LOGGING_STREAMHANDLER_CLASS,
                 'stream': sys.stdout,
             },
-            'stderr': {
+            LOGGING_STDERR_HANDLER: {
                 'level': logging.NOTSET,
-                'formatter': 'console',
-                'filters': ['stderr'],
-                'class': 'logging.StreamHandler',
+                'formatter': LOGGING_CONSOLE_FORMATTER,
+                'filters': [LOGGING_STDERR_FILTER],
+                'class': LOGGING_STREAMHANDLER_CLASS,
                 'stream': sys.stderr,
             },
         },
         'loggers': {
             '': {
                 'level': logging.NOTSET,
-                'handlers': ['debugfile', 'logfile', 'stdout', 'stderr'],
+                'handlers': [
+                    LOGGING_DEBUGFILE_HANDLER,
+                    LOGGING_LOGFILE_HANDLER,
+                    LOGGING_STDOUT_HANDLER,
+                    LOGGING_STDERR_HANDLER
+                ],
                 'propagate': False,
             },
         },
@@ -537,6 +582,9 @@ def keyboard_interrupt_handler(function):
     return handle_keyboard_interrupt_wrapper
 
 
+PROFILE_BADREGEX = 'BadRegex'
+PROFILE_K_V_SEPARATOR = ' = '
+PROFILE_URL_KEY = 'url'
 def load_profiles(filename):
     """
     Load the profiles from filename.
@@ -560,7 +608,7 @@ def load_profiles(filename):
     except (FileNotFoundError, PermissionError) as exc:
         raise ProfilesError(Messages.MISSING_PROFILES.format(exc.filename)) from exc
     except configparser.Error as exc:
-        errorname = type(exc).__name__.removesuffix('Error')
+        errorname = type(exc).__name__.removesuffix(EXCEPTION_SUFFIX)
         raise ProfilesError(Messages.PROFILES_WRONG_SYNTAX.format(errorname), exc) from exc
 
     profiles = {}
@@ -575,11 +623,13 @@ def load_profiles(filename):
             try:
                 options[key] = re.compile(value, re.IGNORECASE)
             except re.error as exc:
-                details = f'Perfil «{section}»: {exc.msg[0].upper() + exc.msg[1:]}.\n'
-                details += f'  {key} = {exc.pattern}\n'
-                details += '  ' + '_' * (exc.pos + len(key) + len(' = ')) + '^'
-                raise ProfilesError(Messages.PROFILES_WRONG_SYNTAX.format('BadRegex'), details) from exc
-        url_pattern = options.pop('url', None)
+                details = Messages.PROFILES_WRONG_SYNTAX_DETAILS.format(
+                    section, exc.msg,
+                    key, PROFILE_K_V_SEPARATOR, exc.pattern,
+                    EMPTY_STRING, exc.pos + len(key) + len(PROFILE_K_V_SEPARATOR)
+                )
+                raise ProfilesError(Messages.PROFILES_WRONG_SYNTAX.format(PROFILE_BADREGEX), details) from exc
+        url_pattern = options.pop(PROFILE_URL_KEY, None)
         if url_pattern is None:
             raise ProfilesError(Messages.INVALID_PROFILE.format(section), Messages.PROFILE_WITHOUT_URL)
         for parser in parsers:
@@ -644,8 +694,8 @@ def single_url_handler(url):
 
     The output file has UTF-8 encoding.
     """
-    sink_filename = generate_sink_filename(url_to_filename(url).with_suffix('.txt'))
-    with open(sink_filename, 'w+', encoding=UTF8_ENCODING) as sink:
+    sink_filename = generate_sink_filename(url_to_filename(url).with_suffix(TEXT_FILE_SUFFIX))
+    with open(sink_filename, SINK_FILEMODE, encoding=UTF8_ENCODING) as sink:
         logging.debug('Volcando metadatos a «%s».', sink_filename)
         yield True  # Successful initialization.
         if is_accepted_url(url):
@@ -661,9 +711,11 @@ def single_url_handler(url):
                     sink.write(f'{message}\n')
 
 
+FILESYSTEM_UNSAFE_RE = r'\w'
+FILESYSTEM_SAFE_CHAR = '_'
 def url_to_filename(url):
     """Convert the given URL to a valid filename."""
-    return Path(re.sub(r'\W', '_', url, re.ASCII))  # Quite crude but it works.
+    return Path(re.sub(FILESYSTEM_UNSAFE_RE, FILESYSTEM_SAFE_CHAR, url, re.ASCII))  # Quite crude but it works.
 
 
 def textfile_handler(source_filename):
@@ -678,7 +730,7 @@ def textfile_handler(source_filename):
     """
     sink_filename = generate_sink_filename(source_filename)
     with open(source_filename, encoding=UTF8_ENCODING) as source:
-        with open(sink_filename, 'w', encoding=UTF8_ENCODING) as sink:
+        with open(sink_filename, SINK_FILEMODE, encoding=UTF8_ENCODING) as sink:
             logging.debug('Volcando metadatos a «%s».', sink_filename)
             yield True  # Successful initialization.
             for url in source.readlines():
@@ -745,11 +797,12 @@ def spreadsheet_handler(source_filename):
     source_workbook.close()
 
 
+STRING_CELL_TYPE = 's'
 def get_url_from_row(row):
     """Find first URL in row."""
     url = None
     for cell in row:
-        if cell.data_type != 's':
+        if cell.data_type != STRING_CELL_TYPE:
             logging.debug('La celda «%s» no es de tipo cadena, será ignorada.', cell.coordinate)
             continue
         if is_accepted_url(cell.value):
@@ -852,7 +905,7 @@ def saca_las_mantecas(url, parser):
             except KeyError:
                 error_code = f' [{exc.reason.errno}]'
             except AttributeError:
-                error_code = ''
+                error_code = EMPTY_STRING
             details = f'{exc.reason.strerror.capitalize()}{error_code}.'
         elif isinstance(exc, HTTPError):
             details = Messages.HTTP_PROTOCOL_ERROR.format(exc.code, exc.reason.capitalize())
@@ -882,6 +935,8 @@ def saca_las_mantecas(url, parser):
     return {'key_1': 'value_1', 'key_2': 'value_2', 'key_3': 'value_3'}
 
 
+FILE_URL_SCHEME = 'file://'
+USER_AGENT_HEADER = 'User-Agent'
 def retrieve_url(url):
     """
     Retrieve contents from url.
@@ -897,12 +952,12 @@ def retrieve_url(url):
     if not is_accepted_url(url):
         raise URLError(Messages.UNKNOWN_URL_TYPE.format(url))
 
-    if url.startswith('file://'):
+    if url.startswith(FILE_URL_SCHEME):
         url = resolve_file_url(url)
 
     while url:
         logging.debug('Procesando URL «%s».', url)
-        with urlopen(Request(url, headers={'User-Agent': USER_AGENT})) as response:
+        with urlopen(Request(url, headers={USER_AGENT_HEADER: USER_AGENT})) as response:
             # First, check if any redirection is needed and get the charset the easy way.
             contents = response.read()
             charset = response.headers.get_content_charset()
@@ -919,16 +974,18 @@ def retrieve_url(url):
     return contents.decode(charset)
 
 
+QUOTING_SAFE_CHARS = ':/'
 def resolve_file_url(url):
     """Resolve relative paths in file: url."""
     parsed_url = urlparse(url)
     resolved_path = unquote(parsed_url.path[1:])
     resolved_path = Path(resolved_path).resolve().as_posix()
-    resolved_path = quote(resolved_path, safe=':/')
+    resolved_path = quote(resolved_path, safe=QUOTING_SAFE_CHARS)
     return parsed_url._replace(path=resolved_path).geturl()
 
 
 META_REFRESH_RE = rb'<meta http-equiv="refresh" content="(?:[^;]+;\s+)?URL=([^"]+)"'
+REPLACEABLE_FIELDS = ('scheme', 'netloc')
 def get_redirected_url(base_url, contents):
     """
     Get redirected URL from a meta http-equiv="refresh" pragma in contents. Use
@@ -945,7 +1002,7 @@ def get_redirected_url(base_url, contents):
             # If not specified in the redirected URL, both the scheme and netloc
             # will be reused from the base URL. Any other field will be obtained
             # from the redirected URL and used, no matter if it is empty.
-            if field in ('scheme', 'netloc') and not getattr(redirected_url, field):
+            if field in REPLACEABLE_FIELDS and not getattr(redirected_url, field):
                 redirected_url = redirected_url._replace(**{field: value})
         redirected_url = urlunparse(redirected_url)
         logging.debug('URL redirigido a «%s».', redirected_url)
