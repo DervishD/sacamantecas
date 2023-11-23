@@ -527,12 +527,11 @@ def setup_logging(log_filename, debug_filename):
     setattr(logging.getLogger(), 'indentlevel', 0)
 
     current_factory = logging.getLogRecordFactory()
-    longest_level_name_length = len(max(logging.getLevelNamesMapping(), key=len))
     def record_factory(*args, **kwargs):
         """LogRecord factory which supports indentation."""
         record = current_factory(*args, **kwargs)
         record.indent = LOGGING_INDENTCHAR * logging.getLogger().indentlevel
-        record.levelname = f'{record.levelname:{longest_level_name_length}}'
+        record.levelname = LOGGING_LEVELNAME_FORMAT.format(record.levelname)
         return record
     logging.setLogRecordFactory(record_factory)
 
