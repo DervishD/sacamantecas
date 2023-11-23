@@ -113,6 +113,7 @@ USER_AGENT = ' '.join(dedent(f'''
 EMPTY_STRING = ''
 MANDATORY_PLATFORM = 'win32'
 MAIN_MODULE = '__main__'
+TRACEBACK_TOPLEVEL = '<module>'
 UTF8_ENCODING = 'utf-8'
 ASCII_ENCODING = 'ascii'
 LATIN1_ENCODING = 'iso-8859-1'
@@ -342,55 +343,39 @@ def wait_for_keypress():
     getch()
 
 
-EXCHOOK_DETAILS_ERROR = 'Error:'
-EXCHOOK_DETAILS_EXCEPTION = 'Excepción:'
-EXCHOOK_DETAILS_ERRCONST_SEP = ' / '
-EXCHOOK_DETAILS_WINERROR_PREFIX = 'Win_'
-EXCHOOK_DETAILS_MESSAGE = 'Mensaje:'
-EXCHOOK_DETAILS_FILENAME = 'Fichero'
-EXCHOOK_DETAILS_ARGUMENTS = 'Argumentos:'
-EXCHOOK_DETAILS_SRC = 'de origen:'
-EXCHOOK_DETAILS_DST = 'de destino:'
-EXCHOOK_TB_HEADER = 'Traceback:'
-EXCHOOK_TB_MARKER = '▸'
-EXCHOOK_TB_FILENAME = 'Fichero'
-EXCHOOK_TB_LINE = 'Línea'
-EXCHOOK_TB_MODULE = '<module>'
+EXC_HOOK_OSERROR_DETAILS = 'type = {}\nerrno = {}\nwinerror = {}\nstrerror = {}\nfilename = {}\nfilename2 = {}'
+EXC_HOOK_EXCEPTION_DETAILS = 'type = {}\nvalue = {}\nargs: {}'
+EXC_HOOK_EXCEPTION_DETAILS_ARGS = '\n  [{}] {}'
+EXC_HOOK_TRACEBACK = '\n\ntraceback:\n{}'
+EXC_HOOK_TRACEBACK_FRAME = '▸ {}\n'
+EXC_HOOK_TRACEBACK_FRAME_LINE = '  {}, {}: {}\n'
 def excepthook(exc_type, exc_value, exc_traceback):
     """Handle unhandled exceptions, default exception hook."""
     if isinstance(exc_value, OSError):
         message = Messages.UNEXPECTED_OSERROR
-        details = f'{EXCHOOK_DETAILS_ERROR} {exc_type.__name__}'
-        if exc_value.errno is not None:
-            details += f'{EXCHOOK_DETAILS_ERRCONST_SEP}{errno.errorcode[exc_value.errno]}'
-        if exc_value.winerror is not None:
-            details += f'{EXCHOOK_DETAILS_ERRCONST_SEP}{EXCHOOK_DETAILS_WINERROR_PREFIX}{exc_value.winerror}'
-        details += f'\n{EXCHOOK_DETAILS_MESSAGE} {exc_value.strerror}.\n'
-        if exc_value.filename is not None:
-            details += EXCHOOK_DETAILS_FILENAME
-            if exc_value.filename2 is not None:
-                details += f' {EXCHOOK_DETAILS_SRC}  «{exc_value.filename}»\n'
-                details += f'{EXCHOOK_DETAILS_FILENAME} {EXCHOOK_DETAILS_DST} «{exc_value.filename2}»\n'
-            else:
-                details += f': «{exc_value.filename}»\n'
+        details = EXC_HOOK_OSERROR_DETAILS.format(
+            exc_type.__name__,
+            EMPTY_STRING if exc_value.errno is None else errno.errorcode[exc_value.errno],
+            EMPTY_STRING if exc_value.winerror is None else exc_value.winerror,
+            exc_value.strerror,
+            EMPTY_STRING if exc_value.filename is None else exc_value.filename,
+            EMPTY_STRING if exc_value.filename2 is None else exc_value.filename2,
+        )
     else:
         message = Messages.UNHANDLED_EXCEPTION
-        details = f'{EXCHOOK_DETAILS_EXCEPTION} {exc_type.__name__}\n'
-        details += f'{EXCHOOK_DETAILS_MESSAGE} {str(exc_value).rstrip(".")}.\n' if str(exc_value) else EMPTY_STRING
-        details += f'{EXCHOOK_DETAILS_ARGUMENTS}\n' if exc_value.args else EMPTY_STRING
+        args = ''
         for arg in exc_value.args:
-            details += f'  [{type(arg).__name__}] {arg}\n'
+            args += EXC_HOOK_EXCEPTION_DETAILS_ARGS.format(type(arg).__name__, arg)
+        details = EXC_HOOK_EXCEPTION_DETAILS.format(exc_type.__name__, str(exc_value), args)
     current_filename = None
     traceback = EMPTY_STRING
     for frame in tb.extract_tb(exc_traceback):
         if current_filename != frame.filename:
-            traceback += f'{EXCHOOK_TB_MARKER} {EXCHOOK_TB_FILENAME} {frame.filename}\n'
+            traceback += EXC_HOOK_TRACEBACK_FRAME.format(frame.filename)
             current_filename = frame.filename
-        traceback += f'  {EXCHOOK_TB_LINE} {frame.lineno}'
-        traceback += f' [{SCRIPT_PATH.name if frame.name == EXCHOOK_TB_MODULE else frame.name}]'
-        traceback += f': {frame.line}' if frame.line else EMPTY_STRING
-        traceback += '\n'
-    details += f'\n{EXCHOOK_TB_HEADER}\n{traceback}' if traceback else EMPTY_STRING
+        frame.name = SCRIPT_PATH.name if frame.name == TRACEBACK_TOPLEVEL else frame.name
+        traceback += EXC_HOOK_TRACEBACK_FRAME_LINE.format(frame.lineno, frame.name, frame.line)
+    details += EXC_HOOK_TRACEBACK.format(traceback) if traceback else EMPTY_STRING
     error(message, details)
 
 
