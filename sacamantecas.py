@@ -73,13 +73,15 @@ class Messages(StrEnum):
     UNKNOWN_URL_TYPE = 'El URL «{}» es de tipo desconocido.'
     NO_MATCHING_PROFILE = 'No se encontró un perfil para procesar el URL.'
 
-    HTTP_PROTOCOL_ERROR = 'Error de protocolo HTTP {}: {}.'
+    OSLIKE_URLERROR = 'Error de red {}: {}.'
+    HTTP_PROTOCOL_URLERROR = 'Error de protocolo HTTP {}: {}.'
+    GENERIC_URLERROR = 'Error de URL{}: {}.'
     URL_ACCESS_ERROR = 'No resultó posible acceder a la dirección especificada.'
     HTTP_RETRIEVAL_ERROR = 'No se obtuvieron contenidos.'
     CONNECTION_ERROR = 'Se produjo un error de conexión «{}» accediendo al URL.'
     NO_CONTENTS_ERROR = 'No se recibieron contenidos del URL.'
 
-    SKIMMING_MARKER = '\nSacando las mantecas:'
+    SKIMMING_MARKER = '\nSacando las mantecas:\n'
     SOURCE_LABEL = 'Fuente: {}'
     UNSUPPORTED_SOURCE = 'La fuente no es de un tipo admitido.'
     INPUT_FILE_INVALID = 'El fichero de entrada es inválido ({}).'
@@ -98,8 +100,8 @@ class ExitCodes(IntEnum):
 
 
 # Computed as early as possible.
-TIMESTAMP_FORMAT = '%Y%m%d_%H%M%S'
-TIMESTAMP = time.strftime(TIMESTAMP_FORMAT)
+TIMESTAMP_FORMAT = '_%Y%m%d_%H%M%S'
+TIMESTAMP_STEM = time.strftime(TIMESTAMP_FORMAT)
 USER_AGENT = ' '.join(dedent(f'''
     {__appname__.replace(" v", "/")}
     +https://github.com/DervishD/sacamantecas
@@ -111,6 +113,8 @@ USER_AGENT = ' '.join(dedent(f'''
 
 # Just to avoid mistyping.
 EMPTY_STRING = ''
+ENDING_PERIOD = '.'
+DOUBLE_QUOTE = '"'
 MANDATORY_PLATFORM = 'win32'
 MAIN_MODULE = '__main__'
 TRACEBACK_TOPLEVEL = '<module>'
@@ -147,8 +151,8 @@ DEBUGFILE_PATH = SCRIPT_PATH.with_stem(f'{SCRIPT_PATH.stem}{DEBUGFILE_STEM}').wi
 if sys.prefix == sys.base_prefix or not __v_alpha__:
     # Unless running and alpha version within a virtual environment,
     # add a timestamp marker to log and debug filenames.
-    LOGFILE_PATH = LOGFILE_PATH.with_stem(f'{LOGFILE_PATH.stem}_{TIMESTAMP}')
-    DEBUGFILE_PATH = DEBUGFILE_PATH.with_stem(f'{DEBUGFILE_PATH.stem}_{TIMESTAMP}')
+    LOGFILE_PATH = LOGFILE_PATH.with_stem(f'{LOGFILE_PATH.stem}{TIMESTAMP_STEM}')
+    DEBUGFILE_PATH = DEBUGFILE_PATH.with_stem(f'{DEBUGFILE_PATH.stem}{TIMESTAMP_STEM}')
 
 
 # Needed for having VERY basic logging when the code is imported rather than run.
@@ -362,7 +366,7 @@ def excepthook(exc_type, exc_value, exc_traceback):
         )
     else:
         message = Messages.UNHANDLED_EXCEPTION
-        args = ''
+        args = EMPTY_STRING
         for arg in exc_value.args:
             args += EXC_HOOK_EXCEPTION_DETAILS_ARGS.format(type(arg).__name__, arg)
         details = EXC_HOOK_EXCEPTION_DETAILS.format(exc_type.__name__, str(exc_value), args)
@@ -398,10 +402,12 @@ def loggerize(function):
 
 LOGGING_INDENTCHAR = ' '
 LOGGING_FORMAT_STYLE = '{'
+LOGGING_CUSTOM_INSTANCE = '()'
 LOGGING_DEBUG_FORMAT = '{asctime}.{msecs:04.0f} {levelname}| {message}'
 LOGGING_LOG_FORMAT = '{asctime} {message}'
 LOGGING_CONSOLE_FORMAT = '{message}'
 LOGGING_DATE_FORMAT = '%Y%m%d_%H%M%S'
+LOGGING_LEVELNAME_FORMAT = f'{{:{len(max(logging.getLevelNamesMapping(), key=len))}}}'
 LOGGING_FILE_MODE = 'w'
 LOGGING_FILEHANDLER_CLASS = 'logging.FileHandler'
 LOGGING_STREAMHANDLER_CLASS = 'logging.StreamHandler'
@@ -416,6 +422,7 @@ LOGGING_DEBUGFILE_HANDLER = 'debugfile_handler'
 LOGGING_LOGFILE_HANDLER = 'logfile_handler'
 LOGGING_STDOUT_HANDLER = 'stdout_handler'
 LOGGING_STDERR_HANDLER = 'stderr_handler'
+LOGGING_ROOT_LOGGER = ''
 def setup_logging(log_filename, debug_filename):
     """
     Sets up logging system, disabling all existing loggers.
@@ -443,35 +450,35 @@ def setup_logging(log_filename, debug_filename):
         'disable_existing_loggers': True,
         'formatters': {
             LOGGING_DEBUG_FORMATTER: {
-                '()': CustomFormatter,
+                LOGGING_CUSTOM_INSTANCE: CustomFormatter,
                 'style': LOGGING_FORMAT_STYLE,
                 'format': LOGGING_DEBUG_FORMAT,
                 'datefmt': LOGGING_DATE_FORMAT,
             },
             LOGGING_LOG_FORMATTER: {
-                '()': CustomFormatter,
+                LOGGING_CUSTOM_INSTANCE: CustomFormatter,
                 'style': LOGGING_FORMAT_STYLE,
                 'format': LOGGING_LOG_FORMAT,
                 'datefmt': LOGGING_DATE_FORMAT,
             },
             LOGGING_CONSOLE_FORMATTER: {
-                '()': CustomFormatter,
+                LOGGING_CUSTOM_INSTANCE: CustomFormatter,
                 'style': LOGGING_FORMAT_STYLE,
                 'format': LOGGING_CONSOLE_FORMAT,
             },
         },
         'filters': {
             LOGGING_DEBUG_FILTER: {
-                '()': lambda: lambda log_record: log_record.msg.strip() and log_record.levelno > logging.NOTSET
+                LOGGING_CUSTOM_INSTANCE: lambda: lambda record: record.msg.strip() and record.levelno > logging.NOTSET
             },
             LOGGING_LOG_FILTER: {
-                '()': lambda: lambda log_record: log_record.msg.strip() and log_record.levelno >= logging.INFO
+                LOGGING_CUSTOM_INSTANCE: lambda: lambda record: record.msg.strip() and record.levelno >= logging.INFO
             },
             LOGGING_STDOUT_FILTER: {
-                '()': lambda: lambda log_record: log_record.msg.strip() and log_record.levelno == logging.INFO
+                LOGGING_CUSTOM_INSTANCE: lambda: lambda record: record.msg.strip() and record.levelno == logging.INFO
             },
             LOGGING_STDERR_FILTER: {
-                '()': lambda: lambda log_record: log_record.msg.strip() and log_record.levelno > logging.INFO
+                LOGGING_CUSTOM_INSTANCE: lambda: lambda record: record.msg.strip() and record.levelno > logging.INFO
             },
         },
         'handlers': {
@@ -509,7 +516,7 @@ def setup_logging(log_filename, debug_filename):
             },
         },
         'loggers': {
-            '': {
+            LOGGING_ROOT_LOGGER: {
                 'level': logging.NOTSET,
                 'handlers': [
                     LOGGING_DEBUGFILE_HANDLER,
@@ -536,23 +543,28 @@ def setup_logging(log_filename, debug_filename):
     logging.setLogRecordFactory(record_factory)
 
 
+INDENTLEVEL_INC = '+'
+INDENTLEVEL_DEC = '-'
 def set_logging_indent_level(level):
     """
     Set current indentation level.
-    If level is '+', current indentation level is increased.
-    If level is '-', current indentation level is decreased.
+    If level is INDENTLEVEL_INC, current indentation level is increased.
+    If level is INDENTLEVEL_DEC, current indentation level is decreased.
     For any other value, indentation level is set to the provided value.
     """
-    match level:
-        case '+': logging.getLogger().indentlevel += 1
-        case '-': logging.getLogger().indentlevel -= 1
-        case _: logging.getLogger().indentlevel = level
+    if level == INDENTLEVEL_INC:
+        logging.getLogger().indentlevel += 1
+        return
+    if level == INDENTLEVEL_DEC:
+        logging.getLogger().indentlevel -= 1
+        return
+    logging.getLogger().indentlevel = level
 # Both logging.indent() and logging.dedent() support a parameter specifying an
 # exact FINAL indentation level, not an indentation increment/decrement!
 # These two helpers are provided in order to improve readability, since the
 # set_logging_indent_level() function can be used directly.
-logging.indent = lambda level = None: set_logging_indent_level('+' if level is None else level)
-logging.dedent = lambda level = None: set_logging_indent_level('-' if level is None else level)
+logging.indent = lambda level = None: set_logging_indent_level(INDENTLEVEL_INC if level is None else level)
+logging.dedent = lambda level = None: set_logging_indent_level(INDENTLEVEL_DEC if level is None else level)
 
 
 def keyboard_interrupt_handler(function):
@@ -668,6 +680,9 @@ def parse_arguments(*args):
 # initialization after priming the generator/coroutine.
 
 
+SINGLE_URL_HEADER = '{}\n'
+SINGLE_URL_METADATA = '{}: {}\n'
+SINGLE_URL_FOOTER = '\n'
 def single_url_handler(url):
     """
     Handle single URLs.
@@ -686,13 +701,14 @@ def single_url_handler(url):
             metadata = yield url
             yield
             if metadata:
-                sink.write(f'{url}\n')
+                sink.write(SINGLE_URL_HEADER.format(url))
                 for key, value in metadata.items():
-                    message = f'{key}: {value}'
+                    message = SINGLE_URL_METADATA.format(key, value)
                     logging.indent()
                     logging.info(message)  # Output allowed here because it is part of the handler.
                     logging.dedent()
-                    sink.write(f'{message}\n')
+                    sink.write(message)
+                sink.write(SINGLE_URL_FOOTER)
 
 
 FILESYSTEM_UNSAFE_RE = r'\W'
@@ -702,6 +718,9 @@ def url_to_filename(url):
     return Path(re.sub(FILESYSTEM_UNSAFE_RE, FILESYSTEM_SAFE_CHAR, url, re.ASCII))  # Quite crude but it works.
 
 
+TEXTFILE_HEADER = '{}\n'
+TEXTFILE_METADATA = '  {}: {}\n'
+TEXTFILE_FOOTER = '\n'
 def textfile_handler(source_filename):
     """
     Handle text files containing URLs, one per line.
@@ -724,14 +743,13 @@ def textfile_handler(source_filename):
                 metadata = yield url
                 yield
                 if metadata:
-                    sink.write(f'{url}\n')
+                    sink.write(TEXTFILE_HEADER.format(url))
                     for key, value in metadata.items():
                         logging.debug('Añadiendo metadato «%s» con valor «%s».', key, value)
-                        sink.write(f'  {key}: {value}\n')
-                    sink.write('\n')
+                        sink.write(TEXTFILE_METADATA.format(key, value))
+                    sink.write(TEXTFILE_FOOTER)
 
 
-SPREADSHEET_METADATA_COLUMN_MARKER = '[sm]'
 SPREADSHEET_CELL_FONT = 'Calibri'
 SPREADSHEET_CELL_COLOR = 'baddad'
 SPREADSHEET_CELL_FILL = 'solid'
@@ -756,7 +774,7 @@ def spreadsheet_handler(source_filename):
     try:
         source_workbook = load_workbook(source_filename)
     except (KeyError, BadZipFile) as exc:
-        details = str(exc).strip('"')
+        details = str(exc).strip(DOUBLE_QUOTE)
         details = details[0].lower() + details[1:]
         raise SourceError(Messages.INPUT_FILE_INVALID.format(type(exc).__name__)) from exc
     sink_workbook = load_workbook(sink_filename)
@@ -796,6 +814,7 @@ def get_url_from_row(row):
     return url
 
 
+SPREADSHEET_METADATA_COLUMN = '[sm] {}'
 def store_metadata_in_sheet(sheet, row, metadata, static = SimpleNamespace(known_metadata = {})):
     """
     Store metadata in provided sheet at given row.
@@ -809,7 +828,7 @@ def store_metadata_in_sheet(sheet, row, metadata, static = SimpleNamespace(known
     if not metadata:
         return
     for key, value in metadata.items():
-        key = f'{SPREADSHEET_METADATA_COLUMN_MARKER} {key}'
+        key = SPREADSHEET_METADATA_COLUMN.format(key)
         if key not in static.known_metadata:
             logging.debug('Se encontró un metadato nuevo, «%s».', key)
             column = sheet.max_column + 1
@@ -869,6 +888,8 @@ def get_parser(url, profiles):
 
 
 UNKNOWN_ERRNO = 'desconocido'
+HTTPEXCEPTION_DETAILS = '{}: {}.'
+CONNECTIONERROR_DETAILS = '{}.'
 def saca_las_mantecas(url, parser):
     """
     Saca las mantecas from the provided url, that is, retrieve its contents,
@@ -885,30 +906,36 @@ def saca_las_mantecas(url, parser):
         # messages, some discrimination has to be done here.
         if isinstance(exc.reason, OSError):
             try:
-                error_code = f' [{errno.errorcode[exc.reason.errno]}]'
+                error_code = errno.errorcode[exc.reason.errno]
             except KeyError:
-                error_code = f' [{exc.reason.errno}]'
+                error_code = exc.reason.errno
             except AttributeError:
-                error_code = EMPTY_STRING
-            details = f'{exc.reason.strerror.capitalize()}{error_code}.'
+                error_code = UNKNOWN_ERRNO
+            error_reason = exc.reason.strerror
+            details = Messages.OSLIKE_URLERROR
         elif isinstance(exc, HTTPError):
-            details = Messages.HTTP_PROTOCOL_ERROR.format(exc.code, exc.reason.capitalize())
+            error_code = exc.code
+            error_reason = exc.reason.lower()
+            details = Messages.HTTP_PROTOCOL_URLERROR
         else:
-            details = exc.reason
-        raise SkimmingError(Messages.URL_ACCESS_ERROR, details) from exc
+            error_code = EMPTY_STRING
+            error_reason = exc.reason
+            details = Messages.GENERIC_URLERROR
+        error_reason = (error_reason[0].lower() + error_reason[1:]).rstrip(ENDING_PERIOD)
+        raise SkimmingError(Messages.URL_ACCESS_ERROR, details.format(error_code, error_reason)) from exc
     # Apparently, HTTPException, ConnectionError and derived exceptions are
     # masked or wrapped by urllib, and documentation is not very informative.
     # So, just in case something weird happen, it is better to handle these
     # exception types as well.
     except HTTPException as exc:
-        details = f'{type(exc).__name__}: {str(exc)}.'
+        details = HTTPEXCEPTION_DETAILS.format(type(exc).__name__, exc)
         raise SkimmingError(Messages.HTTP_RETRIEVAL_ERROR, details) from exc
     except ConnectionError as exc:
         try:
             error_code = errno.errorcode[exc.errno]
         except (AttributeError, KeyError):
             error_code = UNKNOWN_ERRNO
-        details = f'{exc.strerror.capitalize().rstrip(".")}.'
+        details = CONNECTIONERROR_DETAILS.format(exc.strerror.capitalize().rstrip(ENDING_PERIOD))
         raise SkimmingError(Messages.CONNECTION_ERROR.format(error_code), details) from exc
 
     if not contents:

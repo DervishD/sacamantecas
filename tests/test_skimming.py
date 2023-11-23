@@ -10,13 +10,15 @@ from sacamantecas import Messages, saca_las_mantecas, SkimmingError
 
 CONNREFUSED_ERRNO = 10061
 CONNREFUSED_MSG = 'No se puede establecer una conexión ya que el equipo de destino denegó expresamente dicha conexión'
-
+GETADDRINFO_ERRNO = 11001
+GETADDRINFO_MSG = 'getaddrinfo failed'
+UNKNOWN_URL_TYPE = (Messages.UNKNOWN_URL_TYPE[0].lower() + Messages.UNKNOWN_URL_TYPE[1:]).rstrip('.')
 @pytest.mark.parametrize('url, expected', [
-    ('scheme://example.com', 'El URL «scheme://example.com» es de tipo desconocido.'),
-    ('https://httpbin.org/status/404', Messages.HTTP_PROTOCOL_ERROR.format('404', 'Not found')),
-    ('https://httpbin.org/status/200:', Messages.HTTP_PROTOCOL_ERROR.format('400', 'Bad request')),
-    ('http://127.0.0.1:9999', f'{CONNREFUSED_MSG} [{errorcode[CONNREFUSED_ERRNO]}].'),
-    ('http://nonexistent', 'Getaddrinfo failed [11001].')
+    ('scheme://example.com', Messages.GENERIC_URLERROR.format('', UNKNOWN_URL_TYPE.format('scheme://example.com'))),
+    ('https://httpbin.org/status/404', Messages.HTTP_PROTOCOL_URLERROR.format('404', 'not found')),
+    ('https://httpbin.org/status/200:', Messages.HTTP_PROTOCOL_URLERROR.format('400', 'bad request')),
+    ('http://127.0.0.1:9999', Messages.OSLIKE_URLERROR.format(errorcode[CONNREFUSED_ERRNO], CONNREFUSED_MSG.lower())),
+    ('http://nonexistent', Messages.OSLIKE_URLERROR.format(GETADDRINFO_ERRNO, GETADDRINFO_MSG))
 ])
 def test_url_errors(url, expected):  # pylint: disable=unused-variable
     """Test URL retrieval errors."""
