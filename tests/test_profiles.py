@@ -77,7 +77,7 @@ EXPECTED_PROFILES = {
     'profile1': Profile(
         url_pattern = re.compile(r'profile1.domain.tld', re.IGNORECASE),
         parser = BaratzParser(),
-        config = {
+        parser_config = {
             'm_tag': re.compile(r'tag', re.IGNORECASE),
             'm_attr': re.compile(r'attr', re.IGNORECASE),
             'm_value': re.compile(r'value', re.IGNORECASE)
@@ -86,7 +86,7 @@ EXPECTED_PROFILES = {
     'profile2': Profile(
         url_pattern = re.compile(r'profile2.domain.tld', re.IGNORECASE),
         parser = OldRegimeParser(),
-        config = {
+        parser_config = {
             'k_class': re.compile(r'key_class', re.IGNORECASE),
             'v_class': re.compile(r'value_class', re.IGNORECASE)
         }
@@ -136,7 +136,7 @@ PROFILES = {
     'profile1': Profile(
         url_pattern = re.compile(r'(optional\.)?(?<!forbidden\.)profile1\.tld', re.IGNORECASE),
         parser = BaratzParser(),
-        config = {
+        parser_config = {
             'm_tag': re.compile(r'tag', re.IGNORECASE),
             'm_attr': re.compile(r'attr', re.IGNORECASE),
             'm_value': re.compile(r'value', re.IGNORECASE)
@@ -145,7 +145,7 @@ PROFILES = {
     'profile2': Profile(
         url_pattern = re.compile(r'(optional\.)?mandatory\.profile2\.tld', re.IGNORECASE),
         parser = OldRegimeParser(),
-        config = {
+        parser_config = {
             'k_class': re.compile(r'key_class', re.IGNORECASE),
             'v_class': re.compile(r'value_class', re.IGNORECASE)
         }

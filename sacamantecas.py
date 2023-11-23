@@ -183,7 +183,7 @@ class SkimmingError(BaseApplicationError):
     """Raise for skimming-related errors."""
 
 
-Profile = namedtuple('Profile', ['url_pattern', 'parser', 'config'])
+Profile = namedtuple('Profile', ['url_pattern', 'parser', 'parser_config'])
 
 
 class BaseParser(HTMLParser):
@@ -612,12 +612,12 @@ def load_profiles(filename):
     for section in config.sections():
         if not config[section]:
             continue
-        options = {}
+        parser_config = {}
         for key, value in config[section].items():
             if not value:
                 continue
             try:
-                options[key] = re.compile(value, re.IGNORECASE)
+                parser_config[key] = re.compile(value, re.IGNORECASE)
             except re.error as exc:
                 details = Messages.PROFILES_WRONG_SYNTAX_DETAILS.format(
                     section, exc.msg,
@@ -625,15 +625,15 @@ def load_profiles(filename):
                     EMPTY_STRING, exc.pos + len(key) + len(PROFILE_K_V_SEPARATOR)
                 )
                 raise ProfilesError(Messages.PROFILES_WRONG_SYNTAX.format(PROFILE_BADREGEX), details) from exc
-        url_pattern = options.pop(PROFILE_URL_KEY, None)
+        url_pattern = parser_config.pop(PROFILE_URL_KEY, None)
         if url_pattern is None:
             raise ProfilesError(Messages.INVALID_PROFILE.format(section), Messages.PROFILE_WITHOUT_URL)
         for parser in parsers:
-            if options.keys() == parser.PARAMETERS:
+            if parser_config.keys() == parser.PARAMETERS:
                 break
         else:
             raise ProfilesError(Messages.INVALID_PROFILE.format(section))
-        profiles[section] = Profile(url_pattern, parser, options)
+        profiles[section] = Profile(url_pattern, parser, parser_config)
     return profiles
 
 
