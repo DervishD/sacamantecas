@@ -113,7 +113,9 @@ USER_AGENT = ' '.join(dedent(f'''
 
 # Just to avoid mistyping.
 EMPTY_STRING = ''
+SPACE = ' '
 ENDING_PERIOD = '.'
+ENDING_COLON = ':'
 DOUBLE_QUOTE = '"'
 MANDATORY_PLATFORM = 'win32'
 MAIN_MODULE = '__main__'
@@ -189,10 +191,19 @@ Profile = namedtuple('Profile', ['url_pattern', 'parser', 'parser_config'])
 class BaseParser(HTMLParser):
     """Base class for catalogue parsers."""
     PARAMETERS = set()
+    EMPTY_KEY_PLACEHOLDER = '[vacío]'
+    MULTIDATA_SEPARATOR = ' / '
+    MULTIVALUE_SEPARATOR = ' === '
 
     def __init__(self, *args, **kwargs):
         """Initialize object."""
         super().__init__(*args, **kwargs)
+        self.within_k = False
+        self.within_v = False
+        self.current_k = EMPTY_STRING
+        self.current_v = EMPTY_STRING
+        self.last_k = EMPTY_STRING
+        self.retrieved_metadata = {}
         self.config = {}
         for key in self.PARAMETERS:
             self.config[key] = None
@@ -200,12 +211,31 @@ class BaseParser(HTMLParser):
     def reset(self):
         """Reset parser state. Called implicitly from __init__()."""
         super().reset()
-        self.within_k = False
-        self.within_v = False
-        self.current_k = EMPTY_STRING
-        self.current_v = EMPTY_STRING
-        self.last_k = EMPTY_STRING
+        self.within_k = self.within_v = False
+        self.current_k = self.current_v = self.last_k = EMPTY_STRING
         self.retrieved_metadata = {}
+
+    def handle_starttag(self, tag, attrs):
+        """Handle opening tags."""
+        logging.debug('➜ HTML <%s%s%s>', tag, SPACE * bool(attrs), SPACE.join((f'{k}="{v}"' for k, v in attrs)))
+
+    def handle_data(self, data):
+        """Handle data."""
+        if self.within_k or self.within_v:
+            # Clean up the received data by removing superfluous whitespace
+            # characters, including newlines, carriage returns, etc.
+            data = SPACE.join(data.split())
+            if not data:
+                return
+        if self.within_k:
+            logging.debug('Se encontró la clave «%s».', data)
+            self.current_k += data.rstrip(ENDING_COLON)
+            self.last_k = self.current_k
+            return
+        if self.within_v:
+            logging.debug('Se encontró el valor «%s».', data)
+            self.current_v = f'{self.current_v}{self.MULTIDATA_SEPARATOR if self.current_v else EMPTY_STRING}{data}'
+            return
 
     def configure(self, config):
         """
@@ -217,10 +247,30 @@ class BaseParser(HTMLParser):
         This operation also resets the parser.
         """
         self.reset()
-        for key in config:
-            if key not in self.PARAMETERS:
-                continue
-            self.config[key] = config[key]
+        self.config = {key: value for key, value in config.items() if key in self.PARAMETERS}
+
+    def store_metadata(self):
+        """Store found metadata, handling missing parts."""
+        if not self.current_k and not self.current_v:
+            logging.debug('Metadato vacío.')
+        if self.current_k and not self.current_v:
+            logging.debug('Metadato «%s» incompleto, ignorando.', self.current_k)
+        if not self.current_k and self.current_v:
+            self.current_k = self.last_k if self.last_k else self.EMPTY_KEY_PLACEHOLDER
+        if self.current_k and self.current_v:
+            if self.current_k not in self.retrieved_metadata:
+                self.retrieved_metadata[self.current_k] = []
+            # A set is not used instead of the code below, to preserve order.
+            if self.current_v not in self.retrieved_metadata[self.current_k]:
+                self.retrieved_metadata[self.current_k].append(self.current_v)
+        self.current_k = self.current_v = EMPTY_STRING
+
+    def get_metadata(self):
+        """Get retrieved metadata so far."""
+        metadata = {}
+        for key, value in self.retrieved_metadata.items():
+            metadata[key] = self.MULTIVALUE_SEPARATOR.join(value)
+        return metadata
 
 
 class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
