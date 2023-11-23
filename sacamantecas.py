@@ -272,8 +272,7 @@ def error(message, details=EMPTY_STRING):
 def warning(message):
     """Helper for prepending a header to warning messages."""
     message = str(message)
-    message = f'{message[0].lower()}{message[1:]}'
-    logging.warning('%s%s', Messages.WARNING_HEADER, message)
+    logging.warning('%s%s', Messages.WARNING_HEADER, f'{message[0].lower()}{message[1:]}')
 
 
 ACCEPTED_URL_SCHEMES = ('https', 'http', 'file')
