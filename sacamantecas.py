@@ -198,15 +198,13 @@ class BaseParser(HTMLParser):
     def __init__(self, *args, **kwargs):
         """Initialize object."""
         super().__init__(*args, **kwargs)
-        self.within_k = False
-        self.within_v = False
-        self.current_k = EMPTY_STRING
-        self.current_v = EMPTY_STRING
-        self.last_k = EMPTY_STRING
-        self.retrieved_metadata = {}
-        self.config = {}
-        for key in self.PARAMETERS:
-            self.config[key] = None
+        self.within_k = None
+        self.within_v = None
+        self.current_k = None
+        self.current_v = None
+        self.last_k = None
+        self.retrieved_metadata = None
+        self.config = None
 
     def reset(self):
         """Reset parser state. Called implicitly from __init__()."""
