@@ -366,6 +366,53 @@ class BaratzParser(BaseParser):   # pylint: disable=unused-variable
     M_ATTR = 'm_attr'
     M_VALUE = 'm_value'
     PARAMETERS = BaseParser.PARAMETERS | {M_TAG, M_ATTR, M_VALUE}
+    K_TAG = 'dt'
+    V_TAG = 'dd'
+
+    def __init__(self, *args, **kwargs):
+        """Initialize object."""
+        super().__init__(*args, **kwargs)
+        self.within_meta = None
+
+    def reset(self):
+        """Reset parser state. Called implicitly from __init__()."""
+        super().reset()
+        self.within_meta = False
+
+    def handle_starttag(self, tag, attrs):
+        """Handle opening tags."""
+        super().handle_starttag(tag, attrs)
+        if not self.within_meta:
+            if not self.config[self.M_TAG].fullmatch(tag):
+                return
+            for attr in attrs:
+                if self.config[self.M_ATTR].fullmatch(attr[0]) and self.config[self.M_VALUE].search(attr[1]):
+                    logging.debug('Se encontró una marca de metadato «%s».', attr[1])
+                    self.within_meta = True
+                    return
+        else:
+            if tag == self.K_TAG:
+                self.within_k = True
+                logging.debug('Se encontró un elemento de clave «%s».', tag)
+                return
+            if tag == self.V_TAG:
+                self.within_v = True
+                logging.debug('Se encontró un elemento de valor «%s».', tag)
+                return
+
+    def handle_endtag(self, tag):
+        """Handle closing tags."""
+        super().handle_endtag(tag)
+        if self.within_meta and self.config[self.M_TAG].fullmatch(tag):
+            self.within_meta = False
+            return
+        if self.within_k and tag == self.K_TAG:
+            self.within_k = False
+            return
+        if self.within_v and tag == self.V_TAG:
+            self.within_v = False
+            self.store_metadata()
+            return
 
 
 def error(message, details=EMPTY_STRING):
