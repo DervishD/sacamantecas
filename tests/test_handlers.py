@@ -12,7 +12,7 @@ import pytest
 import sacamantecas as sm
 
 
-SAMPLE_URLS = [f'{choice(sm.ACCEPTED_URL_SCHEMES)}://subdomain{i}.domain.tld' for i in range(10)]
+SAMPLE_URLS = [f'{choice(sm.Config.ACCEPTED_URL_SCHEMES)}://subdomain{i}.domain.tld' for i in range(10)]
 EXPECTED = [True] + [item for url in SAMPLE_URLS for item in (url, None)]
 
 
@@ -22,7 +22,7 @@ def test_single_url_handler(monkeypatch, tmp_path):  # pylint: disable=unused-va
     expected = Path('url___subdomain_domain_toplevel_path_param1_value1_param2_value2')
     assert result == expected
 
-    sink_filename = tmp_path / f'testsink{sm.SINK_FILENAME_STEM_MARKER}.txt'
+    sink_filename = tmp_path / f'testsink{sm.Config.SINKFILE_STEM}.txt'
     monkeypatch.setattr(sm, 'generate_sink_filename', lambda _: sink_filename)
     result = list(sm.single_url_handler(SAMPLE_URLS[0]))
     assert sink_filename.is_file()
@@ -33,7 +33,7 @@ def test_textfile_handler(monkeypatch, tmp_path):  # pylint: disable=unused-vari
     """Test textfile handler."""
     source_filename = tmp_path / 'urls.txt'
     source_filename.write_text('\n'.join(SAMPLE_URLS), encoding='utf-8')
-    sink_filename = tmp_path / f'testsink{sm.SINK_FILENAME_STEM_MARKER}.txt'
+    sink_filename = tmp_path / f'testsink{sm.Config.SINKFILE_STEM}.txt'
     monkeypatch.setattr(sm, 'generate_sink_filename', lambda _: sink_filename)
     result = list(sm.textfile_handler(source_filename))
     assert sink_filename.is_file()
@@ -60,7 +60,7 @@ def test_spreadsheet_handler(monkeypatch, tmp_path):  # pylint: disable=unused-v
     workbook.save(source_filename)
     workbook.close()
 
-    sink_filename = tmp_path / f'testsink{sm.SINK_FILENAME_STEM_MARKER}.xlsx'
+    sink_filename = tmp_path / f'testsink{sm.Config.SINKFILE_STEM}.xlsx'
     monkeypatch.setattr(sm, 'generate_sink_filename', lambda _: sink_filename)
     result = list(sm.spreadsheet_handler(source_filename))
     assert sink_filename.is_file()
@@ -92,9 +92,9 @@ def test_input_no_permission(unreadable_file, handler):  # pylint: disable=unuse
 
 
 @pytest.mark.parametrize('source, unwritable_file, handler', [
-    ('http://s.url', f'unwritable_single_url{sm.SINK_FILENAME_STEM_MARKER}.txt', sm.single_url_handler),
-    ('s.txt', f'unwritable_textfile{sm.SINK_FILENAME_STEM_MARKER}.txt', sm.textfile_handler),
-    ('s.xlsx', f'unwritable_spreadsheet{sm.SINK_FILENAME_STEM_MARKER}.xlsx', sm.spreadsheet_handler)
+    ('http://s.url', f'unwritable_single_url{sm.Config.SINKFILE_STEM}.txt', sm.single_url_handler),
+    ('s.txt', f'unwritable_textfile{sm.Config.SINKFILE_STEM}.txt', sm.textfile_handler),
+    ('s.xlsx', f'unwritable_spreadsheet{sm.Config.SINKFILE_STEM}.xlsx', sm.spreadsheet_handler)
 ], indirect=['unwritable_file'])
 def test_output_no_permission(tmp_path, monkeypatch, source, unwritable_file, handler):  # pylint: disable=unused-variable
     """."""

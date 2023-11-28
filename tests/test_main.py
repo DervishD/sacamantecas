@@ -1,12 +1,12 @@
 #! /usr/bin/env python3
 """Test suite for main() function."""
-from sacamantecas import ExitCodes, main, Messages, USER_AGENT
+from sacamantecas import Config, ExitCodes, main, Messages
 
 
 def test_logging_setup(log_paths, monkeypatch):  # pylint: disable=unused-variable
     """Test for proper logging setup."""
-    monkeypatch.setattr('sacamantecas.LOGFILE_PATH', log_paths.log)
-    monkeypatch.setattr('sacamantecas.DEBUGFILE_PATH', log_paths.debug)
+    monkeypatch.setattr('sacamantecas.Config.LOGFILE_PATH', log_paths.log)
+    monkeypatch.setattr('sacamantecas.Config.DEBUGFILE_PATH', log_paths.debug)
 
     assert not log_paths.log.is_file()
     assert not log_paths.debug.is_file()
@@ -19,8 +19,8 @@ def test_logging_setup(log_paths, monkeypatch):  # pylint: disable=unused-variab
 
 def test_no_arguments(log_paths, monkeypatch):  # pylint: disable=unused-variable
     """Test handling of missing command line arguments."""
-    monkeypatch.setattr('sacamantecas.LOGFILE_PATH', log_paths.log)
-    monkeypatch.setattr('sacamantecas.DEBUGFILE_PATH', log_paths.debug)
+    monkeypatch.setattr('sacamantecas.Config.LOGFILE_PATH', log_paths.log)
+    monkeypatch.setattr('sacamantecas.Config.DEBUGFILE_PATH', log_paths.debug)
 
     assert main() == ExitCodes.NO_ARGUMENTS
 
@@ -39,7 +39,7 @@ def test_no_arguments(log_paths, monkeypatch):  # pylint: disable=unused-variabl
     expected = '\n'.join((
         f'DEBUG   | {Messages.DEBUGGING_INIT}',
         f'INFO    | {Messages.APP_BANNER}',
-        f'DEBUG   | {USER_AGENT}',
+        f'DEBUG   | {Config.USER_AGENT}',
         '\n'.join(f'ERROR   |{" " if line else ""}{line}' for line in Messages.ERROR_HEADER.splitlines()),
         '\n'.join(f'ERROR   |{"     " if line else ""}{line}' for line in Messages.NO_ARGUMENTS.splitlines()),
         '\n'.join(f'INFO    |{" " if line else ""}{line}' for line in Messages.PROCESS_DONE.splitlines()),
@@ -50,12 +50,12 @@ def test_no_arguments(log_paths, monkeypatch):  # pylint: disable=unused-variabl
 
 def test_missing_ini(log_paths, tmp_path, monkeypatch, capsys):  # pylint: disable=unused-variable
     """Test for missing main INI file."""
-    monkeypatch.setattr('sacamantecas.LOGFILE_PATH', log_paths.log)
-    monkeypatch.setattr('sacamantecas.DEBUGFILE_PATH', log_paths.debug)
+    monkeypatch.setattr('sacamantecas.Config.LOGFILE_PATH', log_paths.log)
+    monkeypatch.setattr('sacamantecas.Config.DEBUGFILE_PATH', log_paths.debug)
 
     filename = str(tmp_path / 'non_existent.ini')
 
-    monkeypatch.setattr('sacamantecas.INIFILE_PATH', filename)
+    monkeypatch.setattr('sacamantecas.Config.INIFILE_PATH', filename)
     assert main('') == ExitCodes.ERROR
 
     result = capsys.readouterr().err.splitlines()[2].strip()
@@ -66,13 +66,13 @@ def test_missing_ini(log_paths, tmp_path, monkeypatch, capsys):  # pylint: disab
 
 def test_ini_syntax_error(log_paths, tmp_path, monkeypatch, capsys):  # pylint: disable=unused-variable
     """Test for syntax errors in INI file."""
-    monkeypatch.setattr('sacamantecas.LOGFILE_PATH', log_paths.log)
-    monkeypatch.setattr('sacamantecas.DEBUGFILE_PATH', log_paths.debug)
+    monkeypatch.setattr('sacamantecas.Config.LOGFILE_PATH', log_paths.log)
+    monkeypatch.setattr('sacamantecas.Config.DEBUGFILE_PATH', log_paths.debug)
 
     filename = tmp_path / 'profiles_syntax_error.ini'
     filename.write_text('o')
 
-    monkeypatch.setattr('sacamantecas.INIFILE_PATH', filename)
+    monkeypatch.setattr('sacamantecas.Config.INIFILE_PATH', filename)
     assert main('') == ExitCodes.ERROR
 
     result = capsys.readouterr().err.splitlines()[2].strip()

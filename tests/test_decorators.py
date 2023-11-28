@@ -20,8 +20,8 @@ def interrupted_function():
 
 def test_loggerize(log_paths, monkeypatch):   # pylint: disable=unused-variable
     """Test the loggerize() decorator."""  # cSpell:ignore loggerize
-    monkeypatch.setattr('sacamantecas.LOGFILE_PATH', log_paths.log)
-    monkeypatch.setattr('sacamantecas.DEBUGFILE_PATH', log_paths.debug)
+    monkeypatch.setattr('sacamantecas.Config.LOGFILE_PATH', log_paths.log)
+    monkeypatch.setattr('sacamantecas.Config.DEBUGFILE_PATH', log_paths.debug)
 
     assert not log_paths.log.is_file()
     assert not log_paths.debug.is_file()

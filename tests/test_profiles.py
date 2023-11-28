@@ -8,8 +8,8 @@ import pytest
 
 from sacamantecas import (
     BaratzParser,
+    Config,
     get_parser,
-    INIFILE_PATH,
     load_profiles,
     Messages,
     OldRegimeParser,
@@ -94,7 +94,7 @@ EXPECTED_PROFILES = {
 }
 def test_profile_loading(tmp_path):  # pylint: disable=unused-variable
     """Test full profile loading."""
-    filename = tmp_path / INIFILE_PATH.name
+    filename = tmp_path / Config.INIFILE_PATH.name
     filename.write_text(INIFILE_CONTENTS)
     profiles = load_profiles(filename)
     filename.unlink()
@@ -126,7 +126,7 @@ def test_profile_validation(monkeypatch, tmp_path, inifile_contents, exception):
     """Test profile validation using declared parsers."""
     monkeypatch.setattr('sacamantecas.BaseParser', BaseParser)
     with exception:
-        inifile = tmp_path / INIFILE_PATH.name
+        inifile = tmp_path / Config.INIFILE_PATH.name
         inifile.write_text(inifile_contents)
         load_profiles(inifile)
         inifile.unlink()
