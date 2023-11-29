@@ -160,10 +160,10 @@ class Config():  # pylint: disable=too-few-public-methods
     LOGGING_LOGFILE_FORMAT = '{asctime} {message}'
     LOGGING_CONSOLE_FORMAT = '{message}'
 
-    SINGLE_URL_METADATA_HEADER = '{}\n'
-    SINGLE_URL_METADATA_PAIR = '  {}: {}\n'
-    TEXTFILE_METADATA_HEADER = '{}\n'
-    TEXTFILE_METADATA_PAIR = '  {}: {}\n'
+    TEXTSINK_METADATA_HEADER = '{}\n'
+    TEXTSINK_METADATA_PAIR = '  {}: {}\n'
+    TEXTSINK_METADATA_FOOTER = '\n'
+
     SPREADSHEET_METADATA_COLUMN_TITLE = '[sm] {}'
     SPREADSHEET_CELL_FONT = 'Calibri'
     SPREADSHEET_CELL_COLOR = 'baddad'
@@ -836,14 +836,14 @@ def single_url_handler(url):
             metadata = yield url
             yield
             if metadata:
-                sink.write(Config.SINGLE_URL_METADATA_HEADER.format(url))
+                sink.write(Config.TEXTSINK_METADATA_HEADER.format(url))
                 for key, value in metadata.items():
-                    message = Config.SINGLE_URL_METADATA_PAIR.format(key, value)
+                    message = Config.TEXTSINK_METADATA_PAIR.format(key, value)
                     logging.indent()
                     logging.info(message)  # Output allowed here because it is part of the handler.
                     logging.dedent()
                     sink.write(message)
-                sink.write('\n')
+                sink.write(Config.TEXTSINK_METADATA_FOOTER)
 
 
 def url_to_filename(url):
@@ -873,11 +873,11 @@ def textfile_handler(source_filename):
                 metadata = yield url
                 yield
                 if metadata:
-                    sink.write(Config.TEXTFILE_METADATA_HEADER.format(url))
+                    sink.write(Config.TEXTSINK_METADATA_HEADER.format(url))
                     for key, value in metadata.items():
                         logging.debug('Añadiendo metadato «%s» con valor «%s».', key, value)
-                        sink.write(Config.TEXTFILE_METADATA_PAIR.format(key, value))
-                    sink.write('\n')
+                        sink.write(Config.TEXTSINK_METADATA_PAIR.format(key, value))
+                    sink.write(Config.TEXTSINK_METADATA_FOOTER)
 
 
 def spreadsheet_handler(source_filename):
