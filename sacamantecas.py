@@ -1065,7 +1065,9 @@ def saca_las_mantecas(url, parser):
 
     parser.feed(contents)
     parser.close()
-    return {'key_1': 'value_1', 'key_2': 'value_2', 'key_3': 'value_3'}
+    if metadata:=parser.get_metadata():
+        return metadata
+    raise SkimmingError(Messages.NO_METADATA_FOUND)
 
 
 def retrieve_url(url):
