@@ -1,20 +1,21 @@
 http://ceres.mcu.es/pages/Main?idt=134248&inventary=DE2016/1/24&table=FMUS&museum=MOM
-    Museo: Museo de San Isidro. Los orígenes de Madrid
-    Inventario: DE2016/1/24
-    Clasificación Genérica: Cantería
-    Objeto/Documento: Basa
-    Conjunto: Claustro gótico del Monasterio de Los Jerónimos de Madrid
-    Materia/Soporte: Yeso [Piedra de yeso con cemento carbonatado]
-    Técnica: Cincelado
-    Dimensiones: Altura = 40 cm; Anchura = 75 cm; Espesor = 53 cm
-    Descripción: Fragmento de basa moldurada. Planta ochavada. Frentes lisos, un baquetón cuadrado en cada lateral, y lados alternos cóncavos con peqeñas basas en el arranque de cada uno de los cuatro baquetones existentes en ellos. Dos molduras perimetrales lineales por debajo de las basas de los baquetones.
-    Datación: 1462-1464 / 1503-1505
-    Contexto Cultural/Estilo: Gótico
-    Lugar de Producción/Ceca: Madrid (m) (Area Metropolitana de Madrid (comarca), Madrid <(provincia)>)
-    Uso/función: Arquitectónico
-    Lugar de Procedencia: Museo Nacional del Prado, Retiro (distrito)(Madrid (m), Area Metropolitana de Madrid (comarca)) / Excavación arqueológica,
-    Lugar Específico/Yacimiento: Museo Nacional del Prado
-    Clasificación Razonada: El estudio morfológico de esta pieza la relaciona con los tambores de fuste de columna y las dovelas clasificadas como de tipo B, al coincidir plenamente la posición de sus baquetones con los labrados en aquellas. La sección cuadrada de los baquetones laterales indica su relación con el antepecho, por lo que su pertenencia a las piezas de la arcada superior queda indiscutiblemente acreditada. / BIBLIOGRAFÍA: / CIRUJANO GUTIÉRREZ, Concepción. Restauración y estudio geométrico y compositivo del claustro gótico del monasterio de los Jerónimos de Madrid. Bienes culturales: revista del Instituto del Patrimonio Histórico Español. Madrid (m): Ministerio de Educación Cultura y Deporte: Subdirección General de Documentación y Publicaciones, 2006. págs. 35-52.
-    Bibliografía: CIRUJANO GUTIÉRREZ, Concepción. Restauración y estudio geométrico y compositivo del claustro gótico del monasterio de los Jerónimos de Madrid. / Bienes culturales: revista del Instituto del Patrimonio Histórico Español. / Madrid (m): Ministerio de Educación Cultura y Deporte: Subdirección General de Documentación y Publicaciones, 2006, págs. 35-52. p 36/f 2; p 42/f 17; p 45/f 25.
-    Fecha de Ingreso: 02/11/2016
-    Catalogación: González Alonso, Alberto
+  Museo: Museo de San Isidro. Los orígenes de Madrid
+  Inventario: DE2016/1/24
+  Clasificación Genérica: Cantería
+  Objeto/Documento: Basa
+  Conjunto: Claustro gótico del Monasterio de Los Jerónimos de Madrid
+  Materia/Soporte: Yeso [Piedra de yeso con cemento carbonatado]
+  Técnica: Cincelado
+  Dimensiones: Altura = 40 cm; Anchura = 75 cm; Espesor = 53 cm
+  Descripción: Fragmento de basa moldurada. Planta ochavada. Frentes lisos, un baquetón cuadrado en cada lateral, y lados alternos cóncavos con peqeñas basas en el arranque de cada uno de los cuatro baquetones existentes en ellos. Dos molduras perimetrales lineales por debajo de las basas de los baquetones.
+  Datación: 1462-1464 / 1503-1505
+  Contexto Cultural/Estilo: Gótico
+  Lugar de Producción/Ceca: Madrid (m) (Area Metropolitana de Madrid (comarca), Madrid <(provincia)>)
+  Uso/función: Arquitectónico
+  Lugar de Procedencia: Museo Nacional del Prado, Retiro (distrito)(Madrid (m), Area Metropolitana de Madrid (comarca)) / Excavación arqueológica,
+  Lugar Específico/Yacimiento: Museo Nacional del Prado
+  Clasificación Razonada: El estudio morfológico de esta pieza la relaciona con los tambores de fuste de columna y las dovelas clasificadas como de tipo B, al coincidir plenamente la posición de sus baquetones con los labrados en aquellas. La sección cuadrada de los baquetones laterales indica su relación con el antepecho, por lo que su pertenencia a las piezas de la arcada superior queda indiscutiblemente acreditada. / BIBLIOGRAFÍA: / CIRUJANO GUTIÉRREZ, Concepción. Restauración y estudio geométrico y compositivo del claustro gótico del monasterio de los Jerónimos de Madrid. Bienes culturales: revista del Instituto del Patrimonio Histórico Español. Madrid (m): Ministerio de Educación Cultura y Deporte: Subdirección General de Documentación y Publicaciones, 2006. págs. 35-52.
+  Bibliografía: CIRUJANO GUTIÉRREZ, Concepción. Restauración y estudio geométrico y compositivo del claustro gótico del monasterio de los Jerónimos de Madrid. / Bienes culturales: revista del Instituto del Patrimonio Histórico Español. / Madrid (m): Ministerio de Educación Cultura y Deporte: Subdirección General de Documentación y Publicaciones, 2006, págs. 35-52. p 36/f 2; p 42/f 17; p 45/f 25.
+  Fecha de Ingreso: 02/11/2016
+  Catalogación: González Alonso, Alberto
+
