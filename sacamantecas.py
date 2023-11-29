@@ -57,7 +57,7 @@ class Messages(StrEnum):
     DEBUGGING_DONE = 'Registro de depuración finalizado.'
 
     ERROR_HEADER = f'\n*** Error en {__appname__}\n'
-    WARNING_HEADER = '* Advertencia: '
+    WARNING_HEADER = '* Aviso: '
     ERROR_DETAILS_HEADING = '\nInformación adicional sobre el error:'
     ERROR_DETAILS_TAIL_CHAR = '·'
 
@@ -96,6 +96,7 @@ class Messages(StrEnum):
     INPUT_FILE_NOT_FOUND = 'No se encontró el fichero de entrada.'
     INPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para leer el fichero de entrada.'
     OUTPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para crear el fichero de salida.'
+    NO_METADATA_FOUND = 'No se obtuvieron metadatos.'
 
 
 class ExitCodes(IntEnum):
@@ -160,7 +161,7 @@ class Config():  # pylint: disable=too-few-public-methods
     LOGGING_CONSOLE_FORMAT = '{message}'
 
     SINGLE_URL_METADATA_HEADER = '{}\n'
-    SINGLE_URL_METADATA_PAIR = '{}: {}\n'
+    SINGLE_URL_METADATA_PAIR = '  {}: {}\n'
     TEXTFILE_METADATA_HEADER = '{}\n'
     TEXTFILE_METADATA_PAIR = '  {}: {}\n'
     SPREADSHEET_METADATA_COLUMN_TITLE = '[sm] {}'
