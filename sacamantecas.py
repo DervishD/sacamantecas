@@ -1003,12 +1003,18 @@ def bootstrap(handler):
 
 
 def get_parser(url, profiles):
-    """Find and return parser for url according to its maching profile."""
+    """
+    Return the appropriate parser for the url.
+
+    The appropriate parser is retrieved by finding the profile within profiles
+    whose url_pattern matches the given url. Then, the parser is returned after
+    being properly configured to handle the url contents.
+    """
     for profile_name, profile in profiles.items():
         if profile.url_pattern.search(url):
             logging.debug('Perfil detectado: «%s».', profile_name)
-            parser = profile.parser
-            return parser
+            profile.parser.configure(profile.parser_config)
+            return profile.parser
     return None
 
 
