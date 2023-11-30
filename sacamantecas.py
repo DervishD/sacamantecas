@@ -461,7 +461,7 @@ def error(message, details=EMPTY_STRING):
     logging.indent(0)
     logging.error(Messages.ERROR_HEADER)
     logging.indent(len(Messages.ERROR_HEADER.split(' ')[0]))
-    logging.error('%s', message)
+    logging.error(message)
     details = str(details)
     if details.strip():
         logging.error(Messages.ERROR_DETAILS_HEADING)
@@ -473,7 +473,8 @@ def error(message, details=EMPTY_STRING):
 def warning(message):
     """Helper for prepending a header to warning messages."""
     message = str(message)
-    logging.warning('%s%s', Messages.WARNING_HEADER, f'{message[0].lower()}{message[1:]}')
+    message = Messages.WARNING_HEADER + message[0].lower() + message[1:]
+    logging.warning(message)
 
 
 def is_accepted_url(value):
