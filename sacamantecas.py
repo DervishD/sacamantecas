@@ -5,7 +5,8 @@ __v_major__ = '5'
 __v_minor__ = '0'
 __v_patch__ = '0'
 __v_alpha__ = 'alpha'
-__appname__ = f'sacamantecas v{__v_major__}.{__v_minor__}.{__v_patch__}-{__v_alpha__}'
+__v_label__ = ' v'
+__appname__ = f'sacamantecas {__v_label__}{__v_major__}.{__v_minor__}.{__v_patch__}-{__v_alpha__}'
 
 import atexit
 from collections import namedtuple
@@ -52,7 +53,7 @@ class Messages(StrEnum):
     ''').lstrip()
 
     DEBUGGING_INIT = 'Registro de depuración iniciado.'
-    APP_BANNER = f'{__appname__.replace(" v", " versión ")}'
+    APP_BANNER = f'{__appname__.replace(__v_label__, " versión ")}'
     PROCESS_DONE = '\nProceso finalizado.'
     DEBUGGING_DONE = 'Registro de depuración finalizado.'
 
@@ -132,7 +133,7 @@ class Config():  # pylint: disable=too-few-public-methods
     SUPPORTED_PLATFORM = 'win32'
     TIMESTAMP_FORMAT = '%Y%m%d_%H%M%S'
     USER_AGENT = ' '.join(dedent(f'''
-        {__appname__.replace(" v", "/")}
+        {__appname__.replace(__v_label__, "/")}
         +https://github.com/DervishD/sacamantecas
         (Windows {platform.version()};
         {platform.architecture()[0]};
