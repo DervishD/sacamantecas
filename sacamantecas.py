@@ -463,11 +463,12 @@ class BaratzParser(BaseParser):   # pylint: disable=unused-variable
 
 def error(message, details=EMPTY_STRING):
     """Helper for preprocessing error messages."""
+    message = str(message)
+    details = str(details)
     logging.indent(0)
     logging.error(Messages.ERROR_HEADER)
     logging.indent(len(Messages.ERROR_HEADER.split(' ')[0]))
     logging.error(message)
-    details = str(details)
     if details.strip():
         logging.error(Messages.ERROR_DETAILS_HEADING)
         logging.error('\n'.join(f'| {line}' for line in details.splitlines()))
