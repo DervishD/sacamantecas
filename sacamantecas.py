@@ -185,6 +185,8 @@ if sys.platform != Config.SUPPORTED_PLATFORM:
 
 # Needed for having VERY basic logging when the code is imported rather than run.
 logging.basicConfig(level=logging.NOTSET, format=Config.LOGGING_FALLBACK_FORMAT, force=True)
+logging.indent = lambda level=None: None
+logging.dedent = lambda level=None: None
 
 
 # Reconfigure standard output streams so they use UTF-8 encoding, even if
