@@ -33,6 +33,7 @@ from urllib.request import urlopen, Request
 from zipfile import BadZipFile
 
 from openpyxl import load_workbook
+from openpyxl.cell.cell import TYPE_STRING as CELLTYPE_STRING
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils.cell import get_column_letter
 
@@ -956,7 +957,7 @@ def get_url_from_row(row):
     """Find first URL in row."""
     url = None
     for cell in row:
-        if cell.data_type != 's':
+        if cell.data_type != CELLTYPE_STRING:
             logging.debug('La celda «%s» no es de tipo cadena, será ignorada.', cell.coordinate)
             continue
         if is_accepted_url(cell.value):
