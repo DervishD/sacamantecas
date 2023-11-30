@@ -705,8 +705,8 @@ def setup_logging(log_filename, debug_filename):
     # exact FINAL indentation level, not an indentation increment/decrement!
     # These two helpers are provided in order to improve readability, since the
     # set_logging_indent_level() function can be used directly.
-    logging.indent = lambda level = None: set_indent_level(increase_indent_symbol if level is None else level)
-    logging.dedent = lambda level = None: set_indent_level(decrease_indent_symbol if level is None else level)
+    logging.indent = lambda level=None: set_indent_level(increase_indent_symbol if level is None else level)
+    logging.dedent = lambda level=None: set_indent_level(decrease_indent_symbol if level is None else level)
 
 
 def keyboard_interrupt_handler(function):
