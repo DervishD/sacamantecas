@@ -76,6 +76,7 @@ class Messages(StrEnum):
     MISSING_PROFILES = 'No se encontró o no se pudo leer el fichero de perfiles «{}».'
     PROFILES_WRONG_SYNTAX = 'Error de sintaxis «{}» leyendo el fichero de perfiles.'
     PROFILES_WRONG_SYNTAX_DETAILS = 'Perfil «{}», {}:\n  {}{}{}\n  {:_<{}}^'
+    PROFILES_WRONG_SYNTAX_DETAILS_SEPARATOR = ' = '
     INVALID_PROFILE = 'El perfil «{}» es inválido.'
     PROFILE_WITHOUT_URL = 'El perfil no incluye un patrón de URL.'
     UNKNOWN_URL_TYPE = 'El URL «{}» es de tipo desconocido.'
@@ -168,6 +169,9 @@ class Config():  # pylint: disable=too-few-public-methods
     SPREADSHEET_CELL_FONT = 'Calibri'
     SPREADSHEET_CELL_COLOR = 'baddad'
     SPREADSHEET_CELL_FILL = 'solid'
+
+    URL_UNSAFE_CHARS_RE = r'\W'
+    URL_UNSAFE_REPLACE_CHAR = '_'
 
     META_HTTP_EQUIV_CHARSET_RE = rb'<meta http-equiv="content-type".*charset="([^"]+)"'
     META_CHARSET_RE = rb'<meta charset="([^"]+)"'
@@ -758,11 +762,10 @@ def load_profiles(filename):
             try:
                 parser_config[key] = re.compile(value, re.IGNORECASE)
             except re.error as exc:
-                k_v_separator = ' = '
                 details = Messages.PROFILES_WRONG_SYNTAX_DETAILS.format(
                     section, exc.msg,
-                    key, k_v_separator, exc.pattern,
-                    EMPTY_STRING, exc.pos + len(key) + len(k_v_separator)
+                    key, Messages.PROFILES_WRONG_SYNTAX_DETAILS_SEPARATOR, exc.pattern,
+                    EMPTY_STRING, exc.pos + len(key) + len(Messages.PROFILES_WRONG_SYNTAX_DETAILS_SEPARATOR)
                 )
                 raise ProfilesError(Messages.PROFILES_WRONG_SYNTAX.format('BadRegex'), details) from exc
         url_pattern = parser_config.pop('url', None)
@@ -847,8 +850,14 @@ def single_url_handler(url):
 
 
 def url_to_filename(url):
-    """Convert the given URL to a valid filename."""
-    return Path(re.sub(r'\W', '_', url, re.ASCII))  # Quite crude but it works.
+    """
+    Convert the given URL to a valid filename.
+
+    The method is quite crude but it works: replace all ASCII non-word character
+    (potentially unsafe in a filename) by a character which is safe to use in a
+    filename and that is visually unobtrusive so the filename is still readable.
+    """
+    return Path(re.sub(Config.URL_UNSAFE_CHARS_RE, Config.URL_UNSAFE_REPLACE_CHAR, url, re.ASCII))
 
 
 def textfile_handler(source_filename):
