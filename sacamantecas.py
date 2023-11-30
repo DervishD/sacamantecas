@@ -235,7 +235,6 @@ class BaseParser(HTMLParser):
 
     def __init__(self, *args, **kwargs):
         """Initialize object."""
-        super().__init__(*args, **kwargs)
         self.within_k = None
         self.within_v = None
         self.current_k = None
@@ -243,6 +242,7 @@ class BaseParser(HTMLParser):
         self.last_k = None
         self.retrieved_metadata = None
         self.config = None
+        super().__init__(*args, **kwargs)
 
     def reset(self):
         """Reset parser state. Called implicitly from __init__()."""
@@ -326,9 +326,9 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
 
     def __init__(self, *args, **kwargs):
         """Initialize object."""
-        super().__init__(*args, **kwargs)
         self.current_k_tag = None
         self.current_v_tag = None
+        super().__init__(*args, **kwargs)
 
     def reset(self):
         """Reset parser state. Called implicitly from __init__()."""
@@ -409,8 +409,8 @@ class BaratzParser(BaseParser):   # pylint: disable=unused-variable
 
     def __init__(self, *args, **kwargs):
         """Initialize object."""
-        super().__init__(*args, **kwargs)
         self.within_meta = None
+        super().__init__(*args, **kwargs)
 
     def reset(self):
         """Reset parser state. Called implicitly from __init__()."""
