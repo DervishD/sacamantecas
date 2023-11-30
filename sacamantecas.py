@@ -9,7 +9,6 @@ __v_label__ = ' v'
 __appname__ = f'sacamantecas {__v_label__}{__v_major__}.{__v_minor__}.{__v_patch__}-{__v_alpha__}'
 
 import atexit
-from collections import namedtuple
 import configparser
 from ctypes import byref, c_uint, create_unicode_buffer, WinDLL, wintypes
 from enum import IntEnum, StrEnum
@@ -213,7 +212,18 @@ class SkimmingError(BaseApplicationError):
     """Raise for skimming-related errors."""
 
 
-Profile = namedtuple('Profile', ['url_pattern', 'parser', 'parser_config'])
+class Profile():  # pylint: disable=too-few-public-methods
+    """Abstraction for profiles."""
+    def __init__(self, url_pattern, parser, parser_config):
+        self.url_pattern = url_pattern
+        self.parser = parser
+        self.parser_config = parser_config
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return NotImplemented
+        if self.url_pattern != other.url_pattern or self.parser_config != other.parser_config:
+            return False
+        return type(self.parser).__name__ == type(other.parser).__name__
 
 
 class BaseParser(HTMLParser):
