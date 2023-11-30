@@ -98,10 +98,6 @@ def test_profile_loading(tmp_path):  # pylint: disable=unused-variable
     filename.write_text(INIFILE_CONTENTS)
     profiles = load_profiles(filename)
     filename.unlink()
-    for profile_id, profile in profiles.items():
-        assert type(profile.parser).__name__ == type(EXPECTED_PROFILES[profile_id].parser).__name__
-        # Parser objects will be different, and their type is already checked, so get rid of them.
-        EXPECTED_PROFILES[profile_id] = EXPECTED_PROFILES[profile_id]._replace(parser=profile.parser)
     assert profiles == EXPECTED_PROFILES
 
 
