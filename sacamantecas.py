@@ -6,7 +6,7 @@ __v_minor__ = '0'
 __v_patch__ = '0'
 __v_alpha__ = 'alpha'
 __v_label__ = ' v'
-__appname__ = f'sacamantecas {__v_label__}{__v_major__}.{__v_minor__}.{__v_patch__}-{__v_alpha__}'
+__appname__ = f'sacamantecas{__v_label__}{__v_major__}.{__v_minor__}.{__v_patch__}-{__v_alpha__}'
 
 import atexit
 import configparser
