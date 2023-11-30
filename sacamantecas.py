@@ -145,6 +145,8 @@ class Config():  # pylint: disable=too-few-public-methods
 
     FALLBACK_CHARSET = 'ISO-8859-1'
 
+    PROFILE_URL_PATTERN_KEY = 'url'
+
     CONFIGFILE_SUFFIX = '.ini'
     TEXTFILE_SUFFIX = '.txt'
     SPREADSHEET_SUFFIX = '.xlsx'
@@ -176,6 +178,8 @@ class Config():  # pylint: disable=too-few-public-methods
 
     URL_UNSAFE_CHARS_RE = r'\W'
     URL_UNSAFE_REPLACE_CHAR = '_'
+
+    FILE_URL_SAFE_CHARS = ':/'
 
     META_HTTP_EQUIV_CHARSET_RE = rb'<meta http-equiv="content-type".*charset="([^"]+)"'
     META_CHARSET_RE = rb'<meta charset="([^"]+)"'
@@ -786,7 +790,7 @@ def load_profiles(filename):
                     EMPTY_STRING, exc.pos + len(key) + len(Messages.PROFILES_WRONG_SYNTAX_DETAILS_SEPARATOR)
                 )
                 raise ProfilesError(Messages.PROFILES_WRONG_SYNTAX.format('BadRegex'), details) from exc
-        url_pattern = parser_config.pop('url', None)
+        url_pattern = parser_config.pop(Config.PROFILE_URL_PATTERN_KEY, None)
         if url_pattern is None:
             raise ProfilesError(Messages.INVALID_PROFILE.format(section), Messages.PROFILE_WITHOUT_URL)
         for parser in parsers:
@@ -1145,7 +1149,7 @@ def resolve_file_url(url):
     parsed_url = urlparse(url)
     resolved_path = unquote(parsed_url.path[1:])
     resolved_path = Path(resolved_path).resolve().as_posix()
-    resolved_path = quote(resolved_path, safe=':/')
+    resolved_path = quote(resolved_path, safe=Config.FILE_URL_SAFE_CHARS)
     return parsed_url._replace(path=resolved_path).geturl()
 
 
