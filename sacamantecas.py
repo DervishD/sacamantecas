@@ -33,8 +33,8 @@ from urllib.request import urlopen, Request
 from zipfile import BadZipFile
 
 from openpyxl import load_workbook
-from openpyxl.utils.cell import get_column_letter
 from openpyxl.styles import Font, PatternFill
+from openpyxl.utils.cell import get_column_letter
 
 
 class Messages(StrEnum):
