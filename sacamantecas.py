@@ -123,6 +123,7 @@ SCRIPT_PATH = Path(SCRIPT_PATH).resolve()
 # Some constants used to prevent mistyping.
 EMPTY_STRING = ''
 UTF8 = 'utf-8'
+ASCII = 'ascii'
 
 
 class Config():  # pylint: disable=too-few-public-methods
@@ -1156,7 +1157,7 @@ def get_redirected_url(base_url, contents):
     """
     if match := re.search(Config.META_REFRESH_RE, contents, re.I):
         base_url = urlparse(base_url)
-        redirected_url = urlparse(match.group(1).decode('ascii'))
+        redirected_url = urlparse(match.group(1).decode(ASCII))
         for field in base_url._fields:
             value = getattr(base_url, field)
             # If not specified in the redirected URL, both the scheme and netloc
@@ -1188,11 +1189,11 @@ def detect_html_charset(contents):
     if match := re.search(Config.META_HTTP_EQUIV_CHARSET_RE, contents, re.I):
         # Next best thing, from the meta http-equiv="content-type".
         logging.debug('Charset detectado mediante meta http-equiv.')
-        charset = match.group(1).decode('ascii')
+        charset = match.group(1).decode(ASCII)
     elif match := re.search(Config.META_CHARSET_RE, contents, re.I):
         # Last resort, from some meta charset, if any…
         logging.debug('Charset detectado mediante meta charset.')
-        charset = match.group(1).decode('ascii')
+        charset = match.group(1).decode(ASCII)
     else:
         logging.debug('Charset not detectado, usando valor por defecto.')
     return charset
