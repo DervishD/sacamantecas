@@ -141,6 +141,8 @@ class Config():  # pylint: disable=too-few-public-methods
 
     ACCEPTED_URL_SCHEMES = ('https', 'http', 'file')
 
+    FALLBACK_CHARSET = 'ISO-8859-1'
+
     CONFIGFILE_SUFFIX = '.ini'
     TEXTFILE_SUFFIX = '.txt'
     SPREADSHEET_SUFFIX = '.xlsx'
@@ -1172,15 +1174,17 @@ def detect_html_charset(contents):
     """
     Detect contents charset from HTML tags, if any, and return it.
 
-    If the charset can not be determined, iso-8859-1 is used as fallback even
-    though utf-8 may look as a much better fallback. Modern web pages may NOT
-    specify any encoding if they are using utf-8 and it is identical to ascii
-    for 7-bit codepoints. The problem is that utf-8 will fail for pages whose
-    encoding is iso-8859-1, AND most if not all of the web pages processed by
-    this application which does not specify a charset will in fact be using
-    iso-8859-1 anyway, so in the end that is a safer fallback.
+    If the charset can not be determined, a sane fallback is used. It may look
+    like UTF-8 would be such a sane fallback, because modern web pages may NOT
+    specify any encoding if they are using UTF-8 and it is identical to ASCII
+    for 7-bit codepoints, but the problem is that UTF-8 will fail for web pages
+    whose encoding is any ISO/IEC 8859 variant.
+
+    So, the sane default is another, set in the global configuration, and it is
+    based on the encoding most frequently used by the web pages this application
+    will generally process.
     """
-    charset = 'iso-8859-1'
+    charset = Config.FALLBACK_CHARSET
     if match := re.search(Config.META_HTTP_EQUIV_CHARSET_RE, contents, re.I):
         # Next best thing, from the meta http-equiv="content-type".
         logging.debug('Charset detectado mediante meta http-equiv.')
