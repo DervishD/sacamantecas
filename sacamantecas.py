@@ -39,7 +39,7 @@ from openpyxl.utils.cell import get_column_letter
 
 
 class Messages(StrEnum):
-    """Messages for the application."""
+    """Messages."""
     WRONG_PLATFORM_ERROR = f'\n*** Error, {__appname__} solo funciona en la plataforma Win32.'
     INITIALIZATION_ERROR = 'Error de inicialización de la aplicación.'
 
@@ -101,8 +101,57 @@ class Messages(StrEnum):
     NO_METADATA_FOUND = 'No se obtuvieron metadatos.'
 
 
+class Debug(StrEnum):
+    """Debugging messages."""
+    PROCESSING_ARG = 'Procesando argumento «{}».'
+    ARG_IS_SOURCE_SINGLE_URL = 'El argumento es una fuente de tipo single_url.'
+    ARG_IS_SOURCE_TEXTFILE = 'El argumento es una fuente de tipo textfile.'
+    ARG_IS_SOURCE_SPREADSHEET = 'El argumento es una fuente de tipo spreadsheet.'
+    ARG_IS_SOURCE_UNSUPPORTED = 'El argumento no es un tipo de fuente admitido.'
+
+    LOADING_PROFILES = 'Obteniendo perfiles desde «{}».'
+    FOUND_PROFILES = 'Se obtuvieron los siguientes perfiles: {}.'
+    DETECTED_PROFILE = 'Perfil detectado: «{}».'
+
+    PROCESSING_URL = 'Procesando URL «{}».'
+    REDIRECTED_URL = 'URL redirigido a «{}».'
+
+    CHARSET_NOT_IN_HEADERS = 'Charset no detectado en las cabeceras.'
+    CHARSET_IN_HEADERS = 'Charset detectado en las cabeceras.'
+
+    CHARSET_FROM_HTTP_EQUIV = 'Charset detectado mediante meta http-equiv.'
+    CHARSET_FROM_META_CHARSET = 'Charset detectado mediante meta charset.'
+    CHARSET_FROM_DEFAULT = 'Charset not detectado, usando valor por defecto.'
+
+    CONTENTS_ENCODING = 'Contenidos codificados con charset «{}».'
+
+    HTML_START_TAG = '➜ HTML <{}{}{}>'
+    METADATA_KEY_FOUND = 'Se encontró la clave «{}».'
+    METADATA_VALUE_FOUND = 'Se encontró el valor «{}».'
+    METADATA_IS_EMPTY = 'Metadato vacío.'
+    METADATA_IS_INCOMPLETE = 'Metadato «{}» incompleto, ignorando.'
+    METADATA_KEY_MARKER_FOUND = 'Se encontró una marca de clave «{}».'
+    METADATA_VALUE_MARKER_FOUND = 'Se encontró una marca de valor «{}».'
+    METADATA_MARKER_FOUND = 'Se encontró una marca de metadato «{}».'
+
+    COPYING_WORKBOOK = 'Copiando workbook a «{}».'
+    WORKING_SHEET = 'La hoja con la que se trabajará es «{}»".'
+    INSERTING_HEADING_ROW = 'Insertando fila de cabeceras.'
+    PROCESSING_ROW = 'Procesando fila {}.'
+    NONSTRING_CELL = 'La celda «{}» no es de tipo cadena, será ignorada.'
+    URL_FOUND_IN_CELL = 'Se encontró un URL en la celda «{}»: {}'
+    NEW_METADATA_FOUND = 'Se encontró un metadato nuevo, «{}».'
+    METADATA_STORED_IN_COLUMN = 'El metadato «{}» irá en la columna «{}».'
+
+    DUMPING_METADATA_TO_SINK = 'Volcando metadatos a «{}».'
+    DUMPING_METADATA_K_V = 'Añadiendo metadato «{}» con valor «{}».'
+
+    PARSER_NESTING_ERROR_K_IN_V = 'Problema de anidación (clave dentro de valor), restableciendo parser.'
+    PARSER_NESTING_ERROR_V_IN_K = 'Problema de anidación (valor dentro de clave), restableciendo parser.'
+
+
 class ExitCodes(IntEnum):
-    """Standardized exit codes for the application."""
+    """Standardized exit codes."""
     SUCCESS = 0
     NO_ARGUMENTS = 1
     WARNING = 2
@@ -261,7 +310,7 @@ class BaseParser(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         """Handle opening tags."""
-        logging.debug('➜ HTML <%s%s%s>', tag, ' ' * bool(attrs), ' '.join((f'{k}="{v}"' for k, v in attrs)))
+        logging.debug(Debug.HTML_START_TAG.format(tag, ' ' * bool(attrs), ' '.join((f'{k}="{v}"' for k, v in attrs))))
 
     def handle_data(self, data):
         """Handle data."""
@@ -272,12 +321,12 @@ class BaseParser(HTMLParser):
             if not data:
                 return
         if self.within_k:
-            logging.debug('Se encontró la clave «%s».', data)
+            logging.debug(Debug.METADATA_KEY_FOUND.format(data))
             self.current_k += data.rstrip(':')
             self.last_k = self.current_k
             return
         if self.within_v:
-            logging.debug('Se encontró el valor «%s».', data)
+            logging.debug(Debug.METADATA_VALUE_FOUND.format(data))
             self.current_v = f'{self.current_v}{self.MULTIDATA_SEPARATOR if self.current_v else EMPTY_STRING}{data}'
             return
 
@@ -296,9 +345,9 @@ class BaseParser(HTMLParser):
     def store_metadata(self):
         """Store found metadata, handling missing parts."""
         if not self.current_k and not self.current_v:
-            logging.debug('Metadato vacío.')
+            logging.debug(Debug.METADATA_IS_EMPTY)
         if self.current_k and not self.current_v:
-            logging.debug('Metadato «%s» incompleto, ignorando.', self.current_k)
+            logging.debug(Debug.METADATA_IS_INCOMPLETE.format(self.current_k))
         if not self.current_k and self.current_v:
             self.current_k = self.last_k if self.last_k else self.EMPTY_KEY_PLACEHOLDER
         if self.current_k and self.current_v:
@@ -348,7 +397,7 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
         super().handle_starttag(tag, attrs)
         for attr in attrs:
             if attr[0] == self.CLASS_ATTR and (match := self.config[self.K_CLASS].search(attr[1])):
-                logging.debug('Se encontró una marca de clave «%s».', match.group(0))
+                logging.debug(Debug.METADATA_KEY_MARKER_FOUND.format(match.group(0)))
                 self.within_k = True
                 self.current_k = EMPTY_STRING
                 self.current_k_tag = tag
@@ -356,13 +405,13 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
                     # If still processing a value, notify about the nesting error
                     # but reset parser so everything starts afresh, like if a new
                     # key had been found.
-                    logging.debug('Problema de anidación (clave dentro de valor), restableciendo parser.')
+                    logging.debug(Debug.PARSER_NESTING_ERROR_K_IN_V)
                     self.within_v = False
                     self.current_v = EMPTY_STRING
                     self.current_v_tag = None
                 break
             if attr[0] == self.CLASS_ATTR and (match := self.config[self.V_CLASS].search(attr[1])):
-                logging.debug('Se encontró una marca de valor «%s».', match.group(0))
+                logging.debug(Debug.METADATA_VALUE_MARKER_FOUND.format(match.group(0)))
                 self.within_v = True
                 self.current_v = EMPTY_STRING
                 self.current_v_tag = tag
@@ -371,7 +420,7 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
                     # recovered up to a certain point. If some data was obtained
                     # for the key, the parser is put in within_v mode to get the
                     # corresponding value. Otherwise the parser is reset.
-                    logging.debug('Problema de anidación (valor dentro de clave), restableciendo parser.')
+                    logging.debug(Debug.PARSER_NESTING_ERROR_V_IN_K)
                     self.within_k = False
                     self.current_k_tag = None
                     if not self.current_k:
@@ -433,17 +482,17 @@ class BaratzParser(BaseParser):   # pylint: disable=unused-variable
                 return
             for attr in attrs:
                 if self.config[self.M_ATTR].fullmatch(attr[0]) and self.config[self.M_VALUE].search(attr[1]):
-                    logging.debug('Se encontró una marca de metadato «%s».', attr[1])
+                    logging.debug(Debug.METADATA_MARKER_FOUND.format(attr[1]))
                     self.within_meta = True
                     return
         else:
             if tag == self.K_TAG:
                 self.within_k = True
-                logging.debug('Se encontró un elemento de clave «%s».', tag)
+                logging.debug(Debug.METADATA_KEY_MARKER_FOUND.format(tag))
                 return
             if tag == self.V_TAG:
                 self.within_v = True
-                logging.debug('Se encontró un elemento de valor «%s».', tag)
+                logging.debug(Debug.METADATA_VALUE_MARKER_FOUND.format(tag))
                 return
 
     def handle_endtag(self, tag):
@@ -763,7 +812,7 @@ def load_profiles(filename):
     are present in filename.
     """
     config = configparser.ConfigParser()
-    logging.debug('Obteniendo perfiles desde «%s».', filename)
+    logging.debug(Debug.LOADING_PROFILES.format(filename))
     try:
         with open(filename, encoding=UTF8) as inifile:
             config.read_file(inifile)
@@ -812,18 +861,18 @@ def parse_arguments(*args):
     be None for unsupported sources.
     """
     for arg in args:
-        logging.debug('Procesando argumento «%s».', arg)
+        logging.debug(Debug.PROCESSING_ARG.format(arg))
         if is_accepted_url(arg):
-            logging.debug('El argumento es una fuente de tipo single_url.')
+            logging.debug(Debug.ARG_IS_SOURCE_SINGLE_URL)
             handler = single_url_handler(arg)
         elif arg.endswith(Config.TEXTFILE_SUFFIX):
-            logging.debug('El argumento es una fuente de tipo textfile.')
+            logging.debug(Debug.ARG_IS_SOURCE_TEXTFILE)
             handler = textfile_handler(Path(arg))
         elif arg.endswith(Config.SPREADSHEET_SUFFIX):
-            logging.debug('El argumento es una fuente de tipo spreadsheet.')
+            logging.debug(Debug.ARG_IS_SOURCE_SPREADSHEET)
             handler = spreadsheet_handler(Path(arg))
         else:
-            logging.debug('El argumento no es un tipo de fuente admitido.')
+            logging.debug(Debug.ARG_IS_SOURCE_UNSUPPORTED)
             handler = None
         yield arg, handler
 
@@ -856,7 +905,7 @@ def single_url_handler(url):
     """
     sink_filename = generate_sink_filename(url_to_filename(url).with_suffix(Config.TEXTFILE_SUFFIX))
     with open(sink_filename, 'w', encoding=UTF8) as sink:
-        logging.debug('Volcando metadatos a «%s».', sink_filename)
+        logging.debug(Debug.DUMPING_METADATA_TO_SINK.format(sink_filename))
         yield True  # Successful initialization.
         if is_accepted_url(url):
             metadata = yield url
@@ -864,6 +913,7 @@ def single_url_handler(url):
             if metadata:
                 sink.write(Config.TEXTSINK_METADATA_HEADER.format(url))
                 for key, value in metadata.items():
+                    logging.debug(Debug.DUMPING_METADATA_K_V.format(key, value))
                     message = Config.TEXTSINK_METADATA_PAIR.format(key, value)
                     logging.indent()
                     logging.info(message)  # Output allowed here because it is part of the handler.
@@ -896,7 +946,7 @@ def textfile_handler(source_filename):
     sink_filename = generate_sink_filename(source_filename)
     with open(source_filename, encoding=UTF8) as source:
         with open(sink_filename, 'w', encoding=UTF8) as sink:
-            logging.debug('Volcando metadatos a «%s».', sink_filename)
+            logging.debug(Debug.DUMPING_METADATA_TO_SINK.format(sink_filename))
             yield True  # Successful initialization.
             for url in source.readlines():
                 url = url.strip()
@@ -907,7 +957,7 @@ def textfile_handler(source_filename):
                 if metadata:
                     sink.write(Config.TEXTSINK_METADATA_HEADER.format(url))
                     for key, value in metadata.items():
-                        logging.debug('Añadiendo metadato «%s» con valor «%s».', key, value)
+                        logging.debug(Debug.DUMPING_METADATA_K_V.format(key, value))
                         sink.write(Config.TEXTSINK_METADATA_PAIR.format(key, value))
                     sink.write(Config.TEXTSINK_METADATA_FOOTER)
 
@@ -927,7 +977,7 @@ def spreadsheet_handler(source_filename):
     where the URLs for the items are. Allegedly…
     """
     sink_filename = generate_sink_filename(source_filename)
-    logging.debug('Copiando workbook a «%s».', sink_filename)
+    logging.debug(Debug.COPYING_WORKBOOK.format(sink_filename))
 
     copy2(source_filename, sink_filename)
     try:
@@ -940,14 +990,14 @@ def spreadsheet_handler(source_filename):
     yield True  # Successful initialization.
 
     source_sheet = source_workbook.worksheets[0]
-    logging.debug('La hoja con la que se trabajará es «%s»".', source_sheet.title)
+    logging.debug(Debug.WORKING_SHEET.format(source_sheet.title))
 
     sink_sheet = sink_workbook.worksheets[0]
-    logging.debug('Insertando fila de cabeceras.')
+    logging.debug(Debug.INSERTING_HEADING_ROW)
     sink_sheet.insert_rows(1, 1)
 
     for row in source_sheet.rows:
-        logging.debug('Procesando fila %s.', row[0].row)
+        logging.debug(Debug.PROCESSING_ROW.format(row[0].row))
         if (url := get_url_from_row(row)) is None:
             continue
         metadata = yield url
@@ -963,11 +1013,11 @@ def get_url_from_row(row):
     url = None
     for cell in row:
         if cell.data_type != CELLTYPE_STRING:
-            logging.debug('La celda «%s» no es de tipo cadena, será ignorada.', cell.coordinate)
+            logging.debug(Debug.NONSTRING_CELL.format(cell.coordinate))
             continue
         if is_accepted_url(cell.value):
-            logging.debug('Se encontró un URL en la celda «%s»: %s', cell.coordinate, cell.value)
             url = cell.value
+            logging.debug(Debug.URL_FOUND_IN_CELL.format(cell.coordinate, url))
             break  # Only the FIRST URL found in each row is considered.
     return url
 
@@ -987,10 +1037,10 @@ def store_metadata_in_sheet(sheet, row, metadata, static = SimpleNamespace(known
     for key, value in metadata.items():
         key = Config.SPREADSHEET_METADATA_COLUMN_TITLE.format(key)
         if key not in static.known_metadata:
-            logging.debug('Se encontró un metadato nuevo, «%s».', key)
+            logging.debug(Debug.NEW_METADATA_FOUND.format(key))
             column = sheet.max_column + 1
             static.known_metadata[key] = column
-            logging.debug('El metadato «%s» irá en la columna «%s».', key, get_column_letter(column))
+            logging.debug(Debug.METADATA_STORED_IN_COLUMN.format(key, get_column_letter(column)))
             cell = sheet.cell(row=1, column=column, value=key)
             cell.font = Font(name=Config.SPREADSHEET_CELL_FONT)
             cell.fill = PatternFill(start_color=Config.SPREADSHEET_CELL_COLOR, fill_type=Config.SPREADSHEET_CELL_FILL)
@@ -1013,7 +1063,7 @@ def store_metadata_in_sheet(sheet, row, metadata, static = SimpleNamespace(known
                 # of that column affects ALL the following ones whose index is
                 # less than 'max'… So, it's better to fix that field.
             sheet.column_dimensions[get_column_letter(column)].max = column
-        logging.debug('Añadiendo metadato «%s» con valor «%s».', key, value)
+        logging.debug(Debug.DUMPING_METADATA_K_V.format(key, value))
             # Since a heading row is inserted, the rows where metadata has to go
             # have now an +1 offset, as they have been displaced.
         sheet.cell(row[0].row + 1, static.known_metadata[key], value=value)
@@ -1044,7 +1094,7 @@ def get_parser(url, profiles):
     """
     for profile_name, profile in profiles.items():
         if profile.url_pattern.search(url):
-            logging.debug('Perfil detectado: «%s».', profile_name)
+            logging.debug(Debug.DETECTED_PROFILE.format(profile_name))
             profile.parser.configure(profile.parser_config)
             return profile.parser
     return None
@@ -1127,7 +1177,7 @@ def retrieve_url(url):
         url = resolve_file_url(url)
 
     while url:
-        logging.debug('Procesando URL «%s».', url)
+        logging.debug(Debug.PROCESSING_URL.format(url))
         with urlopen(Request(url, headers={'User-Agent': Config.USER_AGENT})) as response:
             # First, check if any redirection is needed and get the charset the easy way.
             contents = response.read()
@@ -1137,10 +1187,11 @@ def retrieve_url(url):
     # In this point, we have the contents as a byte string.
     # If the charset is None, it has to be determined the hard way.
     if charset is None:
+        logging.debug(Debug.CHARSET_NOT_IN_HEADERS)
         charset = detect_html_charset(contents)
     else:
-        logging.debug('Charset detectado en las cabeceras.')
-    logging.debug('Contenidos codificados con charset «%s».', charset)
+        logging.debug(Debug.CHARSET_IN_HEADERS)
+    logging.debug(Debug.CONTENTS_ENCODING.format(charset))
 
     return contents.decode(charset)
 
@@ -1173,7 +1224,7 @@ def get_redirected_url(base_url, contents):
             if field in ('scheme', 'netloc') and not getattr(redirected_url, field):
                 redirected_url = redirected_url._replace(**{field: value})
         redirected_url = urlunparse(redirected_url)
-        logging.debug('URL redirigido a «%s».', redirected_url)
+        logging.debug(Debug.REDIRECTED_URL.format(redirected_url))
         return redirected_url
     return None
 
@@ -1195,14 +1246,14 @@ def detect_html_charset(contents):
     charset = Config.FALLBACK_CHARSET
     if match := re.search(Config.META_HTTP_EQUIV_CHARSET_RE, contents, re.I):
         # Next best thing, from the meta http-equiv="content-type".
-        logging.debug('Charset detectado mediante meta http-equiv.')
+        logging.debug(Debug.CHARSET_FROM_HTTP_EQUIV)
         charset = match.group(1).decode(ASCII)
     elif match := re.search(Config.META_CHARSET_RE, contents, re.I):
         # Last resort, from some meta charset, if any…
-        logging.debug('Charset detectado mediante meta charset.')
+        logging.debug(Debug.CHARSET_FROM_META_CHARSET)
         charset = match.group(1).decode(ASCII)
     else:
-        logging.debug('Charset not detectado, usando valor por defecto.')
+        logging.debug(Debug.CHARSET_FROM_DEFAULT)
     return charset
 
 
@@ -1227,7 +1278,7 @@ def main(*args):
         profiles = load_profiles(Config.INIFILE_PATH)
         if not profiles:
             raise ProfilesError(Messages.EMPTY_PROFILES.format(Config.INIFILE_PATH))
-        logging.debug('Se obtuvieron los siguientes perfiles: %s.', list(profiles.keys()))
+        logging.debug(Debug.FOUND_PROFILES.format(', '.join(profiles.keys())))
     except ProfilesError as exc:
         error(exc, exc.details)
         return ExitCodes.ERROR
