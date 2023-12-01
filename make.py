@@ -355,9 +355,9 @@ def main():
         for line in program.readlines():
             if line.startswith('__v_'):
                 v_key, v_value = line.strip().split(' = ')
-                semver[v_key] = v_value.strip("'")
+                semver[v_key] = v_value.strip("'").strip()
             if line.startswith('__appname__'):
-                CONFIG.program_version = f'''{{{line.strip().split(' = ')[1].split(' v{')[1][:-1]}'''.format(**semver)
+                CONFIG.program_version = f'''{{{line.strip().split(' = ')[1].split(' {')[1][:-1]}'''.format(**semver)
                 break
 
     if not CONFIG.program_version or (target := process_argv()) is None:
