@@ -210,7 +210,7 @@ class Config():  # pylint: disable=too-few-public-methods
     INIFILE_PATH = SCRIPT_PATH.with_suffix(CONFIGFILE_SUFFIX)
 
     LOGGING_INDENTCHAR = ' '
-    LOGGING_FALLBACK_FORMAT = '%(levelname).1s %(message)s'
+    LOGGING_FALLBACK_FORMAT = '%(message)s'
     LOGGING_FORMAT_STYLE = '{'
     LOGGING_DEBUGFILE_FORMAT = '{asctime}.{msecs:04.0f} {levelname}| {message}'
     LOGGING_LOGFILE_FORMAT = '{asctime} {message}'
