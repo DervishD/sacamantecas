@@ -210,8 +210,8 @@ class Config():  # pylint: disable=too-few-public-methods
     INIFILE_PATH = SCRIPT_PATH.with_suffix(CONFIGFILE_SUFFIX)
 
     LOGGING_INDENTCHAR = ' '
-    LOGGING_FALLBACK_FORMAT = '%(message)s'
     LOGGING_FORMAT_STYLE = '{'
+    LOGGING_FALLBACK_FORMAT = '{message}'
     LOGGING_DEBUGFILE_FORMAT = '{asctime}.{msecs:04.0f} {levelname}| {message}'
     LOGGING_LOGFILE_FORMAT = '{asctime} {message}'
     LOGGING_CONSOLE_FORMAT = '{message}'
@@ -241,7 +241,12 @@ if sys.platform != Config.SUPPORTED_PLATFORM:
 
 
 # Needed for having VERY basic logging when the code is imported rather than run.
-logging.basicConfig(level=logging.NOTSET, format=Config.LOGGING_FALLBACK_FORMAT, force=True)
+logging.basicConfig(
+    level=logging.NOTSET,
+    style=Config.LOGGING_FORMAT_STYLE,
+    format=Config.LOGGING_FALLBACK_FORMAT,
+    force=True
+)
 logging.indent = lambda level=None: None
 logging.dedent = lambda level=None: None
 
