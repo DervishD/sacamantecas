@@ -597,7 +597,7 @@ def wait_for_keypress():
     if getattr(sys, 'frozen', False):
         if console_title != sys.executable:
             return
-    elif console_title.find(SCRIPT_PATH.name) != -1:
+    elif SCRIPT_PATH.name in console_title:
         return
 
     print(Messages.PRESS_ANY_KEY, end=EMPTY_STRING, flush=True)
