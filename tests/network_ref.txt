@@ -185,40 +185,6 @@ http://ceres.mcu.es/pages/Main?idt=134256&inventary=DE2016/1/31&table=FMUS&museu
   Fecha de Ingreso: 02/11/2016
   Catalogación: González Alonso, Alberto
 
-http://catalogoarchivo.madrid.es/ms-opac/permalink/4@oai_villa_baratz_es_villa_471497
-  [vacío]: Provisión de la Chancillería de Juan II disponiendo que el Concejo de Madrid dirigiese en lo sucesivo sus peticiones a los consejeros residentes en la Villa de Illescas, designados por los tutores del Rey, y acudiesen a sus emplazamientos.
-  Fecha documento: 11-12-1413
-  Notas de alcance y contenido: Sin desarrollar
-  Signatura: AVM SEC - 2 - 158 - 20 === Ver descripción para AVM SEC - 2 - 158 - 20
-  Condiciones de acceso al documento: Libre
-  Fecha inicial: 20-12-1413
-  Descriptores de instituciones: Ver descripción para Hermandad de ciudades y villas, Concejo de === Ver descripción para Chancilleria === Ver descripción para Consejeros === Ver descripción para Tutores del Rey === Ver descripción para Audiencia de Valladolid
-  Personas: Ver descripción para Juan II (1405-1454, rey de Castilla)
-  Lugares: Ver descripción para Illescas (Toledo, España)
-  Materias: Ver descripción para PROVISIONES DE CHANCILLERÍA
-
-http://catalogoarchivo.madrid.es/ms-opac/permalink/4@oai_villa_baratz_es_villa_471664
-  [vacío]: Provisión del Consejo ordenando que dos Alcaldes, el alguacil y dos regidores de la Villa de Madrid se presenten en Illescas para tratar varios asuntos con los miembros de dicho organismo.
-  Fecha documento: 07-02-1414
-  Notas de alcance y contenido: Sin desarrollar
-  Signatura: AVM SEC - 2 - 158 - 21 === Ver descripción para AVM SEC - 2 - 158 - 21
-  Condiciones de acceso al documento: Libre
-  Fecha inicial: 16-02-1414
-  Descriptores de instituciones: Ver descripción para Alcalde
-  Lugares: Ver descripción para Illescas (Toledo, España)
-  Materias: Ver descripción para PROVISIONES === Ver descripción para REGIDORES === Ver descripción para ALGUACILES
-
-http://catalogoarchivo.madrid.es/ms-opac/permalink/4@oai_villa_baratz_es_villa_471665
-  [vacío]: Provisión del Consejo por la que se ordena a Madrid provea a don Gonzalo Rodríguez de Neira de sesenta fanegas de pan.
-  Fecha documento: 15-02-1414
-  Notas de alcance y contenido: Sin desarrollar
-  Signatura: AVM SEC - 2 - 91 - 15 === Ver descripción para AVM SEC - 2 - 91 - 15
-  Condiciones de acceso al documento: Libre
-  Fecha inicial: 24-02-1414
-  Personas: Ver descripción para Rodriguez de Neira, Gonzalo (ca. 1414)
-  Lugares: Ver descripción para Illescas (Toledo, España) === Ver descripción para Madrid (España)
-  Materias: Ver descripción para PROVISIONES === Ver descripción para PANES
-
 https://catalogos.madrid.es/cgi-bin/hemeroteca?TITN=421918
   Título: Gente Menuda :dibujos de un gran suplemento infantil: del 3 de diciembre de 2012 al 3 de marzo de 2013
   Lugar/Ed./Año: [Madrid] : Fundación Colección ABC, D.L.2012.

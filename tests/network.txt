@@ -13,9 +13,6 @@ http://catalogos.madrid.es/cgi-bin/opacmusical?TITN=85931
 http://ceres.mcu.es/pages/Main?idt=134248&inventary=DE2016/1/24&table=FMUS&museum=MOM
 http://ceres.mcu.es/pages/Main?idt=134254&inventary=DE2016/1/26&table=FMUS&museum=MOM
 http://ceres.mcu.es/pages/Main?idt=134256&inventary=DE2016/1/31&table=FMUS&museum=MOM
-http://catalogoarchivo.madrid.es/ms-opac/permalink/4@oai_villa_baratz_es_villa_471497
-http://catalogoarchivo.madrid.es/ms-opac/permalink/4@oai_villa_baratz_es_villa_471664
-http://catalogoarchivo.madrid.es/ms-opac/permalink/4@oai_villa_baratz_es_villa_471665
 https://catalogos.madrid.es/cgi-bin/hemeroteca?TITN=421918
 https://catalogos.madrid.es/cgi-bin/historica?TITN=358445
 https://catalogos.madrid.es/cgi-bin/opacmusical?TITN=217501

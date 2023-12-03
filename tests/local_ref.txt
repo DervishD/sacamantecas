@@ -29,7 +29,7 @@ file:///./html/http___catalogo_bne_es_uhtbin_cgisirsi_x_0_0_57_5_3_searchdata1_5
   Descripción física: VIII p.; 21 cm
   Información de ejemplar: 1 ejemplar disponible en Sede de Recoletos.
 
-file:///./html/http___catalogos_munimadrid_es_cgi_bin_hemeroteca_TITN_19245.html
+file:///./html/http___catalogos_madrid_es_cgi_bin_hemeroteca_TITN_19245.html
   Título uniforme: ABC (Madrid. 1903)
   Título: ABC : crónica universal ilustrada
   Frecuencia actual: Semanal (1903-1905). Diaria a partir 1 jun.1905
@@ -45,7 +45,7 @@ file:///./html/http___catalogos_munimadrid_es_cgi_bin_hemeroteca_TITN_19245.html
   Colecciones: 1903-2020 (2021)
   Existencias: Hemeroteca Municipal de Madrid / 1903(n.1en)-2021(n.38534,30jun)
 
-file:///./html/http___catalogos_munimadrid_es_cgi_bin_hemeroteca_TITN_339474.html
+file:///./html/http___catalogos_madrid_es_cgi_bin_hemeroteca_TITN_339474.html
   Título uniforme: El Motín (Madrid. 1881)
   Título: El Motín : periódico satírico semanal
   Frecuencia actual: Semanal. Bisemanal del 20jul. de 1890 a 18abr. de 1891
@@ -57,7 +57,7 @@ file:///./html/http___catalogos_munimadrid_es_cgi_bin_hemeroteca_TITN_339474.htm
   Existencias: Hemeroteca / 1881,I (n.1,10abr.)-1894,XIV (n.52,30dic.) / 1895,XV (n.1,6en.-n.3,20en.;n.5,3feb.-n.52,28dic.) / 1896,XVI (n.1,4en.-n.52,26dic.) / 1897,XVII (n.1,2en.-n.13,27marzo;n.15,10abr.-n.52,25dic.) / 1898,XVIII (n.1,1en.-n.28,9jul.;n.30,23jul.-n.32,6ag.) / 1899,XIX (n.2,16feb;n.8,30marzo-n.27,12ag.;n.29,26ag.-n.45,16dic.) / 1900,XX (n.2,13en.-n.51,29dic.) / 1908,,XXVIII (n.1,1oct.)-1910,XXX (n.51,29dic.) / 1911,XXXI (n.1,5en.-n.49,28dic.) / 1912,XXXII (n.1,4en.)-1915,XXXV (n.52,30dic.) / 1916,XXXVI (n.1,6en.-n.26,29jun.;n.31,3ag.-n.52,28dic.) / 1917,XXXVII (n.1,4en.-n.48,27dic.) / 1918,XXXVIII (n.34,10oct.-n.44,27dic.) / 1919,XXXIX (n.1,2en.)-1921,XLI (n.53,31dic.) / 1922,XLII (n.1,7en.-n.11,18marzo;n.13,1abr.-n.30,29jul.;n.32,26,ag.-n.37,30sept.;n.39,14oct.-n.44,18nov.;n.46,2dic.-n.50,30dic.) / 1923,XLIII (n.1,6en.)-1925,XLV (n.52,26dic.)
   Enlaces: Biblioteca Digital memoriademadrid
 
-file:///./html/http___catalogos_munimadrid_es_cgi_bin_hemeroteca_TITN_52686.html
+file:///./html/http___catalogos_madrid_es_cgi_bin_hemeroteca_TITN_52686.html
   Título uniforme: Blanco y Negro (Madrid. 1891)
   Título: Blanco y Negro : revista ilustrada
   Frecuencia actual: Semanal, 1957-2000
@@ -73,7 +73,7 @@ file:///./html/http___catalogos_munimadrid_es_cgi_bin_hemeroteca_TITN_52686.html
   Existencias: Hemeroteca Municipal de Madrid / En Signatura F29/4-F29A: / 1891,I(n.1, 10 mayo)-1930,XL / 1931,XLI (n.2068,4en.-n.2086,10mayo·n.2088,4jun.-2118,27dic.) / 1932,XLIV-1935,XLV / 1936,XLVI (n.2320,5en.-n.2348,19jul.·supl.n.1,s.f.-supl.,n.35,s.f.) / 1938,XLVIII (n.1(2349),14abr. -1939,XLIX (n.21(2369),feb./marzo) / 1957,XLVII (n.2349,11mayo-n.2382,28dic.) / 1958,LXVIII-1961,LXXI / 1962,LXXII (n.2592,6en.-n.2601,10marzo·n.2603,24marzo-n.2643,29dic.) / En Signatura 3227-3244/4: / 1963,LXXIII (n.2644,5en.-n.2690,23nov.·n.2692,7dic.-n.2695,28dic.) / 1964,LXXIV (n.2696,4en.)- 1980,XC(n.3583,31dic./6en.1981) / 1988,XCVI (n.3586,6marzo)-1996,CV (sept.) / 2ª época / Nueva Etapa: / 1891,I-1923,XL / 1938,XLI-1939,XLII
   Enlaces: Biblioteca Digital memoriademadrid
 
-file:///./html/http___catalogos_munimadrid_es_cgi_bin_historica_TITN_553774.html
+file:///./html/http___catalogos_madrid_es_cgi_bin_historica_TITN_553774.html
   Autor: Adillo Rufo, Sergio (1982-)
   Título: Catálogo de representaciones del teatro de Calderón de la Barca en España (1715-2015) / Sergio Adillo Rufo.
   Lugar/Ed./Año: Madrid : Fundación Universitaria Española, 2017.
@@ -84,7 +84,7 @@ file:///./html/http___catalogos_munimadrid_es_cgi_bin_historica_TITN_553774.html
   Materias: Calderón de la Barca, Pedro (1600-1681) / Teatro español-Representaciones. / Teatro español-Catálogos.
   Información de ejemplar: Signatura: / C 65388.
 
-file:///./html/http___catalogos_munimadrid_es_cgi_bin_historica_TITN_571997.html
+file:///./html/http___catalogos_madrid_es_cgi_bin_historica_TITN_571997.html
   Título: El alcalde de Zalamea / Calderón de la Barca ; prólogo de Rodolfo Gil Torres
   Edición: 3ª ed.
   Lugar/Ed./Año: Madrid : Compañía Ibero-americana de publicaciones, [1927?]
@@ -92,7 +92,7 @@ file:///./html/http___catalogos_munimadrid_es_cgi_bin_historica_TITN_571997.html
   Notas: En la portada: "Tercera edición". -- Contiene una lámina con el retrato del autor.
   Información de ejemplar: Signatura: / BCE 1194 / Otra información: / Encuadernación holandesa. En el lomo: "2789".
 
-file:///./html/http___catalogos_munimadrid_es_cgi_bin_historica_TITN_579528.html
+file:///./html/http___catalogos_madrid_es_cgi_bin_historica_TITN_579528.html
   Título: Anete y Lubin [Manuscrito]
   Lugar/Ed./Año: Siglo XVIII.
   Descripción física: [10] h. ; 21 cm.
@@ -101,7 +101,7 @@ file:///./html/http___catalogos_munimadrid_es_cgi_bin_historica_TITN_579528.html
   Autores: Mesonero Romanos, Ramón de (1803-1882), ant. pos.
   Información de ejemplar: Signatura: / MR 560(3) / Otra información: / Encuadernación holandesa. Índice manuscrito. Anotaciones y tachaduras en diversas partes del ejemplar. Ex libris en papel "De Don Ramón de Mesonero Romanos" en negro enmarcado por una orla y "Hemeroteca Municipal de Madrid” en rojo.Ejemplar facticio, contiene 11 documentos.
 
-file:///./html/http___catalogos_munimadrid_es_cgi_bin_opacmusical_TITN_334532.html
+file:///./html/http___catalogos_madrid_es_cgi_bin_opacmusical_TITN_334532.html
   Título: A crazy day [Video] / music by Giaocchino Rossini ; transcription by Timur Kogan ; libretto, choreography and production by Boris Eifman. Pages of the russian ballet / choreography by Mikhail Fokin
   Lugar/Ed./Año: Estados Unidos : Immortal, 2008
   Descripción física: 1 videodisco (DVD)(64 min.) : son., col. ; 12 cm. + 1 díptico
@@ -112,7 +112,7 @@ file:///./html/http___catalogos_munimadrid_es_cgi_bin_opacmusical_TITN_334532.ht
   Autores: Rossini, Gioacchino (1792-1868) / Eifman, Boris / Fokine, Michel (1880-1942)
   Signatura: M-BMM / M-BMM BMDE Déposito DVD 1450 1300024069 90.648 / M-BMM BMAV Almacén Audiovisuales DVD 1522 1300026802 94935 / M-BMM BMAV Almacén Audiovisuales DVD 1523 1300026803 94936
 
-file:///./html/http___catalogos_munimadrid_es_cgi_bin_opacmusical_TITN_85931.html
+file:///./html/http___catalogos_madrid_es_cgi_bin_opacmusical_TITN_85931.html
   Autor: Alier, Roger (1941-)
   Título: Rossini / por Roger Alier
   Lugar/Ed./Año: Madrid, [etc.] : Daimon, D.L. 1986.
