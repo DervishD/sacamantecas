@@ -1161,7 +1161,7 @@ def saca_las_mantecas(url, parser):
 
     parser.feed(contents)
     parser.close()
-    if metadata:=parser.get_metadata():
+    if metadata := parser.get_metadata():
         return metadata
     raise SkimmingError(Messages.NO_METADATA_FOUND)
 
