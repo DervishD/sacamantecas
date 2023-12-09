@@ -129,7 +129,9 @@ class Debug(StrEnum):
     METADATA_KEY_FOUND = 'Se encontró la clave «{}».'
     METADATA_VALUE_FOUND = 'Se encontró el valor «{}».'
     METADATA_IS_EMPTY = 'Metadato vacío.'
-    METADATA_IS_INCOMPLETE = 'Metadato «{}» incompleto, ignorando.'
+    METADATA_MISSING_VALUE = 'Metadato «{}» incompleto, ignorando.'
+    METADATA_MISSING_KEY = 'No se encontró una clave, usando «{}».'
+    METADATA_OK = 'Metadato correcto «{}: {}».'
     METADATA_KEY_MARKER_FOUND = 'Se encontró una marca de clave «{}».'
     METADATA_VALUE_MARKER_FOUND = 'Se encontró una marca de valor «{}».'
     METADATA_MARKER_FOUND = 'Se encontró una marca de metadato «{}».'
@@ -355,15 +357,17 @@ class BaseParser(HTMLParser):
         if not self.current_k and not self.current_v:
             logging.debug(Debug.METADATA_IS_EMPTY)
         if self.current_k and not self.current_v:
-            logging.debug(Debug.METADATA_IS_INCOMPLETE.format(self.current_k))
+            logging.debug(Debug.METADATA_MISSING_VALUE.format(self.current_k))
         if not self.current_k and self.current_v:
             self.current_k = self.last_k if self.last_k else self.EMPTY_KEY_PLACEHOLDER
+            logging.debug(Debug.METADATA_MISSING_KEY.format(self.current_k))
         if self.current_k and self.current_v:
             if self.current_k not in self.retrieved_metadata:
                 self.retrieved_metadata[self.current_k] = []
             # A set is not used instead of the code below, to preserve order.
             if self.current_v not in self.retrieved_metadata[self.current_k]:
                 self.retrieved_metadata[self.current_k].append(self.current_v)
+            logging.debug(Debug.METADATA_OK.format(self.current_k, self.current_v))
         self.current_k = self.current_v = EMPTY_STRING
 
     def get_metadata(self):
