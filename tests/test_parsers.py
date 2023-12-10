@@ -166,6 +166,85 @@ def test_parser_multivalues(multikeys, separator):  # pylint: disable=unused-var
     assert result == expected
 
 
+ELEMENT_B = '<{TAG} class="{MARKER}_suffix">'
+ELEMENT_E = '</{TAG}>'
+
+K_CLASS = 'k_marker'
+V_CLASS = 'v_marker'
+K_CLASS_RE = re_compile(f'{K_CLASS}.*')
+V_CLASS_RE =  re_compile(f'{V_CLASS}.*')
+TAG = 'div'
+KB = ELEMENT_B.format(TAG=TAG, MARKER=K_CLASS)
+VB = ELEMENT_B.format(TAG=TAG, MARKER=V_CLASS)
+EE = ELEMENT_E.format(TAG=TAG)
+@pytest.mark.parametrize('contents, expected', [
+    # Baseline.
+    (f'{KB}{{K}}{EE}{VB}{{V}}{EE}', ('{K}', '{V}')),
+
+    # Empty key.
+    (f'{KB}{EE}{VB}{{V}}{EE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
+    (f'{VB}{{V}}{EE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
+
+    # Empty value.
+    (f'{KB}{{K}}{EE}{VB}{{V}}', ()),
+    (f'{KB}{{K}}{EE}{VB}{EE}', ()),
+    (f'{KB}{{K}}{EE}{VB}', ()),
+    (f'{KB}{{K}}{EE}', ()),
+    (f'{KB}{EE}{VB}{{V}}', ()),
+    (f'{KB}{EE}{VB}{EE}', ()),
+    (f'{KB}{EE}{VB}', ()),
+    (f'{KB}{EE}', ()),
+    (f'{VB}{{V}}', ()),
+    (f'{VB}{EE}', ()),
+    (f'{VB}', ()),
+
+    # Nesting, value inside key.
+    (f'{KB}{{K}}{VB}{{V}}{EE}', ('{K}', '{V}')),
+    (f'{KB}{{K}}{VB}{{V}}', ()),
+    (f'{KB}{{K}}{VB}{EE}', ()),
+    (f'{KB}{{K}}{VB}', ()),
+    (f'{KB}{VB}{EE}', ()),
+    (f'{KB}{VB}', ()),
+
+    # Nesting, key inside value.
+    (f'{VB}{{V}}{KB}{{K}}{EE}{VB}{{V}}{EE}', ('{K}', '{V}')),
+    (f'{VB}{{V}}{KB}{{K}}{EE}{VB}{{V}}', ()),
+    (f'{VB}{{V}}{KB}{{K}}{EE}{VB}{EE}', ()),
+    (f'{VB}{{V}}{KB}{{K}}{EE}{VB}', ()),
+    (f'{VB}{{V}}{KB}{{K}}{EE}', ()),
+    (f'{VB}{{V}}{KB}{{K}}', ()),
+    (f'{VB}{{V}}{KB}{EE}', ()),
+    (f'{VB}{{V}}{KB}', ()),
+    (f'{VB}{KB}{{K}}{EE}{VB}{{V}}{EE}', ('{K}', '{V}')),
+    (f'{VB}{KB}{{K}}{EE}{VB}{{V}}', ()),
+    (f'{VB}{KB}{{K}}{EE}{VB}{EE}', ()),
+    (f'{VB}{KB}{{K}}{EE}{VB}', ()),
+    (f'{VB}{KB}{{K}}{EE}', ()),
+    (f'{VB}{KB}{{K}}', ()),
+    (f'{VB}{KB}{EE}', ()),
+    (f'{VB}{KB}', ()),
+])
+def test_old_regime_parser(contents, expected):  # pylint: disable=unused-variable
+    """Test Old Regime parser."""
+    k_data = generate_random_string()
+    v_data = generate_random_string()
+
+    parser = OldRegimeParser()
+    parser.configure({OldRegimeParser.K_CLASS: K_CLASS_RE, OldRegimeParser.V_CLASS: V_CLASS_RE})
+    parser.feed(contents.format(K=escape(k_data), V=escape(v_data)))
+    parser.close()
+    result = parser.get_metadata()
+
+    if not expected:
+        expected = {}
+    else:
+        expected_k, expected_v = expected
+        expected_k = expected_k.format(K=' '.join(k_data.split()).rstrip(':'))
+        expected_v = expected_v.format(V=' '.join(v_data.split()))
+        expected = {expected_k: expected_v}
+    assert result == expected
+
+
     parser.close()
     expected = {key: separator.join(MULTIVALUES)}
     assert result == expected
