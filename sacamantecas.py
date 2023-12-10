@@ -499,12 +499,28 @@ class BaratzParser(BaseParser):   # pylint: disable=unused-variable
                     return
         else:
             if tag == self.K_TAG:
-                self.within_k = True
                 logging.debug(Debug.METADATA_KEY_MARKER_FOUND.format(tag))
+                self.within_k = True
+                if self.within_v:
+                    # If still processing a value, notify about the nesting error
+                    # but reset parser so everything starts afresh, like if a new
+                    # key had been found.
+                    logging.debug(Debug.PARSER_NESTING_ERROR_K_IN_V)
+                    self.within_v = False
+                    self.current_v = EMPTY_STRING
                 return
             if tag == self.V_TAG:
-                self.within_v = True
                 logging.debug(Debug.METADATA_VALUE_MARKER_FOUND.format(tag))
+                self.within_v = True
+                if self.within_k:
+                    # If still processing a key, the nesting error can still be
+                    # recovered up to a certain point. If some data was got for
+                    # the key, the parser is left in within_v mode to try to get
+                    # the corresponding value. Otherwise the parser is reset.
+                    logging.debug(Debug.PARSER_NESTING_ERROR_V_IN_K)
+                    self.within_k = False
+                    if not self.current_k:
+                        self.within_v = False
                 return
 
     def handle_endtag(self, tag):
