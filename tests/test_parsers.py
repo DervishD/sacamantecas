@@ -166,51 +166,36 @@ KB = ELEMENT_B.format(TAG=TAG, MARKER=K_CLASS)
 VB = ELEMENT_B.format(TAG=TAG, MARKER=V_CLASS)
 EE = ELEMENT_E.format(TAG=TAG)
 @pytest.mark.parametrize('contents, expected', [
-    # Baseline.
+    # Normal metadata.
     (f'{KB}{{K}}{EE}{VB}{{V}}{EE}', ('{K}', '{V}')),
 
-    # Empty key.
+    # Incomplete metadata, missing value.
+    (f'{KB}{{K}}{EE}{VB}{{V}}', ()),
+    (f'{KB}{{K}}{EE}{VB}{EE}', ()),
+    (f'{VB}{{V}}', ()),
+    (f'{VB}{EE}', ()),
+
+    # Incomplete metadata, missing key.
     (f'{KB}{EE}{VB}{{V}}{EE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
     (f'{VB}{{V}}{EE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
 
-    # Empty value.
-    (f'{KB}{{K}}{EE}{VB}{{V}}', ()),
-    (f'{KB}{{K}}{EE}{VB}{EE}', ()),
-    (f'{KB}{{K}}{EE}{VB}', ()),
-    (f'{KB}{{K}}{EE}', ()),
-    (f'{KB}{EE}{VB}{{V}}', ()),
-    (f'{KB}{EE}{VB}{EE}', ()),
-    (f'{KB}{EE}{VB}', ()),
-    (f'{KB}{EE}', ()),
-    (f'{VB}{{V}}', ()),
-    (f'{VB}{EE}', ()),
-    (f'{VB}', ()),
-
     # Nesting, value inside key.
     (f'{KB}{{K}}{VB}{{V}}{EE}', ('{K}', '{V}')),
-    (f'{KB}{{K}}{VB}{{V}}', ()),
     (f'{KB}{{K}}{VB}{EE}', ()),
-    (f'{KB}{{K}}{VB}', ()),
-    (f'{KB}{VB}{EE}', ()),
-    (f'{KB}{VB}', ()),
 
     # Nesting, key inside value.
-    (f'{VB}{{V}}{KB}{{K}}{EE}{VB}{{V}}{EE}', ('{K}', '{V}')),
-    (f'{VB}{{V}}{KB}{{K}}{EE}{VB}{{V}}', ()),
-    (f'{VB}{{V}}{KB}{{K}}{EE}{VB}{EE}', ()),
-    (f'{VB}{{V}}{KB}{{K}}{EE}{VB}', ()),
-    (f'{VB}{{V}}{KB}{{K}}{EE}', ()),
-    (f'{VB}{{V}}{KB}{{K}}', ()),
-    (f'{VB}{{V}}{KB}{EE}', ()),
-    (f'{VB}{{V}}{KB}', ()),
+    (f'{VB}_{{V}}_{KB}{{K}}{EE}{VB}{{V}}{EE}', ('{K}', '{V}')),
     (f'{VB}{KB}{{K}}{EE}{VB}{{V}}{EE}', ('{K}', '{V}')),
-    (f'{VB}{KB}{{K}}{EE}{VB}{{V}}', ()),
-    (f'{VB}{KB}{{K}}{EE}{VB}{EE}', ()),
-    (f'{VB}{KB}{{K}}{EE}{VB}', ()),
-    (f'{VB}{KB}{{K}}{EE}', ()),
-    (f'{VB}{KB}{{K}}', ()),
-    (f'{VB}{KB}{EE}', ()),
-    (f'{VB}{KB}', ()),
+    (f'{VB}_{{V}}_{KB}{EE}{VB}{{V}}{EE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
+    (f'{VB}{KB}{EE}{VB}{{V}}{EE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
+    (f'{VB}_{{V}}_{KB}{{K}}{EE}{VB}{{V}}', (),),
+    (f'{VB}{KB}{{K}}{EE}{VB}{{V}}', (),),
+
+    # Ill-formed, no closing tags.
+    (f'{KB}{{K}}{VB}{{V}}', ()),
+    (f'{KB}{{K}}{VB}', ()),
+    (f'{KB}{VB}{{V}}', ()),
+    (f'{KB}{VB}', ()),
 ])
 def test_old_regime_parser(contents, expected):  # pylint: disable=unused-variable
     """Test Old Regime parser."""
