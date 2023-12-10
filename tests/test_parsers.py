@@ -3,6 +3,7 @@
 
 from html import escape
 from random import choice as randchoice, choices as randchoices, randint
+from re import compile as re_compile
 from unicodedata import category
 
 import pytest
