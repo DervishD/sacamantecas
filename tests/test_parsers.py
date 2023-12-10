@@ -79,62 +79,49 @@ def test_parser_reset():  # pylint: disable=unused-variable
     parser.close()
 
 
-WHITESPACED_AND_NEWLINED = '  {}\n   whitespaced     \n       and\t\n    newlined   '
-@pytest.mark.parametrize('metadata', [
-    ('key', 'value'),
-    ('key', ' '),
-    ('key', ''),
-    ('key', None),
+K = 'key'
+V = 'value'
+EMPTY = ' '
+WS_NL = '  {}\n   whitespaced     \n       and\t\n    newlined   '
+# In the baseline test below, EMPTY means that parser.feed() gets empty data,
+# and None that parser.feed() is not even called for that particular item.
+@pytest.mark.parametrize('contents, expected', [
+    # Normal metadata.
+    ((K, V), {K: V}),
+    ((f'{K}:', V), {K: V}),
+    ((WS_NL.format(K), WS_NL.format(V)), {' '.join(WS_NL.split()).format(K): ' '.join(WS_NL.split()).format(V)}),
 
-    (' ', 'value'),
-    (' ', ''),
-    (' ', ' '),
-    (' ', None),
+    # Incomplete metadata, missing value.
+    ((K, EMPTY), {}),
+    ((K, None), {}),
 
-    ('', 'value'),
-    ('', ' '),
-    ('', ''),
-    ('', None),
+    # Incomplete metadata, missing key.
+    ((EMPTY, V), {BaseParser.EMPTY_KEY_PLACEHOLDER: V}),
+    ((None, V), {BaseParser.EMPTY_KEY_PLACEHOLDER: V}),
 
-    (None, 'value'),
-    (None, ' '),
-    (None, ''),
-    (None, None),
-
-    ('key:', 'value'),
-
-    (WHITESPACED_AND_NEWLINED.format('key'), 'value'),
-    ('key', WHITESPACED_AND_NEWLINED.format('value')),
-    (WHITESPACED_AND_NEWLINED.format('key'), WHITESPACED_AND_NEWLINED.format('value')),
+    # Empty metadata.
+    ((EMPTY, EMPTY), {})
 ])
-def test_parser_baseline(metadata):  # pylint: disable=unused-variable
+def test_parser_baseline(contents, expected):  # pylint: disable=unused-variable
     """Test the basic functionality of parsers."""
     parser = BaseParser()
 
-    metadata_k, metadata_v = metadata
-    expected_k, expected_v = metadata
+    k, v = contents
 
-    if metadata_k:
+    if k is not None:
         parser.within_k = True
-        parser.feed(metadata_k)
+        parser.feed(k)
         parser.within_k = False
-        expected_k = ' '.join(expected_k.split()).rstrip(':')
-    expected_k = expected_k if expected_k else BaseParser.EMPTY_KEY_PLACEHOLDER
 
-    if metadata_v is not None:
+    if v is not None:
         parser.within_v = True
-        parser.feed(metadata_v)
+        parser.feed(v)
         parser.within_v = False
-        expected_v = ' '.join(expected_v.split())
 
     parser.store_metadata()
     parser.close()
     result = parser.get_metadata()
 
-    if not expected_v:
-        expected = {}
-    else:
-        expected = {expected_k: expected_v}
     assert result == expected
 
 
