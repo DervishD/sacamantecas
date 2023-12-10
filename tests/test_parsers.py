@@ -128,8 +128,8 @@ def test_parser_baseline(metadata):  # pylint: disable=unused-variable
         expected_v = ' '.join(expected_v.split())
 
     parser.store_metadata()
-    result = parser.get_metadata()
     parser.close()
+    result = parser.get_metadata()
 
     if not expected_v:
         expected = {}
@@ -160,7 +160,12 @@ def test_parser_multivalues(multikeys, separator):  # pylint: disable=unused-var
             parser.store_metadata()
     if not multikeys:
         parser.store_metadata()
+    parser.close()
     result = parser.get_metadata()
+    expected = {key: separator.join(MULTIVALUES)}
+    assert result == expected
+
+
     parser.close()
     expected = {key: separator.join(MULTIVALUES)}
     assert result == expected
