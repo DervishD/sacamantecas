@@ -2,7 +2,7 @@
 """Test suite for metadata parsers."""
 
 from html import escape
-import random
+from random import choice as randchoice, choices as randchoices, randint
 from unicodedata import category
 
 import pytest
@@ -32,7 +32,7 @@ def generate_random_string():
     Generate a random string with MIN_LENGTH <= length <= MAX_LENGTH.
     Only characters from the ALLOWED_* sets are used.
     """
-    return escape(''.join(random.choices(ALLOWED_CONTROLS + ALLOWED_CHARS, k=random.randint(MIN_LENGTH, MAX_LENGTH))))
+    return escape(''.join(randchoices(ALLOWED_CONTROLS + ALLOWED_CHARS, k=randint(MIN_LENGTH, MAX_LENGTH))))
 
 
 MEBI = 1024 * 1024
@@ -45,8 +45,8 @@ def test_random_feed():  # pylint: disable=unused-variable
         random_string = generate_random_string()
         total_characters += len(random_string)
         for _ in range(2):
-            parser.within_k = random.choice([True, False])
-            parser.within_v = random.choice([True, False])
+            parser.within_k = randchoice([True, False])
+            parser.within_v = randchoice([True, False])
             parser.feed(random_string)
             parser.within_k = False
             parser.within_v = False
