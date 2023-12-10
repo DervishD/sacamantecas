@@ -429,9 +429,9 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
                 self.current_v_tag = tag
                 if self.within_k:
                     # If still processing a key, the nesting error can still be
-                    # recovered up to a certain point. If some data was obtained
-                    # for the key, the parser is put in within_v mode to get the
-                    # corresponding value. Otherwise the parser is reset.
+                    # recovered up to a certain point. If some data was got for
+                    # the key, the parser is left in within_v mode to try to get
+                    # the corresponding value. Otherwise the parser is reset.
                     logging.debug(Debug.PARSER_NESTING_ERROR_V_IN_K)
                     self.within_k = False
                     self.current_k_tag = None
