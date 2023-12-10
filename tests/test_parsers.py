@@ -1,5 +1,7 @@
 #! /usr/bin/env python3
 """Test suite for metadata parsers."""
+# cSpell:ignore Baratz
+
 
 from html import escape
 from random import choice as randchoice, choices as randchoices, randint
@@ -8,7 +10,7 @@ from unicodedata import category
 
 import pytest
 
-from sacamantecas import BaseParser
+from sacamantecas import BaratzParser, BaseParser, OldRegimeParser
 
 
 SPACE = 0x20
@@ -218,6 +220,71 @@ def test_old_regime_parser(contents, expected):  # pylint: disable=unused-variab
     assert result == expected
 
 
+M_TAG = 'dl'
+M_TAG_RE = re_compile(f'{M_TAG}.*')
+M_ATTR = 'class'
+M_ATTR_RE = re_compile(f'{M_ATTR}.*')
+M_VALUE = 'meta_marker'
+M_VALUE_RE = re_compile(f'{M_VALUE}.*')
+MB = ELEMENT_B.format(TAG=M_TAG, MARKER=M_VALUE)
+ME = ELEMENT_E.format(TAG=M_TAG)
+KB = ELEMENT_B.format(TAG=BaratzParser.K_TAG, MARKER='')
+KE = ELEMENT_E.format(TAG=BaratzParser.K_TAG)
+VB = ELEMENT_B.format(TAG=BaratzParser.V_TAG, MARKER='')
+VE = ELEMENT_E.format(TAG=BaratzParser.V_TAG)
+@pytest.mark.parametrize('contents, expected', [
+    # Normal metadata.
+    (f'{MB}{KB}{{K}}{KE}{VB}{{V}}{VE}{ME}', ('{K}', '{V}')),
+    (f'{MB}{KB}{{K}}{KE}{VB}{{V}}{VE}', ('{K}', '{V}')),
+
+    # No metadata marker.
+    (f'{KB}{{K}}{KE}{VB}{{V}}{VE}{ME}', ()),
+    (f'{KB}{{K}}{KE}{VB}{{V}}{VE}', ()),
+
+    # Incomplete metadata, missing value.
+    (f'{MB}{KB}{{K}}{KE}{VB}{{V}}', ()),
+    (f'{MB}{KB}{{K}}{KE}{VB}{VE}', ()),
+    (f'{MB}{VB}{{V}}', ()),
+    (f'{MB}{VB}{VE}', ()),
+
+    # Incomplete metadata, missing key.
+    (f'{MB}{KB}{KE}{VB}{{V}}{VE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
+    (f'{MB}{VB}{{V}}{VE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
+
+    # Nesting, value inside key.
+    (f'{MB}{KB}{{K}}{VB}{{V}}{VE}{KE}', ('{K}', '{V}')),
+    (f'{MB}{KB}{{K}}{VB}{VE}{KE}', ()),
+
+    # Nesting, key inside value.
+    (f'{MB}{VB}_{{V}}_{KB}{{K}}{KE}{VB}{{V}}{VE}', ('{K}', '{V}')),
+    (f'{MB}{VB}{KB}{{K}}{KE}{VB}{{V}}{VE}', ('{K}', '{V}')),
+    (f'{MB}{VB}_{{V}}_{KB}{KE}{VB}{{V}}{VE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
+    (f'{MB}{VB}{KB}{KE}{VB}{{V}}{VE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
+    (f'{MB}{VB}_{{V}}_{KB}{{K}}{KE}{VB}{{V}}', ()),
+    (f'{MB}{VB}{KB}{{K}}{KE}{VB}{{V}}', ()),
+
+    # Ill-formed, no closing tags.
+    (f'{MB}{KB}{{K}}{VB}{{V}}', ()),
+    (f'{MB}{KB}{{K}}{VB}', ()),
+    (f'{MB}{KB}{VB}{{V}}', ()),
+    (f'{MB}{KB}{VB}', ()),
+])
+def test_baratz_parser(contents, expected):  # pylint: disable=unused-variable
+    """Test Baratz parser."""
+    k_data = generate_random_string()
+    v_data = generate_random_string()
+
+    parser = BaratzParser()
+    parser.configure({BaratzParser.M_TAG: M_TAG_RE, BaratzParser.M_ATTR: M_ATTR_RE, BaratzParser.M_VALUE: M_VALUE_RE})
+    parser.feed(contents.format(K=escape(k_data), V=escape(v_data)))
     parser.close()
-    expected = {key: separator.join(MULTIVALUES)}
+    result = parser.get_metadata()
+
+    if not expected:
+        expected = {}
+    else:
+        expected_k, expected_v = expected
+        expected_k = expected_k.format(K=' '.join(k_data.split()).rstrip(':'))
+        expected_v = expected_v.format(V=' '.join(v_data.split()))
+        expected = {expected_k: expected_v}
     assert result == expected
