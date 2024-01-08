@@ -19,6 +19,10 @@ from difflib import unified_diff
 from zipfile import ZipFile, ZIP_DEFLATED
 
 
+ROOT_PATH = Path(__file__).parent
+VENV_PATH = ROOT_PATH / '.venv'
+
+
 CONFIG = SimpleNamespace()
 
 
@@ -45,38 +49,6 @@ def run_command(command):
         return run(command, check=True, capture_output=True, encoding='utf-8', text=True)
     except FileNotFoundError as exc:
         raise CalledProcessError(0, command, None, f"Command '{command[0]}' not found.\n") from exc
-
-
-def get_venv_path():
-    """
-    Get the virtual environment path for this project.
-    IT HAS TO BE THE FIRST LINE IN THE 'gitignore' FILE.
-    IT HAS TO CONTAIN THE STRING 'venv' SOMEWHERE.
-    """
-    venv_path = None
-    message = None
-    try:
-        with open(CONFIG.root_path / '.gitignore', encoding='utf-8') as gitignore:
-            venv_path = gitignore.readline().strip()
-            if 'venv' not in venv_path:
-                venv_path = None
-    except FileNotFoundError:
-        message = '.gitignore does not exist'
-    except PermissionError:
-        message = '.gitignore cannot be read'
-    else:
-        if venv_path is None:
-            message = '.gitignore does not contain a virtual environment path'
-        else:
-            venv_path = CONFIG.root_path / venv_path
-            if venv_path.exists() and not venv_path.is_dir():
-                message = 'Virtual environment path exists but it is not a directory'
-
-    if message:
-        error(f'finding virtual environment path.\n{message}.')
-        return None
-
-    return venv_path
 
 
 def process_argv():
@@ -142,11 +114,11 @@ def target_venv():
     # This method works well enough for the needs of this building program, and
     # a more exhaustive check would be unnecessary complex and expensive.
     if 'VIRTUAL_ENV' in os.environ:
-        print(f"Virtual environment already active at '{CONFIG.venv_path}'.")
+        print(f"Virtual environment already active at '{VENV_PATH}'.")
         return True
 
-    print(f"Creating virtual environment at '{CONFIG.venv_path}'.")
-    if not CONFIG.venv_path.exists():
+    print(f"Creating virtual environment at '{VENV_PATH}'.")
+    if not VENV_PATH.exists():
         with open(os.devnull, 'w', encoding='utf-8') as devnull:
             saved_stdout = os.dup(1)
             sys.stdout.flush()
@@ -155,7 +127,7 @@ def target_venv():
 
             # The normal output for the call below is suppressed.
             # Error output is not.
-            venv.create(CONFIG.venv_path, with_pip=True, upgrade_deps=True)
+            venv.create(VENV_PATH, with_pip=True, upgrade_deps=True)
 
             sys.stdout.flush()
             os.dup2(saved_stdout, 1)
@@ -167,10 +139,10 @@ def target_venv():
     # environment variable so the launched programs can detect they are really
     # running inside a virtual environment. Apparently this is not essential,
     # but it is easy to do and will not do any harm.
-    os.environ['VIRTUAL_ENV'] = str(CONFIG.venv_path.resolve())
+    os.environ['VIRTUAL_ENV'] = str(VENV_PATH.resolve())
 
     try:
-        run_command((CONFIG.venv_path / 'Scripts' / 'pip.exe', 'install', '-r', CONFIG.root_path / 'requirements.txt'))
+        run_command((VENV_PATH / 'Scripts' / 'pip.exe', 'install', '-r', ROOT_PATH / 'requirements.txt'))
     except CalledProcessError as exc:
         error(f'creating virtual environment.\npip: {exc.stderr}.')
         return False
@@ -182,11 +154,11 @@ def target_venv():
 def target_executable():  # pylint: disable=unused-variable
     """Build and bundle frozen executable."""
     print('Building frozen executable.')
-    pyinstaller_path = CONFIG.venv_path / 'Scripts' / 'pyinstaller.exe'
-    build_path = CONFIG.venv_path / 'build'
-    dist_path = CONFIG.venv_path / 'dist'
+    pyinstaller_path = VENV_PATH / 'Scripts' / 'pyinstaller.exe'
+    build_path = VENV_PATH / 'build'
+    dist_path = VENV_PATH / 'dist'
     executable = dist_path / CONFIG.program_path.with_suffix('.exe').name
-    bundle_path = CONFIG.root_path / f'{CONFIG.program_path.stem}_{CONFIG.program_version}.zip'
+    bundle_path = ROOT_PATH / f'{CONFIG.program_path.stem}_{CONFIG.program_version}.zip'
 
     if executable.exists():
         os.remove(executable)
@@ -314,7 +286,7 @@ def target_test():  # pylint: disable=unused-variable
     os.chdir(Path('tests').resolve())
 
     some_test_failed = False
-    command = (CONFIG.venv_path / 'Scripts' / 'python.exe', CONFIG.program_path)
+    command = (VENV_PATH / 'Scripts' / 'python.exe', CONFIG.program_path)
     for test in tests:
         print(f'Testing {test.testname} ', end='', flush=True)
         if test.run(command):
@@ -340,14 +312,9 @@ def get_targets():
 
 def main():
     """."""
-    CONFIG.root_path = Path(__file__).parent
     CONFIG.program_path = Path(__file__).with_stem(Path(__file__).parent.stem)
 
     CONFIG.targets = get_targets()
-
-    CONFIG.venv_path = get_venv_path()
-    if CONFIG.venv_path is None:
-        return 1
 
     with open(CONFIG.program_path, encoding='utf-8') as program:
         CONFIG.program_version = ''
