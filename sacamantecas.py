@@ -1,13 +1,6 @@
 #! /usr/bin/env python3
 """See "README.md" for details."""
 
-__v_major__ = '5'
-__v_minor__ = '0'
-__v_patch__ = '0'
-__v_alpha__ = 'beta-1'
-__v_label__ = ' v'
-__appname__ = f'sacamantecas{__v_label__}{__v_major__}.{__v_minor__}.{__v_patch__}-{__v_alpha__}'
-
 import atexit
 import configparser
 from ctypes import byref, c_uint, create_unicode_buffer, WinDLL, wintypes
@@ -37,10 +30,12 @@ from openpyxl.cell.cell import TYPE_STRING as CELLTYPE_STRING
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils.cell import get_column_letter
 
+from version import APP_NAME, SEMVER, V_PRERELEASE
+
 
 class Messages(StrEnum):
     """Messages."""
-    WRONG_PLATFORM_ERROR = f'\n*** Error, {__appname__} solo funciona en la plataforma Win32.'
+    WRONG_PLATFORM_ERROR = f'\n*** Error, {APP_NAME} solo funciona en la plataforma Win32.'
     INITIALIZATION_ERROR = 'Error de inicialización de la aplicación.'
 
     PRESS_ANY_KEY = '\nPulse cualquier tecla para continuar...'
@@ -53,11 +48,11 @@ class Messages(StrEnum):
     ''').lstrip()
 
     DEBUGGING_INIT = 'Registro de depuración iniciado.'
-    APP_BANNER = f'{__appname__.replace(__v_label__, " versión ")}'
+    APP_BANNER = f'{APP_NAME} versión {SEMVER}'
     PROCESS_DONE = '\nProceso finalizado.'
     DEBUGGING_DONE = 'Registro de depuración finalizado.'
 
-    ERROR_HEADER = f'\n*** Error en {__appname__}\n'
+    ERROR_HEADER = f'\n*** Error en {APP_NAME}.\n'
     WARNING_HEADER = '* Aviso: '
     ERROR_DETAILS_HEADING = '\nInformación adicional sobre el error:'
     ERROR_DETAILS_TAIL_CHAR = '·'
@@ -181,11 +176,11 @@ ASCII = 'ascii'
 class Config():  # pylint: disable=too-few-public-methods
     """Application configuration values."""
     # Development mode is enabled if a prerelease version is running within a virtual environment.
-    DEVELOPMENT_MODE = bool(__v_alpha__ and sys.prefix != sys.base_prefix)
+    DEVELOPMENT_MODE = bool(V_PRERELEASE and sys.prefix != sys.base_prefix)
     SUPPORTED_PLATFORM = 'win32'
     TIMESTAMP_FORMAT = '%Y%m%d_%H%M%S'
     USER_AGENT = ' '.join(dedent(f'''
-        {__appname__.replace(__v_label__, "/")}
+        {APP_NAME}/{SEMVER}
         +https://github.com/DervishD/sacamantecas
         (Windows {platform.version()};
         {platform.architecture()[0]};
