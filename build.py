@@ -72,10 +72,11 @@ def is_venv_ready():
     """Checks if virtual environment is active and functional."""
     progress(f'Checking virtual environment at {VENV_PATH}')
 
+    # If no virtual environment exists, try to use global packages.
     if not VENV_PATH.exists():
-        error('missing virtual environment.')
-        return False
+        return True
 
+    # But if it exists, it has to be active.
     if os.environ['VIRTUAL_ENV'].lower() != str(VENV_PATH).lower():
         error('wrong or missing VIRTUAL_ENV environment variable.')
         return False
