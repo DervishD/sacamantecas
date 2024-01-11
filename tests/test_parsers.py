@@ -2,7 +2,7 @@
 """Test suite for metadata parsers."""
 # cSpell:ignore Baratz
 
-
+import logging
 from html import escape
 from random import choice as randchoice, choices as randchoices, randint
 from re import compile as re_compile
@@ -10,7 +10,7 @@ from unicodedata import category
 
 import pytest
 
-from sacamantecas import BaratzParser, BaseParser, OldRegimeParser
+from sacamantecas import BaratzParser, BaseParser, Debug, EMPTY_STRING, OldRegimeParser
 
 
 SPACE = 0x20
@@ -18,6 +18,9 @@ LF = 0x0A
 CR = 0x0D
 NBSP = 0xA0
 ALLOWED_CONTROLS = [chr(cp) for cp in (SPACE, LF, CR, NBSP)]
+
+K = 'key'
+V = 'value'
 
 START_CP = 0x0000
 END_CP = 0x024F
@@ -82,8 +85,27 @@ def test_parser_reset():  # pylint: disable=unused-variable
     parser.close()
 
 
-K = 'key'
-V = 'value'
+@pytest.mark.parametrize('k, v, message', [
+    (None, None, Debug.METADATA_IS_EMPTY),
+    (K, None, Debug.METADATA_MISSING_VALUE.format(K)),
+    (None, V, Debug.METADATA_MISSING_KEY.format(BaseParser.EMPTY_KEY_PLACEHOLDER)),
+    (K, V, Debug.METADATA_OK.format(K, V))
+])
+def test_medatata_storage(caplog, k, v, message):  # pylint: disable=unused-variable
+    """Test store_metadata() branches."""
+    caplog.set_level(logging.DEBUG)
+    parser = BaseParser()
+
+    parser.current_k = k
+    parser.current_v = v
+
+    parser.store_metadata()
+
+    assert caplog.records[0].message == message
+    assert parser.current_k == EMPTY_STRING
+    assert parser.current_v == EMPTY_STRING
+
+
 EMPTY = ' '
 WS_NL = '  {}\n   whitespaced     \n       and\t\n    newlined   '
 # In the baseline test below, EMPTY means that parser.feed() gets empty data,
