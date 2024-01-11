@@ -1,4 +1,3 @@
-#! /usr/bin/env python3
 """Define sacamantecas identity and version, according to Semantic Versioning 2.0 (https://semver.org/)"""
 import sys
 
