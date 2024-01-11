@@ -85,13 +85,13 @@ def test_parser_reset():  # pylint: disable=unused-variable
     parser.close()
 
 
-@pytest.mark.parametrize('k, v, message', [
+@pytest.mark.parametrize('k, v, expected', [
     (None, None, Debug.METADATA_IS_EMPTY),
     (K, None, Debug.METADATA_MISSING_VALUE.format(K)),
     (None, V, Debug.METADATA_MISSING_KEY.format(BaseParser.EMPTY_KEY_PLACEHOLDER)),
     (K, V, Debug.METADATA_OK.format(K, V))
 ])
-def test_medatata_storage(caplog, k, v, message):  # pylint: disable=unused-variable
+def test_medatata_storage(caplog, k, v, expected):  # pylint: disable=unused-variable
     """Test store_metadata() branches."""
     caplog.set_level(logging.DEBUG)
     parser = BaseParser()
@@ -101,7 +101,7 @@ def test_medatata_storage(caplog, k, v, message):  # pylint: disable=unused-vari
 
     parser.store_metadata()
 
-    assert caplog.records[0].message == message
+    assert caplog.records[0].message == expected
     assert parser.current_k == EMPTY_STRING
     assert parser.current_v == EMPTY_STRING
 
