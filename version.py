@@ -1,5 +1,6 @@
 #! /usr/bin/env python3
 """Define sacamantecas identity and version, according to Semantic Versioning 2.0 (https://semver.org/)"""
+import sys
 
 APP_NAME = 'sacamantecas'  # pylint: disable=unused-variable
 
@@ -12,3 +13,6 @@ V_BUILD = __import__('time').strftime('%Y%m%d-%H%M%S')
 SEMVER = f'{V_MAJOR}.{V_MINOR}.{V_PATCH}'
 SEMVER += f'-{V_PRERELEASE}' if V_PRERELEASE else ''
 SEMVER += f'+{V_BUILD}' if V_PRERELEASE and V_BUILD else ''
+
+# Development mode is enabled if a prerelease version is running within a virtual environment.
+DEVELOPMENT_MODE = bool(V_PRERELEASE and sys.prefix != sys.base_prefix)  # pylint: disable=unused-variable

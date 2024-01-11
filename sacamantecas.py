@@ -30,7 +30,7 @@ from openpyxl.cell.cell import TYPE_STRING as CELLTYPE_STRING
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils.cell import get_column_letter
 
-from version import APP_NAME, SEMVER, V_PRERELEASE
+from version import APP_NAME, DEVELOPMENT_MODE, SEMVER
 
 
 class Messages(StrEnum):
@@ -175,8 +175,6 @@ ASCII = 'ascii'
 
 class Config():  # pylint: disable=too-few-public-methods
     """Application configuration values."""
-    # Development mode is enabled if a prerelease version is running within a virtual environment.
-    DEVELOPMENT_MODE = bool(V_PRERELEASE and sys.prefix != sys.base_prefix)
     SUPPORTED_PLATFORM = 'win32'
     TIMESTAMP_FORMAT = '%Y%m%d_%H%M%S'
     USER_AGENT = ' '.join(dedent(f'''
