@@ -158,13 +158,13 @@ class ExitCodes(IntEnum):
 
 try:
     if getattr(sys, 'frozen', False):
-        SCRIPT_PATH = sys.executable
+        ROOT_PATH = sys.executable
     else:
-        SCRIPT_PATH = __file__
+        ROOT_PATH = __file__
 except NameError:
     print(Messages.INITIALIZATION_ERROR, file=sys.stderr)
     sys.exit(ExitCodes.ERROR)
-SCRIPT_PATH = Path(SCRIPT_PATH).resolve()
+ROOT_PATH = Path(ROOT_PATH).resolve().parent
 
 
 # Some constants used to prevent mistyping.
@@ -191,18 +191,15 @@ class Config():  # pylint: disable=too-few-public-methods
 
     PROFILE_URL_PATTERN_KEY = 'url'
 
-    CONFIGFILE_SUFFIX = '.ini'
     TEXTFILE_SUFFIX = '.txt'
     SPREADSHEET_SUFFIX = '.xlsx'
 
     TIMESTAMP_STEM = time.strftime(f'_{TIMESTAMP_FORMAT}')
     SINKFILE_STEM = '_out'
-    LOGFILE_STEM = f'{SCRIPT_PATH.stem}_log{"" if DEVELOPMENT_MODE else TIMESTAMP_STEM}'
-    DEBUGFILE_STEM = f'{SCRIPT_PATH.stem}_debug{"" if DEVELOPMENT_MODE else TIMESTAMP_STEM}'
 
-    LOGFILE_PATH = SCRIPT_PATH.with_stem(LOGFILE_STEM).with_suffix(TEXTFILE_SUFFIX)
-    DEBUGFILE_PATH = SCRIPT_PATH.with_stem(DEBUGFILE_STEM).with_suffix(TEXTFILE_SUFFIX)
-    INIFILE_PATH = SCRIPT_PATH.with_suffix(CONFIGFILE_SUFFIX)
+    LOGFILE_PATH = ROOT_PATH / f'{APP_NAME}_log{"" if DEVELOPMENT_MODE else TIMESTAMP_STEM}{TEXTFILE_SUFFIX}'
+    DEBUGFILE_PATH = ROOT_PATH / f'{APP_NAME}_debug{"" if DEVELOPMENT_MODE else TIMESTAMP_STEM}{TEXTFILE_SUFFIX}'
+    INIFILE_PATH = ROOT_PATH / f'{APP_NAME}.ini'
 
     LOGGING_INDENTCHAR = ' '
     LOGGING_FORMAT_STYLE = '{'
@@ -613,7 +610,7 @@ def wait_for_keypress():
     if getattr(sys, 'frozen', False):
         if console_title != sys.executable:
             return
-    elif SCRIPT_PATH.name in console_title:
+    elif APP_NAME in console_title:
         return
 
     print(Messages.PRESS_ANY_KEY, end=EMPTY_STRING, flush=True)
@@ -644,7 +641,7 @@ def excepthook(exc_type, exc_value, exc_traceback):
         if current_filename != frame.filename:
             traceback += Messages.TRACEBACK_FRAME_HEADER.format(frame.filename)
             current_filename = frame.filename
-        frame.name = SCRIPT_PATH.name if frame.name == Messages.TRACEBACK_TOPLEVEL_FRAME else frame.name
+        frame.name = APP_NAME if frame.name == Messages.TRACEBACK_TOPLEVEL_FRAME else frame.name
         traceback += Messages.TRACEBACK_FRAME_LINE.format(frame.lineno, frame.name, frame.line)
     details += Messages.TRACEBACK_HEADER.format(traceback) if traceback else EMPTY_STRING
     error(message, details)
