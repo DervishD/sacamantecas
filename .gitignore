@@ -1,4 +1,5 @@
 .venv
+build
 sacamantecas_v*.zip
 sacamantecas_log_*
 sacamantecas_log.txt
