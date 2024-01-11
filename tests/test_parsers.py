@@ -106,6 +106,21 @@ def test_medatata_storage(caplog, k, v, expected):  # pylint: disable=unused-var
     assert parser.current_v == EMPTY_STRING
 
 
+SINGLE_K = 'single_key'
+SINGLE_V = ['single_value']
+MULTIPLE_K = 'multiple_key'
+MULTIPLE_V = ['multiple_value1', 'multiple_value2', 'multiple_value3']
+@pytest.mark.parametrize('metadata, expected', [
+    ({SINGLE_K: SINGLE_V}, {SINGLE_K: SINGLE_V[0]}),
+    ({MULTIPLE_K: MULTIPLE_V}, {MULTIPLE_K: BaseParser.MULTIVALUE_SEPARATOR.join(MULTIPLE_V)})
+])
+def test_metadata_retrieval(metadata, expected):   # pylint: disable=unused-variable
+    """Test get_metadata()."""
+    parser = BaseParser()
+    parser.retrieved_metadata = metadata
+    assert parser.get_metadata() == expected
+
+
 EMPTY = ' '
 WS_NL = '  {}\n   whitespaced     \n       and\t\n    newlined   '
 # In the baseline test below, EMPTY means that parser.feed() gets empty data,
