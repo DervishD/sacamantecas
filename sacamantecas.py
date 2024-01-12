@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+#! /usr/bin/env python
 """See "README.md" for details."""
 import sys
 if sys.platform != 'win32':
