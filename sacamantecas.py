@@ -1,6 +1,11 @@
 #! /usr/bin/env python3
 """See "README.md" for details."""
+import sys
+if sys.platform != 'win32':
+    print('\nThis application is compatible only with the Win32 platform.')
+    sys.exit(None)
 
+# pylint: disable=wrong-import-position
 import atexit
 import configparser
 from ctypes import byref, c_uint, create_unicode_buffer, WinDLL, wintypes
@@ -15,7 +20,6 @@ from pathlib import Path
 import platform
 import re
 from shutil import copy2
-import sys
 from textwrap import dedent
 import time
 import traceback as tb
@@ -37,7 +41,6 @@ APP_NAME = Path(__file__).stem
 
 class Messages(StrEnum):
     """Messages."""
-    WRONG_PLATFORM_ERROR = f'\n*** Error, {APP_NAME} solo funciona en la plataforma Win32.'
     INITIALIZATION_ERROR = 'Error de inicialización de la aplicación.'
 
     PRESS_ANY_KEY = '\nPulse cualquier tecla para continuar...'
@@ -177,7 +180,6 @@ ASCII = 'ascii'
 
 class Config():  # pylint: disable=too-few-public-methods
     """Application configuration values."""
-    SUPPORTED_PLATFORM = 'win32'
     TIMESTAMP_FORMAT = '%Y%m%d_%H%M%S'
     USER_AGENT = ' '.join(dedent(f'''
         {APP_NAME}/{SEMVER}
@@ -230,11 +232,6 @@ class Config():  # pylint: disable=too-few-public-methods
     META_HTTP_EQUIV_CHARSET_RE = rb'<meta http-equiv="content-type".*charset="([^"]+)"'
     META_CHARSET_RE = rb'<meta charset="([^"]+)"'
     META_REFRESH_RE = rb'<meta http-equiv="refresh" content="(?:[^;]+;\s+)?URL=([^"]+)"'
-
-
-if sys.platform != Config.SUPPORTED_PLATFORM:
-    print(Messages.WRONG_PLATFORM_ERROR, file=sys.stderr)
-    sys.exit(ExitCodes.ERROR)
 
 
 # Needed for having VERY basic logging when the code is imported rather than run.

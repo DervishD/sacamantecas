@@ -6,6 +6,8 @@ from sacamantecas import APP_NAME, ASCII, BaseParser, Config, Debug, EMPTY_STRIN
 
 
 ALLOWED_STRINGS = (
+    # Early platform check.
+    'win32', '\nThis application is compatible only with the Win32 platform.',
     # Python well-known strings.
     'frozen', '__main__',
     # Application constants.
