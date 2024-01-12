@@ -1337,7 +1337,7 @@ def main(*args):
     return exitcode
 
 
-atexit.register(wait_for_keypress)
-sys.excepthook = excepthook
 if __name__ == '__main__':
+    atexit.register(wait_for_keypress)
+    sys.excepthook = excepthook
     sys.exit(main(*sys.argv[1:]))
