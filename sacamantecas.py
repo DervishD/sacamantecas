@@ -1165,7 +1165,7 @@ def saca_las_mantecas(url, parser):
             error_code = errno.errorcode[exc.errno]
         except (AttributeError, KeyError):
             error_code = Messages.UNKNOWN_ERRNO
-        details = f'{exc.strerror.capitalize().rstrip('.')}.'
+        details = f'{exc.strerror.capitalize().rstrip(".")}.'
         raise SkimmingError(Messages.CONNECTION_ERROR.format(error_code), details) from exc
 
     if not contents:
