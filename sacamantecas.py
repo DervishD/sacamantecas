@@ -30,8 +30,10 @@ from openpyxl.cell.cell import TYPE_STRING as CELLTYPE_STRING
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils.cell import get_column_letter
 
-from version import APP_NAME, DEVELOPMENT_MODE, SEMVER
+from version import DEVELOPMENT_MODE, SEMVER
 
+
+APP_NAME = Path(__file__).stem
 
 class Messages(StrEnum):
     """Messages."""

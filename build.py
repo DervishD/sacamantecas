@@ -8,7 +8,8 @@ from subprocess import CalledProcessError, run
 import sys
 from zipfile import ZIP_DEFLATED, ZipFile
 
-from version import APP_NAME, SEMVER
+from sacamantecas import APP_NAME, Config
+from version import SEMVER
 
 UTF8 = 'utf-8'
 ROOT_PATH = Path(__file__).parent
@@ -131,10 +132,9 @@ def build_package():
     """Build distributable package."""
     progress(f'Building distributable package {PACKAGE_PATH}.')
 
-    inifile = APP_PATH.with_suffix('.ini')
     with ZipFile(PACKAGE_PATH, 'w', compression=ZIP_DEFLATED, compresslevel=9) as bundle:
         bundle.write(FROZEN_EXE_PATH, FROZEN_EXE_PATH.name)
-        bundle.write(inifile, inifile.name)
+        bundle.write(Config.INIFILE_PATH, Config.INIFILE_PATH.name)
 
 
 def main():

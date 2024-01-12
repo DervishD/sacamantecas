@@ -1,7 +1,6 @@
-"""Define sacamantecas identity and version, according to Semantic Versioning 2.0 (https://semver.org/)"""
+"""Define sacamantecas version, according to Semantic Versioning 2.0 (https://semver.org/)"""
 import sys
 
-APP_NAME = 'sacamantecas'  # pylint: disable=unused-variable
 
 V_MAJOR = '5'
 V_MINOR = '0'
