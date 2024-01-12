@@ -56,7 +56,7 @@ def test_url_redirection(delay, url, extra, expected):  # pylint: disable=unused
 @pytest.mark.parametrize('contents, expected', [
     ('<meta http-equiv="content-type" charset="{}">', 'cp1252'),
     ('<meta charset="{}">', 'cp850'),
-    ('{}', Config.FALLBACK_CHARSET)
+    ('{}', Config.FALLBACK_HTML_CHARSET)
 ])
 def test_charset_detection(contents, expected):  # pylint: disable=unused-variable
     """Test different ways of detecting the contents charset."""
@@ -67,6 +67,7 @@ def test_charset_detection(contents, expected):  # pylint: disable=unused-variab
 
 def test_url_retrieval():  # pylint: disable=unused-variable
     """Test full URL retrieval against a live server returning a UTF-8 encoded body."""
-    contents = retrieve_url('https://httpbin.org/encoding/utf8')
+    contents, charset = retrieve_url('https://httpbin.org/encoding/utf8')
+    contents = contents.decode(charset)
     assert 'STARGΛ̊TE SG-1, a = v̇ = r̈, a⃑ ⊥ b⃑' in contents
     assert '((V⍳V)=⍳⍴V)/V←,V    ⌷←⍳→⍴∆∇⊃‾⍎⍕⌈' in contents

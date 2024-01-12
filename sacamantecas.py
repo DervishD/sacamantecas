@@ -187,7 +187,7 @@ class Config():  # pylint: disable=too-few-public-methods
 
     ACCEPTED_URL_SCHEMES = ('https', 'http', 'file')
 
-    FALLBACK_CHARSET = 'ISO-8859-1'
+    FALLBACK_HTML_CHARSET = 'ISO-8859-1'
 
     PROFILE_URL_PATTERN_KEY = 'url'
 
@@ -1126,7 +1126,7 @@ def saca_las_mantecas(url, parser):
     Return obtained metadata as a dictionary.
     """
     try:
-        contents = retrieve_url(url)
+        contents, encoding = retrieve_url(url)
     except URLError as exc:
         # Depending on the particular error which happened, the reason attribute
         # of the URLError exception can be a simple error message, an instance
@@ -1169,7 +1169,7 @@ def saca_las_mantecas(url, parser):
     if not contents:
         raise SkimmingError(Messages.NO_CONTENTS_ERROR)
 
-    parser.feed(contents)
+    parser.feed(contents.decode(encoding))
     parser.close()
     if metadata := parser.get_metadata():
         return metadata
@@ -1183,10 +1183,9 @@ def retrieve_url(url):
     First resolve any meta http-equiv="Refresh" redirection for url and then get
     the contents as a byte string.
 
-    The contents are decoded using the detected charset.
+    Then, detect the contents encoding (in HTML jargon, the charset).
 
-    Return the decoded contents as a string.
-
+    Return a (contents, charset) tuple.
     """
     if not is_accepted_url(url):
         raise URLError(Messages.UNKNOWN_URL_TYPE.format(url))
@@ -1211,7 +1210,7 @@ def retrieve_url(url):
         logging.debug(Debug.CHARSET_IN_HEADERS)
     logging.debug(Debug.CONTENTS_ENCODING.format(charset))
 
-    return contents.decode(charset)
+    return contents, charset
 
 
 def resolve_file_url(url):
@@ -1261,7 +1260,7 @@ def detect_html_charset(contents):
     based on the encoding most frequently used by the web pages this application
     will generally process.
     """
-    charset = Config.FALLBACK_CHARSET
+    charset = Config.FALLBACK_HTML_CHARSET
     if match := re.search(Config.META_HTTP_EQUIV_CHARSET_RE, contents, re.I):
         # Next best thing, from the meta http-equiv="content-type".
         logging.debug(Debug.CHARSET_FROM_HTTP_EQUIV)
