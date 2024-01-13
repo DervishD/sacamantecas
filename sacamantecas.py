@@ -8,8 +8,8 @@ if sys.platform != 'win32':
 # pylint: disable=wrong-import-position
 import atexit
 import configparser
-from ctypes import byref, c_uint, create_unicode_buffer, WinDLL, wintypes
-from enum import IntEnum, StrEnum
+from ctypes import byref, c_uint, create_unicode_buffer, windll, wintypes
+from enum import auto, IntEnum, StrEnum
 import errno
 from http.client import HTTPException
 from html.parser import HTMLParser
@@ -565,22 +565,29 @@ def generate_sink_filename(base_filename):
     return base_filename.with_stem(base_filename.stem + Config.SINKFILE_STEM)
 
 
+class WFKStatuses(IntEnum):
+    """Return statuses for wait_for_keypress()."""
+    IMPORTED = auto()
+    NO_CONSOLE_ATTACHED = auto()
+    NO_CONSOLE_TITLE = auto()
+    NO_TRANSIENT_FROZEN = auto()
+    NO_TRANSIENT_PYTHON = auto()
+    WAIT_FOR_KEYPRESS = auto()
+
 def wait_for_keypress():
     """Wait for a keypress to continue if sys.stdout is a real console AND the console is transient."""
     # First of all, if this script is being imported rather than run,
     # then the application must NOT pause. Absolutely NOT.
     if __name__ != '__main__':
-        return
-
-    kernel32 = WinDLL('kernel32')
+        return WFKStatuses.IMPORTED
 
     # If no console is attached, then the application must NOT pause.
     #
     # Since sys.stdout.isatty() returns True under Windows when sys.stdout
     # is redirected to NUL, another (more complex) method, is needed here.
     # The test below has been adapted from https://stackoverflow.com/a/33168697
-    if not kernel32.GetConsoleMode(get_osfhandle(sys.stdout.fileno()), byref(c_uint())):
-        return
+    if not windll.kernel32.GetConsoleMode(get_osfhandle(sys.stdout.fileno()), byref(c_uint())):
+        return WFKStatuses.NO_CONSOLE_ATTACHED
 
     # If there is a console attached, the application must pause ONLY if that
     # console will automatically close when the application finishes, hiding
@@ -594,8 +601,8 @@ def wait_for_keypress():
     # In both cases, the console title has to be obtained.
     buffer_size = wintypes.MAX_PATH + 1
     console_title = create_unicode_buffer(buffer_size)
-    if not kernel32.GetConsoleTitleW(console_title, buffer_size):
-        return
+    if not windll.kernel32.GetConsoleTitleW(console_title, buffer_size):
+        return WFKStatuses.NO_CONSOLE_TITLE
     console_title = console_title.value
 
     # If the console is not transient, return, do not pause.
@@ -608,12 +615,13 @@ def wait_for_keypress():
     # transient console.
     if getattr(sys, 'frozen', False):
         if console_title != sys.executable:
-            return
+            return WFKStatuses.NO_TRANSIENT_FROZEN
     elif APP_NAME in console_title:
-        return
+        return WFKStatuses.NO_TRANSIENT_PYTHON
 
     print(Messages.PRESS_ANY_KEY, end=EMPTY_STRING, flush=True)
     getch()
+    return WFKStatuses.WAIT_FOR_KEYPRESS
 
 
 def excepthook(exc_type, exc_value, exc_traceback):
