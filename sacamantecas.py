@@ -695,7 +695,6 @@ def setup_logging(log_filename, debug_filename):
             preamble, message = message.partition(record.message)[:2]
             return '\n'.join([f'{preamble}{record.indent}{line.strip()}'.rstrip() for line in message.splitlines()])
 
-
     logging_configuration = {
         'version': 1,
         'disable_existing_loggers': True,
