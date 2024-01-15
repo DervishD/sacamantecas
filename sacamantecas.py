@@ -8,7 +8,8 @@ if sys.platform != 'win32':
 # pylint: disable=wrong-import-position
 import atexit
 import configparser
-from ctypes import byref, c_uint, create_unicode_buffer, windll, wintypes
+from ctypes import byref, c_uint, create_unicode_buffer, windll
+from ctypes.wintypes import MAX_PATH as MAX_PATH_LEN
 from enum import auto, IntEnum, StrEnum
 import errno
 from http.client import HTTPException
@@ -599,7 +600,7 @@ def wait_for_keypress():
     #
     # There are TWO main scenarios: a frozen executable and a .py file.
     # In both cases, the console title has to be obtained.
-    buffer_size = wintypes.MAX_PATH + 1
+    buffer_size = MAX_PATH_LEN + 1
     console_title = create_unicode_buffer(buffer_size)
     if not windll.kernel32.GetConsoleTitleW(console_title, buffer_size):
         return WFKStatuses.NO_CONSOLE_TITLE
