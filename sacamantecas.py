@@ -534,7 +534,7 @@ def error(message, details=EMPTY_STRING):
     details = str(details)
     logging.indent(0)
     logging.error(Messages.ERROR_HEADER)
-    logging.indent(len(Messages.ERROR_HEADER.split(' ')[0]))
+    logging.indent(len(Messages.ERROR_HEADER.lstrip().split(' ', maxsplit=1)[0]) + 1)
     logging.error(message)
     if details.strip():
         logging.error(Messages.ERROR_DETAILS_HEADING)
