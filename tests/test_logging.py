@@ -5,12 +5,15 @@ import logging
 
 import pytest
 
-from sacamantecas import error, Messages, setup_logging, warning
+from sacamantecas import Config, error, Messages, setup_logging, warning
 
 
 ERROR_HEADER = Messages.ERROR_HEADER
 ERROR_DETAILS_HEADING = Messages.ERROR_DETAILS_HEADING
+ERROR_DETAILS_TAIL = Messages.ERROR_DETAILS_TAIL
+PAD = ' ' * Config.ERROR_PAYLOAD_INDENT
 WARNING_HEADER = Messages.WARNING_HEADER
+LOGGING_LEVELNAME_SEPARATOR = Config.LOGGING_LEVELNAME_SEPARATOR
 
 
 def test_logging_files_creation(log_paths):  # pylint: disable=unused-variable
@@ -34,43 +37,42 @@ Expected = namedtuple('Expected', ['log', 'debug', 'out','err'])
 @pytest.mark.parametrize('logfunc, expected', [
     (logging.debug, Expected(
         '',
-        f'DEBUG   | {TEST_MESSAGE}',
+        f'DEBUG   {LOGGING_LEVELNAME_SEPARATOR}{TEST_MESSAGE}',
         '',
         ''
     )),
     (logging.info, Expected(
         TEST_MESSAGE,
-        f'INFO    | {TEST_MESSAGE}',
+        f'INFO    {LOGGING_LEVELNAME_SEPARATOR}{TEST_MESSAGE}',
         f'{TEST_MESSAGE}\n',
         ''
     )),
     (logging.warning, Expected(
         TEST_MESSAGE,
-        f'WARNING | {TEST_MESSAGE}',
+        f'WARNING {LOGGING_LEVELNAME_SEPARATOR}{TEST_MESSAGE}',
         '',
         f'{TEST_MESSAGE}\n'
     )),
     (logging.error, Expected(
         TEST_MESSAGE,
-        f'ERROR   | {TEST_MESSAGE}',
+        f'ERROR   {LOGGING_LEVELNAME_SEPARATOR}{TEST_MESSAGE}',
         '',
         f'{TEST_MESSAGE}\n'
     )),
     (warning, Expected(
         f'{WARNING_HEADER}{TEST_MESSAGE[0].lower()}{TEST_MESSAGE[1:]}',
-        f'WARNING | {WARNING_HEADER}{TEST_MESSAGE[0].lower()}{TEST_MESSAGE[1:]}',
+        f'WARNING {LOGGING_LEVELNAME_SEPARATOR}{WARNING_HEADER}{TEST_MESSAGE[0].lower()}{TEST_MESSAGE[1:]}',
         '',
         f'{WARNING_HEADER}{TEST_MESSAGE[0].lower()}{TEST_MESSAGE[1:]}\n'
     )),
     (error, Expected(
-        f'{ERROR_HEADER}    {TEST_MESSAGE}',
+        '\n'.join((ERROR_HEADER, f'{PAD}{TEST_MESSAGE}')),
         '\n'.join((
-            'ERROR   |',
-            f'ERROR   | {ERROR_HEADER.strip()}',
-            '\n'.join(f'ERROR   |{"     " if line else ""}{line}' for line in TEST_MESSAGE.splitlines())
+            '\n'.join(f'ERROR   {LOGGING_LEVELNAME_SEPARATOR}{line}' for line in ERROR_HEADER.split('\n')),
+            '\n'.join(f'ERROR   {LOGGING_LEVELNAME_SEPARATOR}{PAD}{line}' for line in TEST_MESSAGE.split('\n'))
         )),
         '',
-        f'{ERROR_HEADER}    {TEST_MESSAGE}\n'
+        '\n'.join((ERROR_HEADER, f'{PAD}{TEST_MESSAGE}', '')),
     ))
 ])
 def test_logging_functions(log_paths, capsys, logfunc, expected):  # pylint: disable=unused-variable
@@ -97,22 +99,54 @@ def test_logging_functions(log_paths, capsys, logfunc, expected):  # pylint: dis
 def test_error_details(log_paths, capsys):  # pylint: disable=unused-variable
     """Test handling of details by the error() function."""
     details = 'Additional details in multiple lines.'.replace(' ', '\n')
-    expected = f'{ERROR_HEADER}    {TEST_MESSAGE}\n\n    {ERROR_DETAILS_HEADING.lstrip()}\n'
-    expected += '\n'.join(f'    | {line}' for line in details.splitlines()) + '\n    ·'
     setup_logging(log_paths.log, log_paths.debug)
     error(TEST_MESSAGE, details)
     logging.shutdown()
 
-    log_file_contents = log_paths.log.read_text(encoding='utf-8').splitlines()
+    expected = '\n'.join((
+        ERROR_HEADER,
+        '\n'.join(f'{PAD}{line}' for line in (
+            TEST_MESSAGE.split('\n') +
+            ERROR_DETAILS_HEADING.split('\n') +
+            list(f'{LOGGING_LEVELNAME_SEPARATOR}{line}' for line in details.split('\n')) +
+            ERROR_DETAILS_TAIL.split('\n')
+        )),
+        ''
+    ))
+
+    log_file_contents = log_paths.log.read_text(encoding='utf-8').split('\n')
     log_file_contents = [' '.join(line.split(' ')[1:]) for line in log_file_contents]
     log_file_contents = '\n'.join(log_file_contents)
     assert log_file_contents == expected
 
-    debug_file_contents = log_paths.debug.read_text(encoding='utf-8').splitlines()
-    debug_file_contents = [' '.join(line.split(' ')[1:]) for line in debug_file_contents]
+    debug_file_contents = log_paths.debug.read_text(encoding='utf-8').split('\n')
+    debug_file_contents = [line.split(LOGGING_LEVELNAME_SEPARATOR, maxsplit=1)[1:] for line in debug_file_contents]
+    debug_file_contents = [''.join(line) for line in debug_file_contents]
     debug_file_contents = '\n'.join(debug_file_contents)
-    assert debug_file_contents == '\n'.join(f'ERROR   |{" " if line else ""}{line}' for line in expected.splitlines())
+    assert debug_file_contents == expected
 
     captured_output = capsys.readouterr()
     assert not captured_output.out
-    assert captured_output.err == f'{expected}\n'
+    assert captured_output.err == expected
+
+
+@pytest.mark.parametrize('message', [
+    'No whitespace.',
+    '   Leading whitespace.',
+    'Trailing whitespace.   ',
+    '   Leading and trailing whitespace.   ',
+    '\nLeading newline.',
+    'Trailing newline.\n',
+    '\bLeading and trailing newline.\n',
+])
+def test_whitespace_honoring(log_paths, capsys, message):  # pylint: disable=unused-variable
+    "Test whether leading and trailing whitespace are honored."
+    terminator = '<TERMINATOR>'
+    setup_logging(log_paths.log, log_paths.debug)
+    logging.StreamHandler.terminator, saved_terminator = terminator, logging.StreamHandler.terminator
+    logging.info(message)
+    logging.StreamHandler.terminator = saved_terminator
+    logging.shutdown()
+
+    captured_output = capsys.readouterr().out
+    assert captured_output == message + terminator

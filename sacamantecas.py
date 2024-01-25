@@ -51,7 +51,7 @@ class Messages(StrEnum):
 
         Arrastre y suelte un fichero de entrada sobre el icono de la aplicación,
         o bien proporcione los nombres de las fuentes de entrada como argumentos.
-    ''').lstrip()
+    ''').strip()
 
     DEBUGGING_INIT = 'Registro de depuración iniciado.'
     APP_BANNER = f'{APP_NAME} versión {SEMVER}'
@@ -61,7 +61,8 @@ class Messages(StrEnum):
     ERROR_HEADER = f'\n*** Error en {APP_NAME}.\n'
     WARNING_HEADER = '* Aviso: '
     ERROR_DETAILS_HEADING = '\nInformación adicional sobre el error:'
-    ERROR_DETAILS_TAIL_CHAR = '·'
+    ERROR_DETAILS_PREAMBLE = '| '
+    ERROR_DETAILS_TAIL = '·'
 
     UNEXPECTED_OSERROR = 'Error inesperado del sistema operativo.'
     OSERROR_DETAILS = 'type = {}\nerrno = {}\nwinerror = {}\nstrerror = {}\nfilename = {}\nfilename2 = {}'
@@ -181,7 +182,10 @@ ASCII = 'ascii'
 
 class Config():  # pylint: disable=too-few-public-methods
     """Application configuration values."""
+    ERROR_PAYLOAD_INDENT = len(Messages.ERROR_HEADER.lstrip().split(' ', maxsplit=1)[0]) + 1
+
     TIMESTAMP_FORMAT = '%Y%m%d_%H%M%S'
+
     USER_AGENT = ' '.join(dedent(f'''
         {APP_NAME}/{SEMVER}
         +https://github.com/DervishD/sacamantecas
@@ -208,8 +212,9 @@ class Config():  # pylint: disable=too-few-public-methods
 
     LOGGING_INDENTCHAR = ' '
     LOGGING_FORMAT_STYLE = '{'
+    LOGGING_LEVELNAME_SEPARATOR = '| '
     LOGGING_FALLBACK_FORMAT = '{message}'
-    LOGGING_DEBUGFILE_FORMAT = '{asctime}.{msecs:04.0f} {levelname}| {message}'
+    LOGGING_DEBUGFILE_FORMAT = f'{{asctime}}.{{msecs:04.0f}} {{levelname}}{LOGGING_LEVELNAME_SEPARATOR}{{message}}'
     LOGGING_LOGFILE_FORMAT = '{asctime} {message}'
     LOGGING_CONSOLE_FORMAT = '{message}'
 
@@ -534,12 +539,12 @@ def error(message, details=EMPTY_STRING):
     details = str(details)
     logging.indent(0)
     logging.error(Messages.ERROR_HEADER)
-    logging.indent(len(Messages.ERROR_HEADER.lstrip().split(' ', maxsplit=1)[0]) + 1)
+    logging.indent(Config.ERROR_PAYLOAD_INDENT)
     logging.error(message)
     if details.strip():
         logging.error(Messages.ERROR_DETAILS_HEADING)
-        logging.error('\n'.join(f'| {line}' for line in details.splitlines()))
-        logging.error(Messages.ERROR_DETAILS_TAIL_CHAR)
+        logging.error('\n'.join(f'{Messages.ERROR_DETAILS_PREAMBLE}{line}' for line in details.split('\n')))
+        logging.error(Messages.ERROR_DETAILS_TAIL)
     logging.indent(0)
 
 
@@ -693,7 +698,7 @@ def setup_logging(log_filename, debug_filename):
             """
             message = super().format(record)
             preamble, message = message.partition(record.message)[:2]
-            return '\n'.join([f'{preamble}{record.indent}{line.strip()}'.rstrip() for line in message.splitlines()])
+            return '\n'.join(f'{preamble}{record.indent}{line}' for line in message.split('\n'))
 
     logging_configuration = {
         'version': 1,
