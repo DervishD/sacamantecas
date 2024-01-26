@@ -2,7 +2,7 @@
 """Test suite for non-refactored code strings."""
 from tokenize import generate_tokens, STRING
 
-from sacamantecas import APP_NAME, ASCII, BaseParser, Config, Debug, EMPTY_STRING, Messages, ROOT_PATH, UTF8
+from sacamantecas import APP_NAME, ASCII, BaseParser, Config, Debug, EMPTY_STRING, Messages, UTF8
 
 
 ALLOWED_STRINGS = (
@@ -44,7 +44,7 @@ REFACTORED_STRINGS = (*ALLOWED_STRINGS, *PARSER_STRINGS, *CONFIG_STRINGS, *MESSA
 def test_strings():  # pylint: disable=unused-variable
     """Test for non-refactored strings."""
     unrefactored_strings = []
-    with open(ROOT_PATH / f'{APP_NAME}.py', 'rt', encoding=UTF8) as code:
+    with open(Config.ROOT_PATH / f'{APP_NAME}.py', 'rt', encoding=UTF8) as code:
         for tokeninfo in generate_tokens(code.readline):
             if tokeninfo.type != STRING:
                 continue

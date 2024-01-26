@@ -163,17 +163,6 @@ class ExitCodes(IntEnum):
     KEYBOARD_INTERRUPT = 127
 
 
-try:
-    if getattr(sys, 'frozen', False):
-        ROOT_PATH = sys.executable
-    else:
-        ROOT_PATH = __file__
-except NameError:
-    print(Messages.INITIALIZATION_ERROR, file=sys.stderr)
-    sys.exit(ExitCodes.ERROR)
-ROOT_PATH = Path(ROOT_PATH).resolve().parent
-
-
 # Some constants used to prevent mistyping.
 EMPTY_STRING = ''
 UTF8 = 'utf-8'
@@ -205,6 +194,8 @@ class Config():  # pylint: disable=too-few-public-methods
 
     TIMESTAMP_STEM = time.strftime(f'_{TIMESTAMP_FORMAT}')
     SINKFILE_STEM = '_out'
+
+    ROOT_PATH = Path(sys.executable if getattr(sys, 'frozen', False) else __file__).resolve().parent
 
     LOGFILE_PATH = ROOT_PATH / f'{APP_NAME}_log{"" if DEVELOPMENT_MODE else TIMESTAMP_STEM}{TEXTFILE_SUFFIX}'
     DEBUGFILE_PATH = ROOT_PATH / f'{APP_NAME}_debug{"" if DEVELOPMENT_MODE else TIMESTAMP_STEM}{TEXTFILE_SUFFIX}'
