@@ -102,8 +102,8 @@ def test_medatata_storage(caplog, k, v, expected):  # pylint: disable=unused-var
     parser.store_metadata()
 
     assert caplog.records[0].message == expected
-    assert parser.current_k == Config.EMPTY_STRING
-    assert parser.current_v == Config.EMPTY_STRING
+    assert parser.current_k == parser.DEFAULT
+    assert parser.current_v == parser.DEFAULT
 
 
 SINGLE_K = 'single_key'

@@ -18,7 +18,7 @@ def test_no_console_attached(monkeypatch):  # pylint: disable=unused-variable
 
 
 @pytest.mark.parametrize('title, frozen, result', [
-    (Config.EMPTY_STRING, False, WFKStatuses.NO_CONSOLE_TITLE),
+    ('', False, WFKStatuses.NO_CONSOLE_TITLE),
     (Constants.APP_NAME, True, WFKStatuses.NO_TRANSIENT_FROZEN),
     (Constants.APP_NAME, False, WFKStatuses.NO_TRANSIENT_PYTHON),
     (Constants.APP_NAME.upper(), False, WFKStatuses.WAIT_FOR_KEYPRESS)

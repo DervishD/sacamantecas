@@ -42,7 +42,6 @@ class Constants():  # pylint: disable=too-few-public-methods
     """Application configuration values."""
     APP_NAME = Path(__file__).stem
 
-    EMPTY_STRING = ''
     UTF8 = 'utf-8'
     ASCII = 'ascii'
 
@@ -250,7 +249,7 @@ sys.stderr.reconfigure(encoding=Constants.UTF8)
 class BaseApplicationError(Exception):
     """Base class for all custom application exceptions."""
     # cSpell:ignore vararg
-    def __init__ (self, message, details=Config.EMPTY_STRING, *args, **kwargs):  # pylint: disable=keyword-arg-before-vararg
+    def __init__ (self, message, details=None, *args, **kwargs):  # pylint: disable=keyword-arg-before-vararg
 
         self.details = details
         super().__init__(message, *args, **kwargs)
@@ -282,6 +281,7 @@ class Profile():  # pylint: disable=too-few-public-methods
 class BaseParser(HTMLParser):
     """Base class for catalogue parsers."""
     PARAMETERS = set()
+    DEFAULT = ''
     EMPTY_KEY_PLACEHOLDER = '[vacío]'
     MULTIDATA_SEPARATOR = ' / '
     MULTIVALUE_SEPARATOR = ' === '
@@ -301,7 +301,7 @@ class BaseParser(HTMLParser):
         """Reset parser state. Called implicitly from __init__()."""
         super().reset()
         self.within_k = self.within_v = False
-        self.current_k = self.current_v = self.last_k = Config.EMPTY_STRING
+        self.current_k = self.current_v = self.last_k = self.DEFAULT
         self.retrieved_metadata = {}
 
     def handle_starttag(self, tag, attrs):
@@ -323,7 +323,7 @@ class BaseParser(HTMLParser):
             return
         if self.within_v:
             logging.debug(Debug.METADATA_VALUE_FOUND.format(data))
-            self.current_v += f'{self.MULTIDATA_SEPARATOR if self.current_v else Config.EMPTY_STRING}{data}'
+            self.current_v += f'{self.MULTIDATA_SEPARATOR if self.current_v else ''}{data}'
             return
 
     def configure(self, config):
@@ -354,7 +354,7 @@ class BaseParser(HTMLParser):
             if self.current_v not in self.retrieved_metadata[self.current_k]:
                 self.retrieved_metadata[self.current_k].append(self.current_v)
             logging.debug(Debug.METADATA_OK.format(self.current_k, self.current_v))
-        self.current_k = self.current_v = Config.EMPTY_STRING
+        self.current_k = self.current_v = self.DEFAULT
 
     def get_metadata(self):
         """Get retrieved metadata so far."""
@@ -388,7 +388,7 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
     def reset(self):
         """Reset parser state. Called implicitly from __init__()."""
         super().reset()
-        self.current_k_tag = self.current_v_tag = Config.EMPTY_STRING
+        self.current_k_tag = self.current_v_tag = self.DEFAULT
 
     def handle_starttag(self, tag, attrs):
         """Handle opening tags."""
@@ -397,7 +397,7 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
             if attr[0] == self.CLASS_ATTR and (match := self.config[self.K_CLASS].search(attr[1])):
                 logging.debug(Debug.METADATA_KEY_MARKER_FOUND.format(match.group(0)))
                 self.within_k = True
-                self.current_k = Config.EMPTY_STRING
+                self.current_k = self.DEFAULT
                 self.current_k_tag = tag
                 if self.within_v:
                     # If still processing a value, notify about the nesting error
@@ -405,13 +405,13 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
                     # key had been found.
                     logging.debug(Debug.PARSER_NESTING_ERROR_K_IN_V)
                     self.within_v = False
-                    self.current_v = Config.EMPTY_STRING
+                    self.current_v = self.DEFAULT
                     self.current_v_tag = None
                 break
             if attr[0] == self.CLASS_ATTR and (match := self.config[self.V_CLASS].search(attr[1])):
                 logging.debug(Debug.METADATA_VALUE_MARKER_FOUND.format(match.group(0)))
                 self.within_v = True
-                self.current_v = Config.EMPTY_STRING
+                self.current_v = self.DEFAULT
                 self.current_v_tag = tag
                 if self.within_k:
                     # If still processing a key, the nesting error can still be
@@ -493,7 +493,7 @@ class BaratzParser(BaseParser):   # pylint: disable=unused-variable
                     # key had been found.
                     logging.debug(Debug.PARSER_NESTING_ERROR_K_IN_V)
                     self.within_v = False
-                    self.current_v = Config.EMPTY_STRING
+                    self.current_v = self.DEFAULT
                 return
             if tag == self.V_TAG:
                 logging.debug(Debug.METADATA_VALUE_MARKER_FOUND.format(tag))
@@ -524,7 +524,7 @@ class BaratzParser(BaseParser):   # pylint: disable=unused-variable
             return
 
 
-def error(message, details=Config.EMPTY_STRING):
+def error(message, details=''):
     """Helper for preprocessing error messages."""
     message = str(message)
     details = str(details)
@@ -616,7 +616,7 @@ def wait_for_keypress():
     elif Constants.APP_NAME in console_title:
         return WFKStatuses.NO_TRANSIENT_PYTHON
 
-    print(Messages.PRESS_ANY_KEY, end=Config.EMPTY_STRING, flush=True)
+    print(Messages.PRESS_ANY_KEY, end='', flush=True)
     getch()
     return WFKStatuses.WAIT_FOR_KEYPRESS
 
@@ -627,27 +627,27 @@ def excepthook(exc_type, exc_value, exc_traceback):
         message = Messages.UNEXPECTED_OSERROR
         details = Messages.OSERROR_DETAILS.format(
             exc_type.__name__,
-            Config.EMPTY_STRING if exc_value.errno is None else errno.errorcode[exc_value.errno],
-            Config.EMPTY_STRING if exc_value.winerror is None else exc_value.winerror,
+            '' if exc_value.errno is None else errno.errorcode[exc_value.errno],
+            '' if exc_value.winerror is None else exc_value.winerror,
             exc_value.strerror,
-            Config.EMPTY_STRING if exc_value.filename is None else exc_value.filename,
-            Config.EMPTY_STRING if exc_value.filename2 is None else exc_value.filename2,
+            '' if exc_value.filename is None else exc_value.filename,
+            '' if exc_value.filename2 is None else exc_value.filename2,
         )
     else:
         message = Messages.UNHANDLED_EXCEPTION
-        args = Config.EMPTY_STRING
+        args = ''
         for arg in exc_value.args:
             args += Messages.EXCEPTION_DETAILS_ARG.format(type(arg).__name__, arg)
         details = Messages.EXCEPTION_DETAILS.format(exc_type.__name__, str(exc_value), args)
     current_filename = None
-    traceback = Config.EMPTY_STRING
+    traceback = ''
     for frame in tb.extract_tb(exc_traceback):
         if current_filename != frame.filename:
             traceback += Messages.TRACEBACK_FRAME_HEADER.format(frame.filename)
             current_filename = frame.filename
         frame.name = Constants.APP_NAME if frame.name == Messages.TRACEBACK_TOPLEVEL_FRAME else frame.name
         traceback += Messages.TRACEBACK_FRAME_LINE.format(frame.lineno, frame.name, frame.line)
-    details += Messages.TRACEBACK_HEADER.format(traceback) if traceback else Config.EMPTY_STRING
+    details += Messages.TRACEBACK_HEADER.format(traceback) if traceback else ''
     error(message, details)
 
 
@@ -858,7 +858,8 @@ def load_profiles(filename):
                 details = Messages.PROFILES_WRONG_SYNTAX_DETAILS.format(
                     section, exc.msg,
                     key, Messages.PROFILES_WRONG_SYNTAX_DETAILS_SEPARATOR, exc.pattern,
-                    Config.EMPTY_STRING, exc.pos + len(key) + len(Messages.PROFILES_WRONG_SYNTAX_DETAILS_SEPARATOR)
+                    '', exc.pos + len(key) + len(Messages.PROFILES_WRONG_SYNTAX_DETAILS_SEPARATOR)
+                    # The empty string above is needed as a placeholder for format().
                 )
                 raise ProfilesError(Messages.PROFILES_WRONG_SYNTAX.format('BadRegex'), details) from exc
         url_pattern = parser_config.pop(Constants.PROFILE_URL_PATTERN_KEY, None)
@@ -1149,7 +1150,7 @@ def saca_las_mantecas(url, parser):
             error_reason = exc.reason.lower()
             details = Messages.HTTP_PROTOCOL_URLERROR
         else:
-            error_code = Config.EMPTY_STRING
+            error_code = ''
             error_reason = exc.reason
             details = Messages.GENERIC_URLERROR
         error_reason = (error_reason[0].lower() + error_reason[1:]).rstrip('.')
