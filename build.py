@@ -8,17 +8,17 @@ from subprocess import CalledProcessError, run
 import sys
 from zipfile import ZIP_DEFLATED, ZipFile
 
-from sacamantecas import APP_NAME, Config
+from sacamantecas import Constants
 from version import SEMVER
 
 UTF8 = 'utf-8'
 ROOT_PATH = Path(__file__).parent
-APP_PATH = Path(__file__).with_stem(APP_NAME)
+APP_PATH = Path(__file__).with_stem(Constants.APP_NAME)
 VENV_PATH = ROOT_PATH / '.venv'
 BUILD_PATH = ROOT_PATH / 'build'
 PYINSTALLER = VENV_PATH / 'Scripts' / 'pyinstaller.exe'
-FROZEN_EXE_PATH = (BUILD_PATH / APP_NAME).with_suffix('.exe')
-PACKAGE_PATH = ROOT_PATH / f'{APP_NAME}_v{SEMVER.split('+')[0]}.zip'
+FROZEN_EXE_PATH = (BUILD_PATH / Constants.APP_NAME).with_suffix('.exe')
+PACKAGE_PATH = ROOT_PATH / f'{Constants.APP_NAME}_v{SEMVER.split('+')[0]}.zip'
 
 
 # Reconfigure standard output streams so they use UTF-8 encoding, no matter
@@ -134,12 +134,12 @@ def build_package():
 
     with ZipFile(PACKAGE_PATH, 'w', compression=ZIP_DEFLATED, compresslevel=9) as bundle:
         bundle.write(FROZEN_EXE_PATH, FROZEN_EXE_PATH.name)
-        bundle.write(Config.INIFILE_PATH, Config.INIFILE_PATH.name)
+        bundle.write(Constants.INIFILE_PATH, Constants.INIFILE_PATH.name)
 
 
 def main():
     """."""
-    print(f'Building {APP_NAME} {SEMVER}')
+    print(f'Building {Constants.APP_NAME} {SEMVER}')
 
     if not is_venv_ready():
         return 1

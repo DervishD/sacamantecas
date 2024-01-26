@@ -2,7 +2,7 @@
 """Test suite for main() function."""
 import pytest
 
-from sacamantecas import APP_NAME, EMPTY_STRING, wait_for_keypress, WFKStatuses
+from sacamantecas import Constants, wait_for_keypress, WFKStatuses
 
 
 def test_imported():  # pylint: disable=unused-variable
@@ -18,10 +18,10 @@ def test_no_console_attached(monkeypatch):  # pylint: disable=unused-variable
 
 
 @pytest.mark.parametrize('title, frozen, result', [
-    (EMPTY_STRING, False, WFKStatuses.NO_CONSOLE_TITLE),
-    (APP_NAME, True, WFKStatuses.NO_TRANSIENT_FROZEN),
-    (APP_NAME, False, WFKStatuses.NO_TRANSIENT_PYTHON),
-    (APP_NAME.upper(), False, WFKStatuses.WAIT_FOR_KEYPRESS)
+    (Config.EMPTY_STRING, False, WFKStatuses.NO_CONSOLE_TITLE),
+    (Constants.APP_NAME, True, WFKStatuses.NO_TRANSIENT_FROZEN),
+    (Constants.APP_NAME, False, WFKStatuses.NO_TRANSIENT_PYTHON),
+    (Constants.APP_NAME.upper(), False, WFKStatuses.WAIT_FOR_KEYPRESS)
 ])
 def test_wait_for_keypress(monkeypatch, title, frozen, result):  # pylint: disable=unused-variable
     """Test wait_for_keypress() general scenarios, with attached console."""

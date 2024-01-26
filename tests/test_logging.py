@@ -5,15 +5,15 @@ import logging
 
 import pytest
 
-from sacamantecas import Config, error, Messages, setup_logging, warning
+from sacamantecas import Constants, error, Messages, setup_logging, warning
 
 
 ERROR_HEADER = Messages.ERROR_HEADER
 ERROR_DETAILS_HEADING = Messages.ERROR_DETAILS_HEADING
 ERROR_DETAILS_TAIL = Messages.ERROR_DETAILS_TAIL
-PAD = ' ' * Config.ERROR_PAYLOAD_INDENT
+PAD = ' ' * Constants.ERROR_PAYLOAD_INDENT
 WARNING_HEADER = Messages.WARNING_HEADER
-LOGGING_LEVELNAME_SEPARATOR = Config.LOGGING_LEVELNAME_SEPARATOR
+LOGGING_LEVELNAME_SEPARATOR = Constants.LOGGING_LEVELNAME_SEPARATOR
 
 
 def test_logging_files_creation(log_paths):  # pylint: disable=unused-variable

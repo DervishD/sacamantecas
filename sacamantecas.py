@@ -38,7 +38,74 @@ from openpyxl.utils.cell import get_column_letter
 from version import DEVELOPMENT_MODE, SEMVER
 
 
-APP_NAME = Path(__file__).stem
+class Constants():  # pylint: disable=too-few-public-methods
+    """Application configuration values."""
+    APP_NAME = Path(__file__).stem
+
+    EMPTY_STRING = ''
+    UTF8 = 'utf-8'
+    ASCII = 'ascii'
+
+    ERROR_MARKER = '*** '
+    ERROR_PAYLOAD_INDENT = len(ERROR_MARKER)
+
+    TIMESTAMP_FORMAT = '%Y%m%d_%H%M%S'
+
+    USER_AGENT = ' '.join(dedent(f'''
+        {APP_NAME}/{SEMVER}
+        +https://github.com/DervishD/sacamantecas
+        (Windows {platform.version()};
+        {platform.architecture()[0]};
+        {platform.machine()})
+    ''').splitlines()).lstrip()
+
+    ACCEPTED_URL_SCHEMES = ('https', 'http', 'file')
+
+    FALLBACK_HTML_CHARSET = 'ISO-8859-1'
+
+    PROFILE_URL_PATTERN_KEY = 'url'
+
+    TEXTFILE_SUFFIX = '.txt'
+    SPREADSHEET_SUFFIX = '.xlsx'
+
+    TIMESTAMP_STEM = time.strftime(f'_{TIMESTAMP_FORMAT}')
+    SINKFILE_STEM = '_out'
+
+    ROOT_PATH = Path(sys.executable if getattr(sys, 'frozen', False) else __file__).resolve().parent
+
+    LOGFILE_PATH = ROOT_PATH / f'{APP_NAME}_log{"" if DEVELOPMENT_MODE else TIMESTAMP_STEM}{TEXTFILE_SUFFIX}'
+    DEBUGFILE_PATH = ROOT_PATH / f'{APP_NAME}_debug{"" if DEVELOPMENT_MODE else TIMESTAMP_STEM}{TEXTFILE_SUFFIX}'
+    INIFILE_PATH = ROOT_PATH / f'{APP_NAME}.ini'
+
+    LOGGING_INDENTCHAR = ' '
+    LOGGING_FORMAT_STYLE = '{'
+    LOGGING_LEVELNAME_SEPARATOR = '| '
+    LOGGING_FALLBACK_FORMAT = '{message}'
+    LOGGING_DEBUGFILE_FORMAT = f'{{asctime}}.{{msecs:04.0f}} {{levelname}}{LOGGING_LEVELNAME_SEPARATOR}{{message}}'
+    LOGGING_LOGFILE_FORMAT = '{asctime} {message}'
+    LOGGING_CONSOLE_FORMAT = '{message}'
+
+    TEXTSINK_METADATA_HEADER = '{}\n'
+    TEXTSINK_METADATA_INDENT = '  '
+    TEXTSINK_METADATA_SEPARATOR = ': '
+    TEXTSINK_METADATA_PAIR = f'{TEXTSINK_METADATA_INDENT}{{}}{TEXTSINK_METADATA_SEPARATOR}{{}}\n'
+    TEXTSINK_METADATA_FOOTER = '\n'
+
+    SPREADSHEET_METADATA_COLUMN_MARKER = '[sm] '
+    SPREADSHEET_METADATA_COLUMN_TITLE = f'{SPREADSHEET_METADATA_COLUMN_MARKER}{{}}'
+    SPREADSHEET_CELL_FONT = 'Calibri'
+    SPREADSHEET_CELL_COLOR = 'baddad'
+    SPREADSHEET_CELL_FILL = 'solid'
+
+    URL_UNSAFE_CHARS_RE = r'\W'
+    URL_UNSAFE_REPLACE_CHAR = '_'
+
+    FILE_URL_SAFE_CHARS = ':/'
+
+    META_HTTP_EQUIV_CHARSET_RE = rb'<meta http-equiv="content-type".*charset="([^"]+)"'
+    META_CHARSET_RE = rb'<meta charset="([^"]+)"'
+    META_REFRESH_RE = rb'<meta http-equiv="refresh" content="(?:[^;]+;\s+)?URL=([^"]+)"'
+
 
 class Messages(StrEnum):
     """Messages."""
@@ -54,11 +121,11 @@ class Messages(StrEnum):
     ''').strip()
 
     DEBUGGING_INIT = 'Registro de depuración iniciado.'
-    APP_BANNER = f'{APP_NAME} versión {SEMVER}'
+    APP_BANNER = f'{Constants.APP_NAME} versión {SEMVER}'
     PROCESS_DONE = '\nProceso finalizado.'
     DEBUGGING_DONE = 'Registro de depuración finalizado.'
 
-    ERROR_HEADER = f'\n*** Error en {APP_NAME}.\n'
+    ERROR_HEADER = f'\n{Constants.ERROR_MARKER}Error en {Constants.APP_NAME}.\n'
     WARNING_HEADER = '* Aviso: '
     ERROR_DETAILS_HEADING = '\nInformación adicional sobre el error:'
     ERROR_DETAILS_PREAMBLE = '| '
@@ -163,79 +230,11 @@ class ExitCodes(IntEnum):
     KEYBOARD_INTERRUPT = 127
 
 
-# Some constants used to prevent mistyping.
-EMPTY_STRING = ''
-UTF8 = 'utf-8'
-ASCII = 'ascii'
-
-
-class Config():  # pylint: disable=too-few-public-methods
-    """Application configuration values."""
-    ERROR_PAYLOAD_INDENT = len(Messages.ERROR_HEADER.lstrip().split(' ', maxsplit=1)[0]) + 1
-
-    TIMESTAMP_FORMAT = '%Y%m%d_%H%M%S'
-
-    USER_AGENT = ' '.join(dedent(f'''
-        {APP_NAME}/{SEMVER}
-        +https://github.com/DervishD/sacamantecas
-        (Windows {platform.version()};
-        {platform.architecture()[0]};
-        {platform.machine()})
-    ''').splitlines()).lstrip()
-
-    ACCEPTED_URL_SCHEMES = ('https', 'http', 'file')
-
-    FALLBACK_HTML_CHARSET = 'ISO-8859-1'
-
-    PROFILE_URL_PATTERN_KEY = 'url'
-
-    TEXTFILE_SUFFIX = '.txt'
-    SPREADSHEET_SUFFIX = '.xlsx'
-
-    TIMESTAMP_STEM = time.strftime(f'_{TIMESTAMP_FORMAT}')
-    SINKFILE_STEM = '_out'
-
-    ROOT_PATH = Path(sys.executable if getattr(sys, 'frozen', False) else __file__).resolve().parent
-
-    LOGFILE_PATH = ROOT_PATH / f'{APP_NAME}_log{"" if DEVELOPMENT_MODE else TIMESTAMP_STEM}{TEXTFILE_SUFFIX}'
-    DEBUGFILE_PATH = ROOT_PATH / f'{APP_NAME}_debug{"" if DEVELOPMENT_MODE else TIMESTAMP_STEM}{TEXTFILE_SUFFIX}'
-    INIFILE_PATH = ROOT_PATH / f'{APP_NAME}.ini'
-
-    LOGGING_INDENTCHAR = ' '
-    LOGGING_FORMAT_STYLE = '{'
-    LOGGING_LEVELNAME_SEPARATOR = '| '
-    LOGGING_FALLBACK_FORMAT = '{message}'
-    LOGGING_DEBUGFILE_FORMAT = f'{{asctime}}.{{msecs:04.0f}} {{levelname}}{LOGGING_LEVELNAME_SEPARATOR}{{message}}'
-    LOGGING_LOGFILE_FORMAT = '{asctime} {message}'
-    LOGGING_CONSOLE_FORMAT = '{message}'
-
-    TEXTSINK_METADATA_HEADER = '{}\n'
-    TEXTSINK_METADATA_INDENT = '  '
-    TEXTSINK_METADATA_SEPARATOR = ': '
-    TEXTSINK_METADATA_PAIR = f'{TEXTSINK_METADATA_INDENT}{{}}{TEXTSINK_METADATA_SEPARATOR}{{}}\n'
-    TEXTSINK_METADATA_FOOTER = '\n'
-
-    SPREADSHEET_METADATA_COLUMN_MARKER = '[sm] '
-    SPREADSHEET_METADATA_COLUMN_TITLE = f'{SPREADSHEET_METADATA_COLUMN_MARKER}{{}}'
-    SPREADSHEET_CELL_FONT = 'Calibri'
-    SPREADSHEET_CELL_COLOR = 'baddad'
-    SPREADSHEET_CELL_FILL = 'solid'
-
-    URL_UNSAFE_CHARS_RE = r'\W'
-    URL_UNSAFE_REPLACE_CHAR = '_'
-
-    FILE_URL_SAFE_CHARS = ':/'
-
-    META_HTTP_EQUIV_CHARSET_RE = rb'<meta http-equiv="content-type".*charset="([^"]+)"'
-    META_CHARSET_RE = rb'<meta charset="([^"]+)"'
-    META_REFRESH_RE = rb'<meta http-equiv="refresh" content="(?:[^;]+;\s+)?URL=([^"]+)"'
-
-
 # Needed for having VERY basic logging when the code is imported rather than run.
 logging.basicConfig(
     level=logging.NOTSET,
-    style=Config.LOGGING_FORMAT_STYLE,
-    format=Config.LOGGING_FALLBACK_FORMAT,
+    style=Constants.LOGGING_FORMAT_STYLE,
+    format=Constants.LOGGING_FALLBACK_FORMAT,
     force=True
 )
 logging.indent = lambda level=None: None
@@ -244,14 +243,15 @@ logging.dedent = lambda level=None: None
 
 # Reconfigure standard output streams so they use UTF-8 encoding, even if
 # they are redirected to a file when running the application from a shell.
-sys.stdout.reconfigure(encoding=UTF8)
-sys.stderr.reconfigure(encoding=UTF8)
+sys.stdout.reconfigure(encoding=Constants.UTF8)
+sys.stderr.reconfigure(encoding=Constants.UTF8)
 
 
 class BaseApplicationError(Exception):
     """Base class for all custom application exceptions."""
     # cSpell:ignore vararg
-    def __init__ (self, message, details=EMPTY_STRING, *args, **kwargs):  # pylint: disable=keyword-arg-before-vararg
+    def __init__ (self, message, details=Config.EMPTY_STRING, *args, **kwargs):  # pylint: disable=keyword-arg-before-vararg
+
         self.details = details
         super().__init__(message, *args, **kwargs)
 
@@ -301,7 +301,7 @@ class BaseParser(HTMLParser):
         """Reset parser state. Called implicitly from __init__()."""
         super().reset()
         self.within_k = self.within_v = False
-        self.current_k = self.current_v = self.last_k = EMPTY_STRING
+        self.current_k = self.current_v = self.last_k = Config.EMPTY_STRING
         self.retrieved_metadata = {}
 
     def handle_starttag(self, tag, attrs):
@@ -323,7 +323,7 @@ class BaseParser(HTMLParser):
             return
         if self.within_v:
             logging.debug(Debug.METADATA_VALUE_FOUND.format(data))
-            self.current_v = f'{self.current_v}{self.MULTIDATA_SEPARATOR if self.current_v else EMPTY_STRING}{data}'
+            self.current_v += f'{self.MULTIDATA_SEPARATOR if self.current_v else Config.EMPTY_STRING}{data}'
             return
 
     def configure(self, config):
@@ -354,7 +354,7 @@ class BaseParser(HTMLParser):
             if self.current_v not in self.retrieved_metadata[self.current_k]:
                 self.retrieved_metadata[self.current_k].append(self.current_v)
             logging.debug(Debug.METADATA_OK.format(self.current_k, self.current_v))
-        self.current_k = self.current_v = EMPTY_STRING
+        self.current_k = self.current_v = Config.EMPTY_STRING
 
     def get_metadata(self):
         """Get retrieved metadata so far."""
@@ -388,7 +388,7 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
     def reset(self):
         """Reset parser state. Called implicitly from __init__()."""
         super().reset()
-        self.current_k_tag = self.current_v_tag = EMPTY_STRING
+        self.current_k_tag = self.current_v_tag = Config.EMPTY_STRING
 
     def handle_starttag(self, tag, attrs):
         """Handle opening tags."""
@@ -397,7 +397,7 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
             if attr[0] == self.CLASS_ATTR and (match := self.config[self.K_CLASS].search(attr[1])):
                 logging.debug(Debug.METADATA_KEY_MARKER_FOUND.format(match.group(0)))
                 self.within_k = True
-                self.current_k = EMPTY_STRING
+                self.current_k = Config.EMPTY_STRING
                 self.current_k_tag = tag
                 if self.within_v:
                     # If still processing a value, notify about the nesting error
@@ -405,13 +405,13 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
                     # key had been found.
                     logging.debug(Debug.PARSER_NESTING_ERROR_K_IN_V)
                     self.within_v = False
-                    self.current_v = EMPTY_STRING
+                    self.current_v = Config.EMPTY_STRING
                     self.current_v_tag = None
                 break
             if attr[0] == self.CLASS_ATTR and (match := self.config[self.V_CLASS].search(attr[1])):
                 logging.debug(Debug.METADATA_VALUE_MARKER_FOUND.format(match.group(0)))
                 self.within_v = True
-                self.current_v = EMPTY_STRING
+                self.current_v = Config.EMPTY_STRING
                 self.current_v_tag = tag
                 if self.within_k:
                     # If still processing a key, the nesting error can still be
@@ -493,7 +493,7 @@ class BaratzParser(BaseParser):   # pylint: disable=unused-variable
                     # key had been found.
                     logging.debug(Debug.PARSER_NESTING_ERROR_K_IN_V)
                     self.within_v = False
-                    self.current_v = EMPTY_STRING
+                    self.current_v = Config.EMPTY_STRING
                 return
             if tag == self.V_TAG:
                 logging.debug(Debug.METADATA_VALUE_MARKER_FOUND.format(tag))
@@ -524,13 +524,13 @@ class BaratzParser(BaseParser):   # pylint: disable=unused-variable
             return
 
 
-def error(message, details=EMPTY_STRING):
+def error(message, details=Config.EMPTY_STRING):
     """Helper for preprocessing error messages."""
     message = str(message)
     details = str(details)
     logging.indent(0)
     logging.error(Messages.ERROR_HEADER)
-    logging.indent(Config.ERROR_PAYLOAD_INDENT)
+    logging.indent(Constants.ERROR_PAYLOAD_INDENT)
     logging.error(message)
     if details.strip():
         logging.error(Messages.ERROR_DETAILS_HEADING)
@@ -550,7 +550,7 @@ def is_accepted_url(value):
     """Check if value is an accepted URL or not."""
     # The check is quite crude but works for the application's needs.
     try:
-        return urlparse(value).scheme in Config.ACCEPTED_URL_SCHEMES
+        return urlparse(value).scheme in Constants.ACCEPTED_URL_SCHEMES
     except ValueError:
         return False
 
@@ -559,7 +559,7 @@ def generate_sink_filename(base_filename):
     """
     Generate a filename usable as data sink, based upon base_filename.
     """
-    return base_filename.with_stem(base_filename.stem + Config.SINKFILE_STEM)
+    return base_filename.with_stem(base_filename.stem + Constants.SINKFILE_STEM)
 
 
 class WFKStatuses(IntEnum):
@@ -613,10 +613,10 @@ def wait_for_keypress():
     if getattr(sys, 'frozen', False):
         if console_title != sys.executable:
             return WFKStatuses.NO_TRANSIENT_FROZEN
-    elif APP_NAME in console_title:
+    elif Constants.APP_NAME in console_title:
         return WFKStatuses.NO_TRANSIENT_PYTHON
 
-    print(Messages.PRESS_ANY_KEY, end=EMPTY_STRING, flush=True)
+    print(Messages.PRESS_ANY_KEY, end=Config.EMPTY_STRING, flush=True)
     getch()
     return WFKStatuses.WAIT_FOR_KEYPRESS
 
@@ -627,38 +627,38 @@ def excepthook(exc_type, exc_value, exc_traceback):
         message = Messages.UNEXPECTED_OSERROR
         details = Messages.OSERROR_DETAILS.format(
             exc_type.__name__,
-            EMPTY_STRING if exc_value.errno is None else errno.errorcode[exc_value.errno],
-            EMPTY_STRING if exc_value.winerror is None else exc_value.winerror,
+            Config.EMPTY_STRING if exc_value.errno is None else errno.errorcode[exc_value.errno],
+            Config.EMPTY_STRING if exc_value.winerror is None else exc_value.winerror,
             exc_value.strerror,
-            EMPTY_STRING if exc_value.filename is None else exc_value.filename,
-            EMPTY_STRING if exc_value.filename2 is None else exc_value.filename2,
+            Config.EMPTY_STRING if exc_value.filename is None else exc_value.filename,
+            Config.EMPTY_STRING if exc_value.filename2 is None else exc_value.filename2,
         )
     else:
         message = Messages.UNHANDLED_EXCEPTION
-        args = EMPTY_STRING
+        args = Config.EMPTY_STRING
         for arg in exc_value.args:
             args += Messages.EXCEPTION_DETAILS_ARG.format(type(arg).__name__, arg)
         details = Messages.EXCEPTION_DETAILS.format(exc_type.__name__, str(exc_value), args)
     current_filename = None
-    traceback = EMPTY_STRING
+    traceback = Config.EMPTY_STRING
     for frame in tb.extract_tb(exc_traceback):
         if current_filename != frame.filename:
             traceback += Messages.TRACEBACK_FRAME_HEADER.format(frame.filename)
             current_filename = frame.filename
-        frame.name = APP_NAME if frame.name == Messages.TRACEBACK_TOPLEVEL_FRAME else frame.name
+        frame.name = Constants.APP_NAME if frame.name == Messages.TRACEBACK_TOPLEVEL_FRAME else frame.name
         traceback += Messages.TRACEBACK_FRAME_LINE.format(frame.lineno, frame.name, frame.line)
-    details += Messages.TRACEBACK_HEADER.format(traceback) if traceback else EMPTY_STRING
+    details += Messages.TRACEBACK_HEADER.format(traceback) if traceback else Config.EMPTY_STRING
     error(message, details)
 
 
 def loggerize(function):
     """Decorator which enables logging for function."""
     def loggerize_wrapper(*args, **kwargs):
-        setup_logging(Config.LOGFILE_PATH, Config.DEBUGFILE_PATH)
+        setup_logging(Constants.LOGFILE_PATH, Constants.DEBUGFILE_PATH)
 
         logging.debug(Messages.DEBUGGING_INIT)
         logging.info(Messages.APP_BANNER)
-        logging.debug(Config.USER_AGENT)
+        logging.debug(Constants.USER_AGENT)
 
         status = function(*args, **kwargs)
 
@@ -697,20 +697,20 @@ def setup_logging(log_filename, debug_filename):
         'formatters': {
             'debugfile_formatter': {
                 '()': CustomFormatter,
-                'style': Config.LOGGING_FORMAT_STYLE,
-                'format': Config.LOGGING_DEBUGFILE_FORMAT,
-                'datefmt': Config.TIMESTAMP_FORMAT,
+                'style': Constants.LOGGING_FORMAT_STYLE,
+                'format': Constants.LOGGING_DEBUGFILE_FORMAT,
+                'datefmt': Constants.TIMESTAMP_FORMAT,
             },
             'logfile_formatter': {
                 '()': CustomFormatter,
-                'style': Config.LOGGING_FORMAT_STYLE,
-                'format': Config.LOGGING_LOGFILE_FORMAT,
-                'datefmt': Config.TIMESTAMP_FORMAT,
+                'style': Constants.LOGGING_FORMAT_STYLE,
+                'format': Constants.LOGGING_LOGFILE_FORMAT,
+                'datefmt': Constants.TIMESTAMP_FORMAT,
             },
             'console_formatter': {
                 '()': CustomFormatter,
-                'style': Config.LOGGING_FORMAT_STYLE,
-                'format': Config.LOGGING_CONSOLE_FORMAT,
+                'style': Constants.LOGGING_FORMAT_STYLE,
+                'format': Constants.LOGGING_CONSOLE_FORMAT,
             },
         },
         'filters': {
@@ -727,7 +727,7 @@ def setup_logging(log_filename, debug_filename):
                 'class': logging.FileHandler,
                 'filename': debug_filename,
                 'mode': 'w',
-                'encoding': UTF8,
+                'encoding': Constants.UTF8,
             },
             'logfile_handler': {
                 'level': logging.NOTSET,
@@ -736,7 +736,7 @@ def setup_logging(log_filename, debug_filename):
                 'class': logging.FileHandler,
                 'filename': log_filename,
                 'mode': 'w',
-                'encoding': UTF8,
+                'encoding': Constants.UTF8,
             },
             'stdout_handler': {
                 'level': logging.NOTSET,
@@ -776,7 +776,7 @@ def setup_logging(log_filename, debug_filename):
     def record_factory(*args, **kwargs):
         """LogRecord factory which supports indentation."""
         record = current_factory(*args, **kwargs)
-        record.indent = Config.LOGGING_INDENTCHAR * logging.getLogger().indentlevel
+        record.indent = Constants.LOGGING_INDENTCHAR * logging.getLogger().indentlevel
         record.levelname = levelname_template.format(record.levelname)
         return record
     logging.setLogRecordFactory(record_factory)
@@ -835,7 +835,7 @@ def load_profiles(filename):
     config = configparser.ConfigParser()
     logging.debug(Debug.LOADING_PROFILES.format(filename))
     try:
-        with open(filename, encoding=UTF8) as inifile:
+        with open(filename, encoding=Constants.UTF8) as inifile:
             config.read_file(inifile)
     except (FileNotFoundError, PermissionError) as exc:
         raise ProfilesError(Messages.MISSING_PROFILES.format(exc.filename)) from exc
@@ -858,10 +858,10 @@ def load_profiles(filename):
                 details = Messages.PROFILES_WRONG_SYNTAX_DETAILS.format(
                     section, exc.msg,
                     key, Messages.PROFILES_WRONG_SYNTAX_DETAILS_SEPARATOR, exc.pattern,
-                    EMPTY_STRING, exc.pos + len(key) + len(Messages.PROFILES_WRONG_SYNTAX_DETAILS_SEPARATOR)
+                    Config.EMPTY_STRING, exc.pos + len(key) + len(Messages.PROFILES_WRONG_SYNTAX_DETAILS_SEPARATOR)
                 )
                 raise ProfilesError(Messages.PROFILES_WRONG_SYNTAX.format('BadRegex'), details) from exc
-        url_pattern = parser_config.pop(Config.PROFILE_URL_PATTERN_KEY, None)
+        url_pattern = parser_config.pop(Constants.PROFILE_URL_PATTERN_KEY, None)
         if url_pattern is None:
             raise ProfilesError(Messages.INVALID_PROFILE.format(section), Messages.PROFILE_WITHOUT_URL)
         for parser in parsers:
@@ -886,10 +886,10 @@ def parse_arguments(*args):
         if is_accepted_url(arg):
             logging.debug(Debug.ARG_IS_SOURCE_SINGLE_URL)
             handler = single_url_handler(arg)
-        elif arg.endswith(Config.TEXTFILE_SUFFIX):
+        elif arg.endswith(Constants.TEXTFILE_SUFFIX):
             logging.debug(Debug.ARG_IS_SOURCE_TEXTFILE)
             handler = textfile_handler(Path(arg))
-        elif arg.endswith(Config.SPREADSHEET_SUFFIX):
+        elif arg.endswith(Constants.SPREADSHEET_SUFFIX):
             logging.debug(Debug.ARG_IS_SOURCE_SPREADSHEET)
             handler = spreadsheet_handler(Path(arg))
         else:
@@ -924,23 +924,23 @@ def single_url_handler(url):
 
     The output file has UTF-8 encoding.
     """
-    sink_filename = generate_sink_filename(url_to_filename(url).with_suffix(Config.TEXTFILE_SUFFIX))
-    with open(sink_filename, 'w', encoding=UTF8) as sink:
+    sink_filename = generate_sink_filename(url_to_filename(url).with_suffix(Constants.TEXTFILE_SUFFIX))
+    with open(sink_filename, 'w', encoding=Constants.UTF8) as sink:
         logging.debug(Debug.DUMPING_METADATA_TO_SINK.format(sink_filename))
         yield True  # Successful initialization.
         if is_accepted_url(url):
             metadata = yield url
             yield
             if metadata:
-                sink.write(Config.TEXTSINK_METADATA_HEADER.format(url))
+                sink.write(Constants.TEXTSINK_METADATA_HEADER.format(url))
                 for key, value in metadata.items():
                     logging.debug(Debug.DUMPING_METADATA_K_V.format(key, value))
-                    message = Config.TEXTSINK_METADATA_PAIR.format(key, value)
+                    message = Constants.TEXTSINK_METADATA_PAIR.format(key, value)
                     logging.indent()
                     logging.info(message)  # Output allowed here because it is part of the handler.
                     logging.dedent()
                     sink.write(message)
-                sink.write(Config.TEXTSINK_METADATA_FOOTER)
+                sink.write(Constants.TEXTSINK_METADATA_FOOTER)
 
 
 def url_to_filename(url):
@@ -951,7 +951,7 @@ def url_to_filename(url):
     (potentially unsafe in a filename) by a character which is safe to use in a
     filename and that is visually unobtrusive so the filename is still readable.
     """
-    return Path(re.sub(Config.URL_UNSAFE_CHARS_RE, Config.URL_UNSAFE_REPLACE_CHAR, url, re.ASCII))
+    return Path(re.sub(Constants.URL_UNSAFE_CHARS_RE, Constants.URL_UNSAFE_REPLACE_CHAR, url, re.ASCII))
 
 
 def textfile_handler(source_filename):
@@ -965,8 +965,8 @@ def textfile_handler(source_filename):
     All files are assumed to have UTF-8 encoding.
     """
     sink_filename = generate_sink_filename(source_filename)
-    with open(source_filename, encoding=UTF8) as source:
-        with open(sink_filename, 'w', encoding=UTF8) as sink:
+    with open(source_filename, encoding=Constants.UTF8) as source:
+        with open(sink_filename, 'w', encoding=Constants.UTF8) as sink:
             logging.debug(Debug.DUMPING_METADATA_TO_SINK.format(sink_filename))
             yield True  # Successful initialization.
             for url in source.readlines():
@@ -976,11 +976,11 @@ def textfile_handler(source_filename):
                 metadata = yield url
                 yield
                 if metadata:
-                    sink.write(Config.TEXTSINK_METADATA_HEADER.format(url))
+                    sink.write(Constants.TEXTSINK_METADATA_HEADER.format(url))
                     for key, value in metadata.items():
                         logging.debug(Debug.DUMPING_METADATA_K_V.format(key, value))
-                        sink.write(Config.TEXTSINK_METADATA_PAIR.format(key, value))
-                    sink.write(Config.TEXTSINK_METADATA_FOOTER)
+                        sink.write(Constants.TEXTSINK_METADATA_PAIR.format(key, value))
+                    sink.write(Constants.TEXTSINK_METADATA_FOOTER)
 
 
 def spreadsheet_handler(source_filename):
@@ -1056,15 +1056,15 @@ def store_metadata_in_sheet(sheet, row, metadata, static = SimpleNamespace(known
     if not metadata:
         return
     for key, value in metadata.items():
-        key = Config.SPREADSHEET_METADATA_COLUMN_TITLE.format(key)
+        key = Constants.SPREADSHEET_METADATA_COLUMN_TITLE.format(key)
         if key not in static.known_metadata:
             logging.debug(Debug.NEW_METADATA_FOUND.format(key))
             column = sheet.max_column + 1
             static.known_metadata[key] = column
             logging.debug(Debug.METADATA_STORED_IN_COLUMN.format(key, get_column_letter(column)))
             cell = sheet.cell(row=1, column=column, value=key)
-            cell.font = Font(name=Config.SPREADSHEET_CELL_FONT)
-            cell.fill = PatternFill(start_color=Config.SPREADSHEET_CELL_COLOR, fill_type=Config.SPREADSHEET_CELL_FILL)
+            cell.font = Font(name=Constants.SPREADSHEET_CELL_FONT)
+            cell.fill = PatternFill(fgColor=Constants.SPREADSHEET_CELL_COLOR, fill_type=Constants.SPREADSHEET_CELL_FILL)
                 # Set column width.
                 #
                 # As per Excel specification, the width units are the width of
@@ -1100,7 +1100,7 @@ def bootstrap(handler):
     except FileNotFoundError as exc:
         raise SourceError(Messages.INPUT_FILE_NOT_FOUND) from exc
     except PermissionError as exc:
-        if Path(exc.filename).stem.endswith(Config.SINKFILE_STEM):
+        if Path(exc.filename).stem.endswith(Constants.SINKFILE_STEM):
             raise SourceError(Messages.OUTPUT_FILE_NO_PERMISSION) from exc
         raise SourceError(Messages.INPUT_FILE_NO_PERMISSION) from exc
 
@@ -1149,7 +1149,7 @@ def saca_las_mantecas(url, parser):
             error_reason = exc.reason.lower()
             details = Messages.HTTP_PROTOCOL_URLERROR
         else:
-            error_code = EMPTY_STRING
+            error_code = Config.EMPTY_STRING
             error_reason = exc.reason
             details = Messages.GENERIC_URLERROR
         error_reason = (error_reason[0].lower() + error_reason[1:]).rstrip('.')
@@ -1198,7 +1198,7 @@ def retrieve_url(url):
 
     while url:
         logging.debug(Debug.PROCESSING_URL.format(url))
-        with urlopen(Request(url, headers={'User-Agent': Config.USER_AGENT})) as response:
+        with urlopen(Request(url, headers={'User-Agent': Constants.USER_AGENT})) as response:
             # First, check if any redirection is needed and get the charset the easy way.
             contents = response.read()
             charset = response.headers.get_content_charset()
@@ -1221,7 +1221,7 @@ def resolve_file_url(url):
     parsed_url = urlparse(url)
     resolved_path = unquote(parsed_url.path[1:])
     resolved_path = Path(resolved_path).resolve().as_posix()
-    resolved_path = quote(resolved_path, safe=Config.FILE_URL_SAFE_CHARS)
+    resolved_path = quote(resolved_path, safe=Constants.FILE_URL_SAFE_CHARS)
     return parsed_url._replace(path=resolved_path).geturl()
 
 
@@ -1233,9 +1233,9 @@ def get_redirected_url(base_url, contents):
 
     Return redirected URL, or None if there is no redirection pragma.
     """
-    if match := re.search(Config.META_REFRESH_RE, contents, re.I):
+    if match := re.search(Constants.META_REFRESH_RE, contents, re.I):
         base_url = urlparse(base_url)
-        redirected_url = urlparse(match.group(1).decode(ASCII))
+        redirected_url = urlparse(match.group(1).decode(Constants.ASCII))
         for field in base_url._fields:
             value = getattr(base_url, field)
             # If not specified in the redirected URL, both the scheme and netloc
@@ -1263,15 +1263,15 @@ def detect_html_charset(contents):
     based on the encoding most frequently used by the web pages this application
     will generally process.
     """
-    charset = Config.FALLBACK_HTML_CHARSET
-    if match := re.search(Config.META_HTTP_EQUIV_CHARSET_RE, contents, re.I):
+    charset = Constants.FALLBACK_HTML_CHARSET
+    if match := re.search(Constants.META_HTTP_EQUIV_CHARSET_RE, contents, re.I):
         # Next best thing, from the meta http-equiv="content-type".
         logging.debug(Debug.CHARSET_FROM_HTTP_EQUIV)
-        charset = match.group(1).decode(ASCII)
-    elif match := re.search(Config.META_CHARSET_RE, contents, re.I):
+        charset = match.group(1).decode(Constants.ASCII)
+    elif match := re.search(Constants.META_CHARSET_RE, contents, re.I):
         # Last resort, from some meta charset, if any…
         logging.debug(Debug.CHARSET_FROM_META_CHARSET)
-        charset = match.group(1).decode(ASCII)
+        charset = match.group(1).decode(Constants.ASCII)
     else:
         logging.debug(Debug.CHARSET_FROM_DEFAULT)
     return charset
@@ -1295,9 +1295,9 @@ def main(*args):
         return ExitCodes.NO_ARGUMENTS
 
     try:
-        profiles = load_profiles(Config.INIFILE_PATH)
+        profiles = load_profiles(Constants.INIFILE_PATH)
         if not profiles:
-            raise ProfilesError(Messages.EMPTY_PROFILES.format(Config.INIFILE_PATH))
+            raise ProfilesError(Messages.EMPTY_PROFILES.format(Constants.INIFILE_PATH))
         logging.debug(Debug.FOUND_PROFILES.format(', '.join(profiles.keys())))
     except ProfilesError as exc:
         error(exc, exc.details)

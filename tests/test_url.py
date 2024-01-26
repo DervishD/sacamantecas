@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from sacamantecas import Config, detect_html_charset, get_redirected_url, resolve_file_url, retrieve_url
+from sacamantecas import Constants, detect_html_charset, get_redirected_url, resolve_file_url, retrieve_url
 
 
 @pytest.mark.parametrize('netloc, base, extra', [
@@ -56,7 +56,7 @@ def test_url_redirection(delay, url, extra, expected):  # pylint: disable=unused
 @pytest.mark.parametrize('contents, expected', [
     ('<meta http-equiv="content-type" charset="{}">', 'cp1252'),
     ('<meta charset="{}">', 'cp850'),
-    ('{}', Config.FALLBACK_HTML_CHARSET)
+    ('{}', Constants.FALLBACK_HTML_CHARSET)
 ])
 def test_charset_detection(contents, expected):  # pylint: disable=unused-variable
     """Test different ways of detecting the contents charset."""

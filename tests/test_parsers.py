@@ -10,7 +10,7 @@ from unicodedata import category
 
 import pytest
 
-from sacamantecas import BaratzParser, BaseParser, Debug, EMPTY_STRING, OldRegimeParser
+from sacamantecas import BaratzParser, BaseParser, Debug, OldRegimeParser
 
 
 SPACE = 0x20
@@ -102,8 +102,8 @@ def test_medatata_storage(caplog, k, v, expected):  # pylint: disable=unused-var
     parser.store_metadata()
 
     assert caplog.records[0].message == expected
-    assert parser.current_k == EMPTY_STRING
-    assert parser.current_v == EMPTY_STRING
+    assert parser.current_k == Config.EMPTY_STRING
+    assert parser.current_v == Config.EMPTY_STRING
 
 
 SINGLE_K = 'single_key'

@@ -12,7 +12,7 @@ import pytest
 
 from sacamantecas import (
     bootstrap,
-    Config,
+    Constants,
     get_url_from_row,
     Messages,
     single_url_handler,
@@ -20,13 +20,12 @@ from sacamantecas import (
     spreadsheet_handler,
     textfile_handler,
     url_to_filename,
-    UTF8
 )
 
 
 HASHES = [hash_function for hash_function in algorithms_available if not hash_function.startswith('shake')]
-SAMPLE_URLS = [f'{choice(Config.ACCEPTED_URL_SCHEMES)}://subdomain{i}.domain.tld' for i in range(10)]
-EXPECTED_METADATA = {url: {h: new_hash(h, url.encode(UTF8)).hexdigest() for h in HASHES} for url in SAMPLE_URLS}
+SAMPLE_URLS = [f'{choice(Constants.ACCEPTED_URL_SCHEMES)}://subdomain{i}.domain.tld' for i in range(10)]
+EXPECTED_METADATA = {u: {h: new_hash(h, u.encode(Constants.UTF8)).hexdigest() for h in HASHES} for u in SAMPLE_URLS}
 
 
 def test_single_url_handler(monkeypatch, tmp_path):  # pylint: disable=unused-variable
@@ -35,7 +34,7 @@ def test_single_url_handler(monkeypatch, tmp_path):  # pylint: disable=unused-va
     expected = Path('url___subdomain_domain_toplevel_path_param1_value1_param2_value2')
     assert urls == expected
 
-    sink_filename = tmp_path / f'testsink{Config.SINKFILE_STEM}.txt'
+    sink_filename = tmp_path / f'testsink{Constants.SINKFILE_STEM}.txt'
     monkeypatch.setattr('sacamantecas.generate_sink_filename', lambda _: sink_filename)
 
     handler = single_url_handler(SAMPLE_URLS[0])
@@ -50,9 +49,9 @@ def test_single_url_handler(monkeypatch, tmp_path):  # pylint: disable=unused-va
     assert len(urls) == 1
     assert urls[0] == SAMPLE_URLS[0]
 
-    result = sink_filename.read_text().rstrip(Config.TEXTSINK_METADATA_FOOTER).splitlines()
+    result = sink_filename.read_text().rstrip(Constants.TEXTSINK_METADATA_FOOTER).splitlines()
     assert result[0] == SAMPLE_URLS[0]
-    result = dict(line.strip().split(Config.TEXTSINK_METADATA_SEPARATOR) for line in result[1:])
+    result = dict(line.strip().split(Constants.TEXTSINK_METADATA_SEPARATOR) for line in result[1:])
     assert result == EXPECTED_METADATA[urls[0]]
 
 
@@ -60,7 +59,7 @@ def test_textfile_handler(monkeypatch, tmp_path):  # pylint: disable=unused-vari
     """Test textfile handler."""
     source_filename = tmp_path / 'urls.txt'
     source_filename.write_text('\n'.join(SAMPLE_URLS), encoding='utf-8')
-    sink_filename = tmp_path / f'testsink{Config.SINKFILE_STEM}.txt'
+    sink_filename = tmp_path / f'testsink{Constants.SINKFILE_STEM}.txt'
     monkeypatch.setattr('sacamantecas.generate_sink_filename', lambda _: sink_filename)
 
     handler = textfile_handler(source_filename)
@@ -77,11 +76,11 @@ def test_textfile_handler(monkeypatch, tmp_path):  # pylint: disable=unused-vari
 
     result = {}
     current_k = None
-    for line in sink_filename.read_text().rstrip(Config.TEXTSINK_METADATA_FOOTER).splitlines():
+    for line in sink_filename.read_text().rstrip(Constants.TEXTSINK_METADATA_FOOTER).splitlines():
         if not line.rstrip():
             continue
-        if line.startswith(Config.TEXTSINK_METADATA_INDENT):
-            result[current_k].update(dict([line.strip().split(Config.TEXTSINK_METADATA_SEPARATOR)]))
+        if line.startswith(Constants.TEXTSINK_METADATA_INDENT):
+            result[current_k].update(dict([line.strip().split(Constants.TEXTSINK_METADATA_SEPARATOR)]))
             continue
         current_k = line.strip()
         result[current_k] = {}
@@ -108,7 +107,7 @@ def test_spreadsheet_handler(monkeypatch, tmp_path):  # pylint: disable=unused-v
     workbook.save(source_filename)
     workbook.close()
 
-    sink_filename = tmp_path / f'testsink{Config.SINKFILE_STEM}.xlsx'
+    sink_filename = tmp_path / f'testsink{Constants.SINKFILE_STEM}.xlsx'
     monkeypatch.setattr('sacamantecas.generate_sink_filename', lambda _: sink_filename)
 
     handler = spreadsheet_handler(source_filename)
@@ -128,9 +127,9 @@ def test_spreadsheet_handler(monkeypatch, tmp_path):  # pylint: disable=unused-v
     sheet = workbook.worksheets[0]
     headers = {}
     for cell in next(sheet.rows):
-        if not cell.value or not cell.value.startswith(Config.SPREADSHEET_METADATA_COLUMN_MARKER):
+        if not cell.value or not cell.value.startswith(Constants.SPREADSHEET_METADATA_COLUMN_MARKER):
             continue
-        cell.value = cell.value.removeprefix(Config.SPREADSHEET_METADATA_COLUMN_MARKER)
+        cell.value = cell.value.removeprefix(Constants.SPREADSHEET_METADATA_COLUMN_MARKER)
         headers[cell.column] = cell.value
 
     for row in sheet.rows:
@@ -167,9 +166,9 @@ def test_input_no_permission(unreadable_file, handler):  # pylint: disable=unuse
 
 
 @pytest.mark.parametrize('source, unwritable_file, handler', [
-    ('http://s.url', f'unwritable_single_url{Config.SINKFILE_STEM}.txt', single_url_handler),
-    ('s.txt', f'unwritable_textfile{Config.SINKFILE_STEM}.txt', textfile_handler),
-    ('s.xlsx', f'unwritable_spreadsheet{Config.SINKFILE_STEM}.xlsx', spreadsheet_handler)
+    ('http://s.url', f'unwritable_single_url{Constants.SINKFILE_STEM}.txt', single_url_handler),
+    ('s.txt', f'unwritable_textfile{Constants.SINKFILE_STEM}.txt', textfile_handler),
+    ('s.xlsx', f'unwritable_spreadsheet{Constants.SINKFILE_STEM}.xlsx', spreadsheet_handler)
 ], indirect=['unwritable_file'])
 def test_output_no_permission(tmp_path, monkeypatch, source, unwritable_file, handler):  # pylint: disable=unused-variable
     """."""
