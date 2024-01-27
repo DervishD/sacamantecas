@@ -281,7 +281,8 @@ class Profile():  # pylint: disable=too-few-public-methods
 class BaseParser(HTMLParser):
     """Base class for catalogue parsers."""
     PARAMETERS = set()
-    DEFAULT = ''
+    DEFAULT_K = ''
+    DEFAULT_V = ''
     EMPTY_KEY_PLACEHOLDER = '[vacío]'
     MULTIDATA_SEPARATOR = ' / '
     MULTIVALUE_SEPARATOR = ' === '
@@ -301,7 +302,9 @@ class BaseParser(HTMLParser):
         """Reset parser state. Called implicitly from __init__()."""
         super().reset()
         self.within_k = self.within_v = False
-        self.current_k = self.current_v = self.last_k = self.DEFAULT
+        self.current_k = self.DEFAULT_K
+        self.current_v = self.DEFAULT_V
+        self.last_k = self.DEFAULT_K
         self.retrieved_metadata = {}
 
     def handle_starttag(self, tag, attrs):
@@ -354,7 +357,8 @@ class BaseParser(HTMLParser):
             if self.current_v not in self.retrieved_metadata[self.current_k]:
                 self.retrieved_metadata[self.current_k].append(self.current_v)
             logging.debug(Debug.METADATA_OK.format(self.current_k, self.current_v))
-        self.current_k = self.current_v = self.DEFAULT
+        self.current_k = self.DEFAULT_K
+        self.current_v = self.DEFAULT_V
 
     def get_metadata(self):
         """Get retrieved metadata so far."""
@@ -388,7 +392,7 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
     def reset(self):
         """Reset parser state. Called implicitly from __init__()."""
         super().reset()
-        self.current_k_tag = self.current_v_tag = self.DEFAULT
+        self.current_k_tag = self.current_v_tag = None
 
     def handle_starttag(self, tag, attrs):
         """Handle opening tags."""
@@ -397,7 +401,7 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
             if attr[0] == self.CLASS_ATTR and (match := self.config[self.K_CLASS].search(attr[1])):
                 logging.debug(Debug.METADATA_KEY_MARKER_FOUND.format(match.group(0)))
                 self.within_k = True
-                self.current_k = self.DEFAULT
+                self.current_k = self.DEFAULT_K
                 self.current_k_tag = tag
                 if self.within_v:
                     # If still processing a value, notify about the nesting error
@@ -405,13 +409,13 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
                     # key had been found.
                     logging.debug(Debug.PARSER_NESTING_ERROR_K_IN_V)
                     self.within_v = False
-                    self.current_v = self.DEFAULT
+                    self.current_v = self.DEFAULT_V
                     self.current_v_tag = None
                 break
             if attr[0] == self.CLASS_ATTR and (match := self.config[self.V_CLASS].search(attr[1])):
                 logging.debug(Debug.METADATA_VALUE_MARKER_FOUND.format(match.group(0)))
                 self.within_v = True
-                self.current_v = self.DEFAULT
+                self.current_v = self.DEFAULT_V
                 self.current_v_tag = tag
                 if self.within_k:
                     # If still processing a key, the nesting error can still be
@@ -493,7 +497,7 @@ class BaratzParser(BaseParser):   # pylint: disable=unused-variable
                     # key had been found.
                     logging.debug(Debug.PARSER_NESTING_ERROR_K_IN_V)
                     self.within_v = False
-                    self.current_v = self.DEFAULT
+                    self.current_v = self.DEFAULT_V
                 return
             if tag == self.V_TAG:
                 logging.debug(Debug.METADATA_VALUE_MARKER_FOUND.format(tag))
