@@ -40,7 +40,8 @@ from version import DEVELOPMENT_MODE, SEMVER
 
 class Constants():  # pylint: disable=too-few-public-methods
     """Application configuration values."""
-    APP_NAME = Path(__file__).stem
+    APP_PATH = Path(__file__)
+    APP_NAME = APP_PATH.stem
 
     UTF8 = 'utf-8'
     ASCII = 'ascii'

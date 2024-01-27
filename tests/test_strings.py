@@ -42,7 +42,7 @@ REFACTORED_STRINGS = (*ALLOWED_STRINGS, *PARSER_STRINGS, *CONSTANT_STRINGS, *MES
 def test_strings():  # pylint: disable=unused-variable
     """Test for non-refactored strings."""
     unrefactored_strings = []
-    with open(Constants.ROOT_PATH / f'{Constants.APP_NAME}.py', 'rt', encoding=Constants.UTF8) as code:
+    with open(Constants.APP_PATH, 'rt', encoding=Constants.UTF8) as code:
         for tokeninfo in generate_tokens(code.readline):
             if tokeninfo.type != STRING:
                 continue

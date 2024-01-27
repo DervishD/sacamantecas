@@ -3,7 +3,6 @@ Build application executable for Win32 in a virtual environment
 and pack it with the INI file in a ZIP file for distribution.
 """
 import os
-from pathlib import Path
 from subprocess import CalledProcessError, run
 import sys
 from zipfile import ZIP_DEFLATED, ZipFile
@@ -11,14 +10,15 @@ from zipfile import ZIP_DEFLATED, ZipFile
 from sacamantecas import Constants
 from version import SEMVER
 
-UTF8 = 'utf-8'
-ROOT_PATH = Path(__file__).parent
-APP_PATH = Path(__file__).with_stem(Constants.APP_NAME)
-VENV_PATH = ROOT_PATH / '.venv'
-BUILD_PATH = ROOT_PATH / 'build'
+
+UTF8 = Constants.UTF8
+APP_PATH = Constants.APP_PATH
+VENV_PATH = APP_PATH.parent / '.venv'
+BUILD_PATH = APP_PATH.parent / 'build'
 PYINSTALLER = VENV_PATH / 'Scripts' / 'pyinstaller.exe'
-FROZEN_EXE_PATH = (BUILD_PATH / Constants.APP_NAME).with_suffix('.exe')
-PACKAGE_PATH = ROOT_PATH / f'{Constants.APP_NAME}_v{SEMVER.split('+')[0]}.zip'
+FROZEN_EXE_PATH = (BUILD_PATH / APP_PATH.name).with_suffix('.exe')
+PACKAGE_PATH = APP_PATH.with_stem(f'{APP_PATH.stem}_v{SEMVER.split('+')[0]}').with_suffix('.zip')
+INIFILE_PATH = Constants.INIFILE_PATH
 
 
 # Reconfigure standard output streams so they use UTF-8 encoding, no matter
@@ -134,12 +134,12 @@ def build_package():
 
     with ZipFile(PACKAGE_PATH, 'w', compression=ZIP_DEFLATED, compresslevel=9) as bundle:
         bundle.write(FROZEN_EXE_PATH, FROZEN_EXE_PATH.name)
-        bundle.write(Constants.INIFILE_PATH, Constants.INIFILE_PATH.name)
+        bundle.write(INIFILE_PATH, INIFILE_PATH.name)
 
 
 def main():
     """."""
-    print(f'Building {Constants.APP_NAME} {SEMVER}')
+    print(f'Building {APP_PATH.stem} {SEMVER}')
 
     if not is_venv_ready():
         return 1
