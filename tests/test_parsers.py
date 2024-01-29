@@ -41,22 +41,23 @@ def generate_random_string():
     return escape(''.join(randchoices(ALLOWED_CONTROLS + ALLOWED_CHARS, k=randint(MIN_LENGTH, MAX_LENGTH))))
 
 
-MEBI = 1024 * 1024
+MAX_RANDOM_STRINGS_TO_FEED = 2 ** 10
+FEEDS_PER_RANDOM_STRING = 10
 def test_random_feed():  # pylint: disable=unused-variable
     """Test parser behavior against random data."""
     parser = BaseParser()
 
-    total_characters = 0
-    while total_characters < 1 * MEBI:
+    fed_random_strings = 0
+    while fed_random_strings < MAX_RANDOM_STRINGS_TO_FEED:
         random_string = generate_random_string()
-        total_characters += len(random_string)
-        for _ in range(2):
+        for _ in range(FEEDS_PER_RANDOM_STRING):
             parser.within_k = randchoice([True, False])
             parser.within_v = randchoice([True, False])
             parser.feed(random_string)
             parser.within_k = False
             parser.within_v = False
         parser.store_metadata()
+        fed_random_strings += 1
 
     parser.close()
 
