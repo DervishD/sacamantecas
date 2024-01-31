@@ -4,8 +4,8 @@ import sys
 
 V_MAJOR = '5'
 V_MINOR = '0'
-V_PATCH = '0'
-V_PRERELEASE = ''
+V_PATCH = '1'
+V_PRERELEASE = 'alpha'
 V_BUILD = __import__('time').strftime('%Y%m%d-%H%M%S')
 
 SEMVER = f'{V_MAJOR}.{V_MINOR}.{V_PATCH}'

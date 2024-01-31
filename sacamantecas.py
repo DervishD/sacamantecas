@@ -128,11 +128,19 @@ class Messages(StrEnum):
     ERROR_HEADER = f'\n{Constants.ERROR_MARKER}Error en {Constants.APP_NAME}.\n'
     WARNING_HEADER = '* Aviso: '
     ERROR_DETAILS_HEADING = '\nInformación adicional sobre el error:'
-    ERROR_DETAILS_PREAMBLE = '| '
-    ERROR_DETAILS_TAIL = '·'
+    ERROR_DETAILS_PREAMBLE = '│ '
+    ERROR_DETAILS_TAIL = '╰'
 
     UNEXPECTED_OSERROR = 'Error inesperado del sistema operativo.'
-    OSERROR_DETAILS = 'type = {}\nerrno = {}\nwinerror = {}\nstrerror = {}\nfilename = {}\nfilename2 = {}'
+    OSERROR_DETAILS = dedent('''
+         type = {}
+        errno = {}
+     winerror = {}
+     strerror = {}
+     filename = {}
+    filename2 = {}
+    ''').strip('\n')
+    OSERROR_DETAIL_NA = '[No disponible]'
     UNHANDLED_EXCEPTION = 'Excepción sin gestionar.'
     EXCEPTION_DETAILS = 'type = {}\nvalue = {}\nargs: {}'
     EXCEPTION_DETAILS_ARG = '\n  [{}] {}'
@@ -632,11 +640,11 @@ def excepthook(exc_type, exc_value, exc_traceback):
         message = Messages.UNEXPECTED_OSERROR
         details = Messages.OSERROR_DETAILS.format(
             exc_type.__name__,
-            '' if exc_value.errno is None else errno.errorcode[exc_value.errno],
-            '' if exc_value.winerror is None else exc_value.winerror,
+            Messages.OSERROR_DETAIL_NA if exc_value.errno is None else errno.errorcode[exc_value.errno],
+            Messages.OSERROR_DETAIL_NA if exc_value.winerror is None else exc_value.winerror,
             exc_value.strerror,
-            '' if exc_value.filename is None else exc_value.filename,
-            '' if exc_value.filename2 is None else exc_value.filename2,
+            Messages.OSERROR_DETAIL_NA if exc_value.filename is None else exc_value.filename,
+            Messages.OSERROR_DETAIL_NA if exc_value.filename2 is None else exc_value.filename2,
         )
     else:
         message = Messages.UNHANDLED_EXCEPTION
