@@ -10,6 +10,7 @@ from sacamantecas import Constants, error, Messages, setup_logging, warning
 
 ERROR_HEADER = Messages.ERROR_HEADER
 ERROR_DETAILS_HEADING = Messages.ERROR_DETAILS_HEADING
+ERROR_DETAILS_PREAMBLE = Messages.ERROR_DETAILS_PREAMBLE
 ERROR_DETAILS_TAIL = Messages.ERROR_DETAILS_TAIL
 PAD = ' ' * Constants.ERROR_PAYLOAD_INDENT
 WARNING_HEADER = Messages.WARNING_HEADER
@@ -108,7 +109,7 @@ def test_error_details(log_paths, capsys):  # pylint: disable=unused-variable
         '\n'.join(f'{PAD}{line}' for line in (
             TEST_MESSAGE.split('\n') +
             ERROR_DETAILS_HEADING.split('\n') +
-            list(f'{LOGGING_LEVELNAME_SEPARATOR}{line}' for line in details.split('\n')) +
+            list(f'{ERROR_DETAILS_PREAMBLE}{line}' for line in details.split('\n')) +
             ERROR_DETAILS_TAIL.split('\n')
         )),
         ''
