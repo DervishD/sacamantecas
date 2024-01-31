@@ -545,7 +545,7 @@ def error(message, details=''):
     logging.error(Messages.ERROR_HEADER)
     logging.indent(Constants.ERROR_PAYLOAD_INDENT)
     logging.error(message)
-    if details.strip():
+    if details:=details.strip():
         logging.error(Messages.ERROR_DETAILS_HEADING)
         logging.error('\n'.join(f'{Messages.ERROR_DETAILS_PREAMBLE}{line}' for line in details.split('\n')))
         logging.error(Messages.ERROR_DETAILS_TAIL)
