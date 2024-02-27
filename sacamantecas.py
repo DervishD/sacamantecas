@@ -811,10 +811,15 @@ def setup_logging(log_filename, debug_filename):
             logging.getLogger().indentlevel -= 1
             return
         logging.getLogger().indentlevel = level
+
     # Both logging.indent() and logging.dedent() support a parameter specifying an
     # exact FINAL indentation level, not an indentation increment/decrement!
-    # These two helpers are provided in order to improve readability, since the
-    # set_logging_indent_level() function can be used directly.
+    #
+    # For both functions, the indentation level represents the number of copies of
+    # the character _Config.LOGGING_INDENTCHAR to be prepended to logging messages.
+    #
+    # If that level is not provided or is None, the current logging indentation
+    # level increased/decreased in 1 copy of _Config.LOGGING_INDENTCHAR.
     logging.indent = lambda level=None: set_indent_level(increase_indent_symbol if level is None else level)
     logging.dedent = lambda level=None: set_indent_level(decrease_indent_symbol if level is None else level)
 
