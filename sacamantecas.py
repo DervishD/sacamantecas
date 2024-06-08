@@ -828,8 +828,8 @@ def excepthook(exc_type: type[BaseException], exc_value: BaseException, exc_trac
         message = Messages.UNEXPECTED_OSERROR
         details = Messages.OSERROR_DETAILS.format(
             exc_type.__name__,
-            Messages.OSERROR_DETAIL_NA if exc_value.errno is None else errno.errorcode[exc_value.errno],
-            Messages.OSERROR_DETAIL_NA if exc_value.winerror is None else exc_value.winerror,
+            Messages.OSERROR_DETAIL_NA if exc_value.errno is None else errno.errorcode[exc_value.errno],  # type: ignore
+            Messages.OSERROR_DETAIL_NA if exc_value.winerror is None else exc_value.winerror,  # type: ignore
             exc_value.strerror,
             Messages.OSERROR_DETAIL_NA if exc_value.filename is None else exc_value.filename,
             Messages.OSERROR_DETAIL_NA if exc_value.filename2 is None else exc_value.filename2,
