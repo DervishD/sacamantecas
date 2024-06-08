@@ -40,6 +40,10 @@ from openpyxl.worksheet.worksheet import Worksheet
 from version import DEVELOPMENT_MODE, SEMVER
 
 
+# Handlers are not implemented as classes, but as generators.
+type Handler = Generator[str, dict[str, str] | None, None]
+
+
 class Constants():  # pylint: disable=too-few-public-methods
     """Application configuration values."""
     APP_PATH = Path(__file__)
@@ -962,10 +966,10 @@ def single_url_handler(url: str) -> Handler:
     sink_filename = generate_sink_filename(url_to_filename(url).with_suffix(Constants.TEXTFILE_SUFFIX))
     with open(sink_filename, 'w', encoding=Constants.UTF8) as sink:
         logging.debug(Debug.DUMPING_METADATA_TO_SINK.format(sink_filename))
-        yield True  # Successful initialization.
+        yield Constants.HANDLER_BOOTSTRAP_SUCCESS
         if is_accepted_url(url):
             metadata = yield url
-            yield
+            yield url
             if metadata:
                 sink.write(Constants.TEXTSINK_METADATA_HEADER.format(url))
                 for key, value in metadata.items():
@@ -1003,13 +1007,13 @@ def textfile_handler(source_filename: Path) -> Handler:
     with open(source_filename, encoding=Constants.UTF8) as source:
         with open(sink_filename, 'w', encoding=Constants.UTF8) as sink:
             logging.debug(Debug.DUMPING_METADATA_TO_SINK.format(sink_filename))
-            yield True  # Successful initialization.
+            yield Constants.HANDLER_BOOTSTRAP_SUCCESS
             for url in source.readlines():
                 url = url.strip()
                 if not is_accepted_url(url):
                     continue
                 metadata = yield url
-                yield
+                yield url
                 if metadata:
                     sink.write(Constants.TEXTSINK_METADATA_HEADER.format(url))
                     for key, value in metadata.items():
