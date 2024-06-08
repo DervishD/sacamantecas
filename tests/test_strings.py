@@ -12,14 +12,16 @@ ALLOWED_STRINGS = (
     'frozen', '__main__',
     # Punctuation characters.
     '/', ':', '.', '"', ', ',
+    # String not properly detected in Constants.
+    '{asctime}.{msecs:04.0f} ',
     # Strings used for logging.dictConfig configuration dictionary.
     'version', 'disable_existing_loggers', 'propagate',
-    'indentlevel','+', '-',
+    '+', '-',
     '()', 'style', 'format', 'datefmt',
-    'formatters', 'filters', 'handlers', 'loggers',
-    'level', 'formatter', 'class', 'filename', 'mode', 'encoding', 'stream',
+    'formatters', 'handlers', 'loggers', 'filters',
+    'level', 'formatter',
+    'filename', 'mode', 'encoding', 'stream',
     'debugfile_formatter', 'logfile_formatter', 'console_formatter',
-    'debugfile_filter', 'logfile_filter', 'stdout_filter', 'stderr_filter',
     'debugfile_handler', 'logfile_handler', 'stdout_handler', 'stderr_handler',
     # Miscellaneous strings that should not be refactored.
     'w',

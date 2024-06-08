@@ -8,7 +8,7 @@ from conftest import LogPaths
 from sacamantecas import Constants, ExitCodes, main, Messages
 
 PAD = ' ' * Constants.ERROR_PAYLOAD_INDENT
-LOGGING_LEVELNAME_SEPARATOR = Constants.LOGGING_LEVELNAME_SEPARATOR
+LEVELNAME_SEPARATOR = Constants.LOGGING_LEVELNAME_SEPARATOR
 
 def test_logging_setup(log_paths: LogPaths, monkeypatch: pytest.MonkeyPatch) -> None:  # pylint: disable=unused-variable
     """Test for proper logging setup."""
@@ -36,7 +36,7 @@ def test_no_arguments(log_paths: LogPaths, monkeypatch: pytest.MonkeyPatch) -> N
     expected = '\n'.join((
         Messages.APP_BANNER,
         Messages.ERROR_HEADER,
-        '\n'.join(f'{PAD}{line}' for line in Messages.NO_ARGUMENTS.split('\n')),
+        '\n'.join(f'{PAD}{line}'.rstrip() for line in Messages.NO_ARGUMENTS.split('\n')),
         Messages.PROCESS_DONE
     ))
 
@@ -45,13 +45,13 @@ def test_no_arguments(log_paths: LogPaths, monkeypatch: pytest.MonkeyPatch) -> N
     result = log_paths.debug.read_text(encoding='utf-8').splitlines()
     result = '\n'.join([' '.join(line.split(' ')[1:]) for line in result])
     expected = '\n'.join((
-        f'DEBUG   {LOGGING_LEVELNAME_SEPARATOR}{Messages.DEBUGGING_INIT}',
-        f'INFO    {LOGGING_LEVELNAME_SEPARATOR}{Messages.APP_BANNER}',
-        f'DEBUG   {LOGGING_LEVELNAME_SEPARATOR}{Constants.USER_AGENT}',
-        '\n'.join(f'ERROR   {LOGGING_LEVELNAME_SEPARATOR}{line}' for line in Messages.ERROR_HEADER.split('\n')),
-        '\n'.join(f'ERROR   {LOGGING_LEVELNAME_SEPARATOR}{PAD}{line}' for line in Messages.NO_ARGUMENTS.split('\n')),
-        '\n'.join(f'INFO    {LOGGING_LEVELNAME_SEPARATOR}{line}' for line in Messages.PROCESS_DONE.split('\n')),
-        f'DEBUG   {LOGGING_LEVELNAME_SEPARATOR}{Messages.DEBUGGING_DONE}'
+        f'DEBUG   {LEVELNAME_SEPARATOR}{Messages.DEBUGGING_INIT}',
+        f'INFO    {LEVELNAME_SEPARATOR}{Messages.APP_BANNER}',
+        f'DEBUG   {LEVELNAME_SEPARATOR}{Constants.USER_AGENT}',
+        '\n'.join(f'ERROR   {LEVELNAME_SEPARATOR}{line}'.rstrip() for line in Messages.ERROR_HEADER.split('\n')),
+        '\n'.join(f'ERROR   {LEVELNAME_SEPARATOR}{PAD}{line}'.rstrip() for line in Messages.NO_ARGUMENTS.split('\n')),
+        '\n'.join(f'INFO    {LEVELNAME_SEPARATOR}{line}'.rstrip() for line in Messages.PROCESS_DONE.split('\n')),
+        f'DEBUG   {LEVELNAME_SEPARATOR}{Messages.DEBUGGING_DONE}'
     ))
 
     assert result == expected

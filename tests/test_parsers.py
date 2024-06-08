@@ -10,7 +10,7 @@ from unicodedata import category
 
 import pytest
 
-from sacamantecas import BaratzParser, BaseParser, Debug, OldRegimeParser
+from sacamantecas import BaratzParser, BaseParser, Debug, logger, OldRegimeParser
 
 
 SPACE = 0x20
@@ -100,6 +100,7 @@ def test_parser_reset() -> None:  # pylint: disable=unused-variable
 # pylint: disable-next=unused-variable
 def test_medatata_storage(caplog: pytest.LogCaptureFixture, k: str, v: str, expected: str) -> None:
     """Test store_metadata() branches."""
+    logger.propagate = True
     caplog.set_level(logging.DEBUG)
 
     parser = BaseParser()

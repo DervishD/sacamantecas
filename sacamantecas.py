@@ -27,7 +27,7 @@ from textwrap import dedent
 import time
 import traceback as tb
 from types import SimpleNamespace, TracebackType
-from typing import Any, NoReturn
+from typing import Any, LiteralString, NoReturn, cast
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, unquote, urlparse, urlunparse
 from urllib.request import urlopen, Request
@@ -87,11 +87,18 @@ class Constants():  # pylint: disable=too-few-public-methods
 
     LOGGING_INDENTCHAR = ' '
     LOGGING_FORMAT_STYLE = '{'
+    LOGGING_LEVELNAME_MAX_LEN = len(max(logging.getLevelNamesMapping(), key=len))
     LOGGING_LEVELNAME_SEPARATOR = '| '
+    LOGGING_DEBUGFILE_FORMAT = ''.join((
+        '{asctime}.{msecs:04.0f} ',
+        f'{{levelname:{LOGGING_LEVELNAME_MAX_LEN}}}',
+        LOGGING_LEVELNAME_SEPARATOR,
+        '{message}'
+    ))
     LOGGING_FALLBACK_FORMAT = '{message}'
-    LOGGING_DEBUGFILE_FORMAT = f'{{asctime}}.{{msecs:04.0f}} {{levelname}}{LOGGING_LEVELNAME_SEPARATOR}{{message}}'
     LOGGING_LOGFILE_FORMAT = '{asctime} {message}'
     LOGGING_CONSOLE_FORMAT = '{message}'
+
 
     HANDLER_BOOTSTRAP_SUCCESS = 'Handler bootstrap successful.'
 
@@ -269,8 +276,6 @@ logging.basicConfig(
     format=Constants.LOGGING_FALLBACK_FORMAT,
     force=True
 )
-logging.indent = lambda level=None: None
-logging.dedent = lambda level=None: None
 
 
 # Reconfigure standard output streams so they use UTF-8 encoding, even if
@@ -279,6 +284,157 @@ if sys.stdout and isinstance(sys.stdout, TextIOWrapper):
     sys.stdout.reconfigure(encoding=Constants.UTF8)
 if sys.stderr and isinstance(sys.stderr, TextIOWrapper):
     sys.stderr.reconfigure(encoding=Constants.UTF8)
+
+
+class CustomLogger(logging.Logger):
+    """Custom logger with indentation support."""
+    INCREASE_INDENT_SYMBOL = '+'
+    DECREASE_INDENT_SYMBOL = '-'
+
+    def __init__(self, name: str, level: int = logging.NOTSET) -> None:
+        super().__init__(name, level)
+        self.indentlevel: int = 0
+        self.indentation = ''
+
+    def makeRecord(self, *args: Any, **kwargs: Any) -> logging.LogRecord:
+        """Create a new logging record with indentation support."""
+        record = super().makeRecord(*args, **kwargs)
+        record.msg = '\n'.join(f'{self.indentation}{line}'.rstrip() for line in record.msg.split('\n'))
+        return record
+
+    def _set_indentlevel(self, level: int | LiteralString) -> None | NoReturn:
+        """
+        Set current logging indentation level.
+
+        If level is:
+            - INCREASE_INDENT_SYMBOL string, indentation is increased.
+            - DECREASE_INDENT_SYMBOL string, indentation is decreased.
+            - any non-negative integer, indentation is set to that value.
+
+        For any other value, ValueError is raised.
+
+        Not for public usage, use self.set_indent(level) instead.
+        """
+        if level == self.INCREASE_INDENT_SYMBOL:
+            self.indentlevel += 1
+        if level == self.DECREASE_INDENT_SYMBOL:
+            self.indentlevel = max(0, self.indentlevel - 1)
+        if isinstance(level, int) and level >= 0:
+            self.indentlevel = level
+        self.indentation = Constants.LOGGING_INDENTCHAR * self.indentlevel
+
+    def set_indent(self, level: int) -> None:
+        """Set current logging indentation level."""
+        self._set_indentlevel(max(0, level))
+
+    def indent(self) -> None:
+        """Increment current logging indentation level."""
+        self._set_indentlevel(self.INCREASE_INDENT_SYMBOL)
+
+    def dedent(self) -> None:
+        """Decrement current logging indentation level."""
+        self._set_indentlevel(self.DECREASE_INDENT_SYMBOL)
+
+    def config(self, logfile: str|Path|None = None, debugfile: str|Path|None = None, console: bool = True) -> None:
+        """
+        Configure logger.
+
+        With the default configuration ALL logging messages are sent to
+        debugfile with a timestamp and some debugging information; those
+        messages with severity of logging.INFO or higher are sent to logfile,
+        also timestamped.
+
+        In addition to that, and if console is True (the default), messages with
+        a severity of logging.INFO (and only those) are sent to the standard
+        output stream, and messages with a severity of logging.WARNING or higher
+        are sent to the standard error stream, without a timestamp in both
+        cases.
+
+        If debugfile or logfile are None (the default), then the corresponding
+        files are not created and no logging message will go there. In this
+        case, if console is False, NO LOGGING OUTPUT WILL BE PRODUCED AT ALL.
+        """
+        class MultilineFormatter(logging.Formatter):
+            """Simple custom formatter with multiline support."""
+            def format(self, record: logging.LogRecord):
+                """Format multiline records so they look like multiple records."""
+                formatted_record = super().format(record)
+                preamble = formatted_record[0:formatted_record.rfind(record.message)]
+                return '\n'.join(f'{preamble}{line}'.rstrip() for line in record.message.split('\n'))
+
+        logging_configuration: dict[str, Any] = {
+            'version': 1,
+            'disable_existing_loggers': False,
+            'loggers': {
+                self.name: {
+                    'level': logging.NOTSET,
+                    'propagate': False,
+                    'handlers': [],
+                },
+            },
+        }
+
+        formatters = {}
+        handlers = {}
+
+        if debugfile:
+            formatters['debugfile_formatter'] = {
+                '()': MultilineFormatter,
+                'style': Constants.LOGGING_FORMAT_STYLE,
+                'format': Constants.LOGGING_DEBUGFILE_FORMAT,
+                'datefmt': Constants.TIMESTAMP_FORMAT,
+            }
+            handlers['debugfile_handler'] = {
+                'level': logging.NOTSET,
+                'formatter': 'debugfile_formatter',
+                'class': logging.FileHandler,
+                'filename': debugfile,
+                'mode': 'w',
+                'encoding': Constants.UTF8,
+            }
+
+        if logfile:
+            formatters['logfile_formatter'] = {
+                '()': MultilineFormatter,
+                'style': Constants.LOGGING_FORMAT_STYLE,
+                'format': Constants.LOGGING_LOGFILE_FORMAT,
+                'datefmt': Constants.TIMESTAMP_FORMAT,
+            }
+            handlers['logfile_handler'] = {
+                'level': logging.INFO,
+                'formatter': 'logfile_formatter',
+                'class': logging.FileHandler,
+                'filename': logfile,
+                'mode': 'w',
+                'encoding': Constants.UTF8,
+            }
+
+        if console:
+            formatters['console_formatter'] = {
+                '()': MultilineFormatter,
+                'style': Constants.LOGGING_FORMAT_STYLE,
+                'format': Constants.LOGGING_CONSOLE_FORMAT,
+            }
+            handlers['stdout_handler'] = {
+                'level': logging.NOTSET,
+                'formatter': 'console_formatter',
+                'filters': [lambda record: (record.levelno == logging.INFO)],  # type: ignore
+                'class': logging.StreamHandler,
+                'stream': sys.stdout,
+            }
+            handlers['stderr_handler'] = {
+                'level': logging.WARNING,
+                'formatter': 'console_formatter',
+                'class': logging.StreamHandler,
+                'stream': sys.stderr,
+            }
+
+        logging_configuration['formatters'] = formatters
+        logging_configuration['handlers'] = handlers
+        logging_configuration['loggers'][self.name]['handlers'] = handlers.keys()
+        dictConfig(logging_configuration)
+logging.setLoggerClass(CustomLogger)
+logger: CustomLogger = cast(CustomLogger, logging.getLogger(Constants.APP_NAME))
 
 
 class BaseApplicationError(Exception):
@@ -330,7 +486,7 @@ class BaseParser(HTMLParser):
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         """Handle opening tags."""
-        logging.debug(Debug.HTML_START_TAG.format(tag, ' ' * bool(attrs), ' '.join((f'{k}="{v}"' for k, v in attrs))))
+        logger.debug(Debug.HTML_START_TAG.format(tag, ' ' * bool(attrs), ' '.join((f'{k}="{v}"' for k, v in attrs))))
 
     def handle_data(self, data: str) -> None:
         """Handle data."""
@@ -341,12 +497,12 @@ class BaseParser(HTMLParser):
             if not data:
                 return
         if self.within_k:
-            logging.debug(Debug.METADATA_KEY_FOUND.format(data))
+            logger.debug(Debug.METADATA_KEY_FOUND.format(data))
             self.current_k += data.rstrip(':')
             self.last_k = self.current_k
             return
         if self.within_v:
-            logging.debug(Debug.METADATA_VALUE_FOUND.format(data))
+            logger.debug(Debug.METADATA_VALUE_FOUND.format(data))
             self.current_v += f'{self.MULTIDATA_SEPARATOR if self.current_v else ''}{data}'
             return
 
@@ -365,19 +521,19 @@ class BaseParser(HTMLParser):
     def store_metadata(self) -> None:
         """Store found metadata, handling missing parts."""
         if not self.current_k and not self.current_v:
-            logging.debug(Debug.METADATA_IS_EMPTY)
+            logger.debug(Debug.METADATA_IS_EMPTY)
         if self.current_k and not self.current_v:
-            logging.debug(Debug.METADATA_MISSING_VALUE.format(self.current_k))
+            logger.debug(Debug.METADATA_MISSING_VALUE.format(self.current_k))
         if not self.current_k and self.current_v:
             self.current_k = self.last_k if self.last_k else self.EMPTY_KEY_PLACEHOLDER
-            logging.debug(Debug.METADATA_MISSING_KEY.format(self.current_k))
+            logger.debug(Debug.METADATA_MISSING_KEY.format(self.current_k))
         if self.current_k and self.current_v:
             if self.current_k not in self.retrieved_metadata:
                 self.retrieved_metadata[self.current_k] = []
             # A set is not used instead of the code below, to preserve order.
             if self.current_v not in self.retrieved_metadata[self.current_k]:
                 self.retrieved_metadata[self.current_k].append(self.current_v)
-            logging.debug(Debug.METADATA_OK.format(self.current_k, self.current_v))
+            logger.debug(Debug.METADATA_OK.format(self.current_k, self.current_v))
         self.current_k = self.DEFAULT_K
         self.current_v = self.DEFAULT_V
 
@@ -422,7 +578,7 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
             if attr[1] is None:
                 continue
             if attr[0] == self.CLASS_ATTR and (match := self.config[self.K_CLASS].search(attr[1])):
-                logging.debug(Debug.METADATA_KEY_MARKER_FOUND.format(match.group(0)))
+                logger.debug(Debug.METADATA_KEY_MARKER_FOUND.format(match.group(0)))
                 self.within_k = True
                 self.current_k = self.DEFAULT_K
                 self.current_k_tag = tag
@@ -430,13 +586,13 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
                     # If still processing a value, notify about the nesting error
                     # but reset parser so everything starts afresh, like if a new
                     # key had been found.
-                    logging.debug(Debug.PARSER_NESTING_ERROR_K_IN_V)
+                    logger.debug(Debug.PARSER_NESTING_ERROR_K_IN_V)
                     self.within_v = False
                     self.current_v = self.DEFAULT_V
                     self.current_v_tag = None
                 break
             if attr[0] == self.CLASS_ATTR and (match := self.config[self.V_CLASS].search(attr[1])):
-                logging.debug(Debug.METADATA_VALUE_MARKER_FOUND.format(match.group(0)))
+                logger.debug(Debug.METADATA_VALUE_MARKER_FOUND.format(match.group(0)))
                 self.within_v = True
                 self.current_v = self.DEFAULT_V
                 self.current_v_tag = tag
@@ -445,7 +601,7 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
                     # recovered up to a certain point. If some data was got for
                     # the key, the parser is left in within_v mode to try to get
                     # the corresponding value. Otherwise the parser is reset.
-                    logging.debug(Debug.PARSER_NESTING_ERROR_V_IN_K)
+                    logger.debug(Debug.PARSER_NESTING_ERROR_V_IN_K)
                     self.within_k = False
                     self.current_k_tag = None
                     if not self.current_k:
@@ -509,30 +665,30 @@ class BaratzParser(BaseParser):   # pylint: disable=unused-variable
                 if attr[1] is None:
                     return
                 if self.config[self.M_ATTR].fullmatch(attr[0]) and self.config[self.M_VALUE].search(attr[1]):
-                    logging.debug(Debug.METADATA_MARKER_FOUND.format(attr[1]))
+                    logger.debug(Debug.METADATA_MARKER_FOUND.format(attr[1]))
                     self.within_meta = True
                     return
         else:
             if tag == self.K_TAG:
-                logging.debug(Debug.METADATA_KEY_MARKER_FOUND.format(tag))
+                logger.debug(Debug.METADATA_KEY_MARKER_FOUND.format(tag))
                 self.within_k = True
                 if self.within_v:
                     # If still processing a value, notify about the nesting error
                     # but reset parser so everything starts afresh, like if a new
                     # key had been found.
-                    logging.debug(Debug.PARSER_NESTING_ERROR_K_IN_V)
+                    logger.debug(Debug.PARSER_NESTING_ERROR_K_IN_V)
                     self.within_v = False
                     self.current_v = self.DEFAULT_V
                 return
             if tag == self.V_TAG:
-                logging.debug(Debug.METADATA_VALUE_MARKER_FOUND.format(tag))
+                logger.debug(Debug.METADATA_VALUE_MARKER_FOUND.format(tag))
                 self.within_v = True
                 if self.within_k:
                     # If still processing a key, the nesting error can still be
                     # recovered up to a certain point. If some data was got for
                     # the key, the parser is left in within_v mode to try to get
                     # the corresponding value. Otherwise the parser is reset.
-                    logging.debug(Debug.PARSER_NESTING_ERROR_V_IN_K)
+                    logger.debug(Debug.PARSER_NESTING_ERROR_V_IN_K)
                     self.within_k = False
                     if not self.current_k:
                         self.within_v = False
@@ -576,22 +732,22 @@ def error(message: Any, details: Any='') -> None:
     """Helper for preprocessing error messages."""
     message = str(message)
     details = str(details)
-    logging.indent(0)
-    logging.error(Messages.ERROR_HEADER)
-    logging.indent(Constants.ERROR_PAYLOAD_INDENT)
-    logging.error(message)
+    logger.set_indent(0)
+    logger.error(Messages.ERROR_HEADER)
+    logger.set_indent(Constants.ERROR_PAYLOAD_INDENT)
+    logger.error(message)
     if details := details.strip():
-        logging.error(Messages.ERROR_DETAILS_HEADING)
-        logging.error('\n'.join(f'{Messages.ERROR_DETAILS_PREAMBLE}{line}' for line in details.split('\n')))
-        logging.error(Messages.ERROR_DETAILS_TAIL)
-    logging.indent(0)
+        logger.error(Messages.ERROR_DETAILS_HEADING)
+        logger.error('\n'.join(f'{Messages.ERROR_DETAILS_PREAMBLE}{line}' for line in details.split('\n')))
+        logger.error(Messages.ERROR_DETAILS_TAIL)
+    logger.set_indent(0)
 
 
 def warning(message: Any) -> None:
     """Helper for prepending a header to warning messages."""
     message = str(message)
     message = Messages.WARNING_HEADER + message[0].lower() + message[1:]
-    logging.warning(message)
+    logger.warning(message)
 
 
 def is_accepted_url(value: str | None) -> bool:
@@ -702,161 +858,19 @@ def excepthook(exc_type: type[BaseException], exc_value: BaseException, exc_trac
 def loggerize(function: Callable[..., Any]) -> Callable[..., Any]:
     """Decorator which enables logging for function."""
     def loggerize_wrapper(*args: str, **kwargs: Any) -> ExitCodes:
-        setup_logging(Constants.LOGFILE_PATH, Constants.DEBUGFILE_PATH)
+        logger.config(Constants.LOGFILE_PATH, Constants.DEBUGFILE_PATH)
 
-        logging.debug(Messages.DEBUGGING_INIT)
-        logging.info(Messages.APP_BANNER)
-        logging.debug(Constants.USER_AGENT)
+        logger.debug(Messages.DEBUGGING_INIT)
+        logger.info(Messages.APP_BANNER)
+        logger.debug(Constants.USER_AGENT)
 
         status = function(*args, **kwargs)
 
-        logging.info(Messages.PROCESS_DONE)
-        logging.debug(Messages.DEBUGGING_DONE)
+        logger.info(Messages.PROCESS_DONE)
+        logger.debug(Messages.DEBUGGING_DONE)
         logging.shutdown()
         return status
     return loggerize_wrapper
-
-
-def setup_logging(log_filename: Path, debug_filename: Path) -> None:
-    """
-    Sets up logging system, disabling all existing loggers.
-
-    With the current configuration ALL logging messages are sent to the debug
-    file and messages with levels over logging.INFO are sent to the log file.
-
-    Also, logging.INFO messages are sent to sys.stdout, without a timestamp.
-    Finally, messages with levels over logging.INFO are sent to sys.stderr, also
-    without a timestamp.
-    """
-    class CustomFormatter(logging.Formatter):
-        """Simple custom formatter for logging messages."""
-        def format(self, record: logging.LogRecord) -> str:
-            """
-            Format multiline records so they look like multiple records.
-            Indent message according to current indentation level.
-            """
-            message = super().format(record)
-            preamble, message = message.partition(record.message)[:2]
-            return '\n'.join(f'{preamble}{record.indent}{line}' for line in message.split('\n'))
-
-    logging_configuration = {
-        'version': 1,
-        'disable_existing_loggers': True,
-        'formatters': {
-            'debugfile_formatter': {
-                '()': CustomFormatter,
-                'style': Constants.LOGGING_FORMAT_STYLE,
-                'format': Constants.LOGGING_DEBUGFILE_FORMAT,
-                'datefmt': Constants.TIMESTAMP_FORMAT,
-            },
-            'logfile_formatter': {
-                '()': CustomFormatter,
-                'style': Constants.LOGGING_FORMAT_STYLE,
-                'format': Constants.LOGGING_LOGFILE_FORMAT,
-                'datefmt': Constants.TIMESTAMP_FORMAT,
-            },
-            'console_formatter': {
-                '()': CustomFormatter,
-                'style': Constants.LOGGING_FORMAT_STYLE,
-                'format': Constants.LOGGING_CONSOLE_FORMAT,
-            },
-        },
-        'filters': {
-            'debugfile_filter': {'()': lambda: lambda record: record.msg.strip() and record.levelno > logging.NOTSET},
-            'logfile_filter': {'()': lambda: lambda record: record.msg.strip() and record.levelno >= logging.INFO},
-            'stdout_filter': {'()': lambda: lambda record: record.msg.strip() and record.levelno == logging.INFO},
-            'stderr_filter': {'()': lambda: lambda record: record.msg.strip() and record.levelno > logging.INFO},
-        },
-        'handlers': {
-            'debugfile_handler': {
-                'level': logging.NOTSET,
-                'formatter': 'debugfile_formatter',
-                'filters': ['debugfile_filter'],
-                'class': logging.FileHandler,
-                'filename': debug_filename,
-                'mode': 'w',
-                'encoding': Constants.UTF8,
-            },
-            'logfile_handler': {
-                'level': logging.NOTSET,
-                'formatter': 'logfile_formatter',
-                'filters': ['logfile_filter'],
-                'class': logging.FileHandler,
-                'filename': log_filename,
-                'mode': 'w',
-                'encoding': Constants.UTF8,
-            },
-            'stdout_handler': {
-                'level': logging.NOTSET,
-                'formatter': 'console_formatter',
-                'filters': ['stdout_filter'],
-                'class': logging.StreamHandler,
-                'stream': sys.stdout,
-            },
-            'stderr_handler': {
-                'level': logging.NOTSET,
-                'formatter': 'console_formatter',
-                'filters': ['stderr_filter'],
-                'class': logging.StreamHandler,
-                'stream': sys.stderr,
-            },
-        },
-        'loggers': {
-            '': {
-                'level': logging.NOTSET,
-                'handlers': [
-                    'debugfile_handler',
-                    'logfile_handler',
-                    'stdout_handler',
-                    'stderr_handler'
-                ],
-                'propagate': False,
-            },
-        },
-    }
-
-    dictConfig(logging_configuration)
-
-    setattr(logging.getLogger(), 'indentlevel', 0)
-
-    current_factory = logging.getLogRecordFactory()
-    levelname_template = f'{{:{len(max(logging.getLevelNamesMapping(), key=len))}}}'
-    def record_factory(*args: Any, **kwargs: Any) -> logging.LogRecord:
-        """LogRecord factory which supports indentation."""
-        record = current_factory(*args, **kwargs)
-        record.indent = Constants.LOGGING_INDENTCHAR * logging.getLogger().indentlevel
-        record.levelname = levelname_template.format(record.levelname)
-        return record
-    logging.setLogRecordFactory(record_factory)
-
-    increase_indent_symbol = '+'
-    decrease_indent_symbol = '-'
-    def set_indent_level(level: str | int) -> None:
-        """
-        Set current indentation level.
-
-        If level is increase_indent_symbol, current indentation level is increased.
-        If level is decrease_indent_symbol, current indentation level is decreased.
-        For any other value, indentation level is set to the provided value.
-        """
-        if level == '+':
-            logging.getLogger().indentlevel += 1
-            return
-        if level == '-':
-            logging.getLogger().indentlevel -= 1
-            return
-        logging.getLogger().indentlevel = level
-
-    # Both logging.indent() and logging.dedent() support a parameter specifying an
-    # exact FINAL indentation level, not an indentation increment/decrement!
-    #
-    # For both functions, the indentation level represents the number of copies of
-    # the character _Config.LOGGING_INDENTCHAR to be prepended to logging messages.
-    #
-    # If that level is not provided or is None, the current logging indentation
-    # level increased/decreased in 1 copy of _Config.LOGGING_INDENTCHAR.
-    logging.indent = lambda level=None: set_indent_level(increase_indent_symbol if level is None else level)
-    logging.dedent = lambda level=None: set_indent_level(decrease_indent_symbol if level is None else level)
 
 
 def keyboard_interrupt_handler(function: Callable[..., Any]) -> Callable[..., Any]:
@@ -886,7 +900,7 @@ def load_profiles(filename: Path) -> dict[str, Profile]:
     are present in filename.
     """
     config = configparser.ConfigParser()
-    logging.debug(Debug.LOADING_PROFILES.format(filename))
+    logger.debug(Debug.LOADING_PROFILES.format(filename))
     try:
         with open(filename, encoding=Constants.UTF8) as inifile:
             config.read_file(inifile)
@@ -936,18 +950,18 @@ def parse_arguments(*args: str) -> Generator[tuple[str, Handler | None], None, N
     be None for unsupported sources.
     """
     for arg in args:
-        logging.debug(Debug.PROCESSING_ARG.format(arg))
+        logger.debug(Debug.PROCESSING_ARG.format(arg))
         if is_accepted_url(arg):
-            logging.debug(Debug.ARG_IS_SOURCE_SINGLE_URL)
+            logger.debug(Debug.ARG_IS_SOURCE_SINGLE_URL)
             handler = single_url_handler(arg)
         elif arg.endswith(Constants.TEXTFILE_SUFFIX):
-            logging.debug(Debug.ARG_IS_SOURCE_TEXTFILE)
+            logger.debug(Debug.ARG_IS_SOURCE_TEXTFILE)
             handler = textfile_handler(Path(arg))
         elif arg.endswith(Constants.SPREADSHEET_SUFFIX):
-            logging.debug(Debug.ARG_IS_SOURCE_SPREADSHEET)
+            logger.debug(Debug.ARG_IS_SOURCE_SPREADSHEET)
             handler = spreadsheet_handler(Path(arg))
         else:
-            logging.debug(Debug.ARG_IS_SOURCE_UNSUPPORTED)
+            logger.debug(Debug.ARG_IS_SOURCE_UNSUPPORTED)
             handler = None
         yield arg, handler
 
@@ -980,7 +994,7 @@ def single_url_handler(url: str) -> Handler:
     """
     sink_filename = generate_sink_filename(url_to_filename(url).with_suffix(Constants.TEXTFILE_SUFFIX))
     with open(sink_filename, 'w', encoding=Constants.UTF8) as sink:
-        logging.debug(Debug.DUMPING_METADATA_TO_SINK.format(sink_filename))
+        logger.debug(Debug.DUMPING_METADATA_TO_SINK.format(sink_filename))
         yield Constants.HANDLER_BOOTSTRAP_SUCCESS
         if is_accepted_url(url):
             metadata = yield url
@@ -988,11 +1002,11 @@ def single_url_handler(url: str) -> Handler:
             if metadata:
                 sink.write(Constants.TEXTSINK_METADATA_HEADER.format(url))
                 for key, value in metadata.items():
-                    logging.debug(Debug.DUMPING_METADATA_K_V.format(key, value))
+                    logger.debug(Debug.DUMPING_METADATA_K_V.format(key, value))
                     message = Constants.TEXTSINK_METADATA_PAIR.format(key, value)
-                    logging.indent()
-                    logging.info(message)  # Output allowed here because it is part of the handler.
-                    logging.dedent()
+                    logger.indent()
+                    logger.info(message)  # Output allowed here because it is part of the handler.
+                    logger.dedent()
                     sink.write(message)
                 sink.write(Constants.TEXTSINK_METADATA_FOOTER)
 
@@ -1021,7 +1035,7 @@ def textfile_handler(source_filename: Path) -> Handler:
     sink_filename = generate_sink_filename(source_filename)
     with open(source_filename, encoding=Constants.UTF8) as source:
         with open(sink_filename, 'w', encoding=Constants.UTF8) as sink:
-            logging.debug(Debug.DUMPING_METADATA_TO_SINK.format(sink_filename))
+            logger.debug(Debug.DUMPING_METADATA_TO_SINK.format(sink_filename))
             yield Constants.HANDLER_BOOTSTRAP_SUCCESS
             for url in source.readlines():
                 url = url.strip()
@@ -1032,7 +1046,7 @@ def textfile_handler(source_filename: Path) -> Handler:
                 if metadata:
                     sink.write(Constants.TEXTSINK_METADATA_HEADER.format(url))
                     for key, value in metadata.items():
-                        logging.debug(Debug.DUMPING_METADATA_K_V.format(key, value))
+                        logger.debug(Debug.DUMPING_METADATA_K_V.format(key, value))
                         sink.write(Constants.TEXTSINK_METADATA_PAIR.format(key, value))
                     sink.write(Constants.TEXTSINK_METADATA_FOOTER)
 
@@ -1052,7 +1066,7 @@ def spreadsheet_handler(source_filename: Path) -> Handler:
     where the URLs for the items are. Allegedly…
     """
     sink_filename = generate_sink_filename(source_filename)
-    logging.debug(Debug.COPYING_WORKBOOK.format(sink_filename))
+    logger.debug(Debug.COPYING_WORKBOOK.format(sink_filename))
 
     copy2(source_filename, sink_filename)
     try:
@@ -1079,11 +1093,11 @@ def spreadsheet_handler(source_filename: Path) -> Handler:
             raise SourceError(Messages.SINK_SHEET_IS_READ_ONLY)
         raise SourceError(Messages.SINK_SHEET_IS_UNKNOWN_TYPE)
 
-    logging.debug(Debug.INSERTING_HEADING_ROW)
+    logger.debug(Debug.INSERTING_HEADING_ROW)
     sink_sheet.insert_rows(1, 1)
 
     for row in source_sheet.rows:
-        logging.debug(Debug.PROCESSING_ROW.format(row[0].row))
+        logger.debug(Debug.PROCESSING_ROW.format(row[0].row))
         if (url := get_url_from_row(row)) is None:
             continue
         metadata = yield url
@@ -1100,11 +1114,11 @@ def get_url_from_row(row: tuple[Cell, ...]) -> str | None:
     url = None
     for cell in row:
         if cell.data_type != CELLTYPE_STRING:
-            logging.debug(Debug.NONSTRING_CELL.format(cell.coordinate))
+            logger.debug(Debug.NONSTRING_CELL.format(cell.coordinate))
             continue
         if is_accepted_url(str(cell.value)):
             url = str(cell.value)
-            logging.debug(Debug.URL_FOUND_IN_CELL.format(cell.coordinate, url))
+            logger.debug(Debug.URL_FOUND_IN_CELL.format(cell.coordinate, url))
             break  # Only the FIRST URL found in each row is considered.
     return url
 
@@ -1129,10 +1143,10 @@ def store_metadata_in_sheet(
     for key, value in metadata.items():
         key = Constants.SPREADSHEET_METADATA_COLUMN_TITLE.format(key)
         if key not in static.known_metadata:
-            logging.debug(Debug.NEW_METADATA_FOUND.format(key))
+            logger.debug(Debug.NEW_METADATA_FOUND.format(key))
             column = sheet.max_column + 1
             static.known_metadata[key] = column
-            logging.debug(Debug.METADATA_STORED_IN_COLUMN.format(key, get_column_letter(column)))
+            logger.debug(Debug.METADATA_STORED_IN_COLUMN.format(key, get_column_letter(column)))
             cell = sheet.cell(row=1, column=column, value=key)
             cell.font = Font(name=Constants.SPREADSHEET_CELL_FONT)
             cell.fill = PatternFill(fgColor=Constants.SPREADSHEET_CELL_COLOR, fill_type=Constants.SPREADSHEET_CELL_FILL)
@@ -1155,7 +1169,7 @@ def store_metadata_in_sheet(
                 # of that column affects ALL the following ones whose index is
                 # less than 'max'… So, it's better to fix that field.
             sheet.column_dimensions[get_column_letter(column)].max = column
-        logging.debug(Debug.DUMPING_METADATA_K_V.format(key, value))
+        logger.debug(Debug.DUMPING_METADATA_K_V.format(key, value))
             # Since a heading row is inserted, the rows where metadata has to go
             # have now an +1 offset, as they have been displaced.
         sheet.cell(row[0].row + 1, static.known_metadata[key], value=value)
@@ -1183,7 +1197,7 @@ def get_parser(url: str, profiles: dict[str, Profile]) -> BaseParser | None:
     """
     for profile_name, profile in profiles.items():
         if profile.url_pattern.search(url):
-            logging.debug(Debug.DETECTED_PROFILE.format(profile_name))
+            logger.debug(Debug.DETECTED_PROFILE.format(profile_name))
             profile.parser.configure(profile.parser_config)
             return profile.parser
     return None
@@ -1269,7 +1283,7 @@ def retrieve_url(url: str) -> tuple[bytes, str]:
     contents = b''
     charset = ''
     while retrieved_url:
-        logging.debug(Debug.PROCESSING_URL.format(url))
+        logger.debug(Debug.PROCESSING_URL.format(url))
         with urlopen(Request(url, headers={'User-Agent': Constants.USER_AGENT})) as response:
             # First, check if any redirection is needed and get the charset the easy way.
             contents = response.read()
@@ -1279,11 +1293,11 @@ def retrieve_url(url: str) -> tuple[bytes, str]:
     # In this point, we have the contents as a byte string.
     # If the charset is None, it has to be determined the hard way.
     if not charset:
-        logging.debug(Debug.CHARSET_NOT_IN_HEADERS)
+        logger.debug(Debug.CHARSET_NOT_IN_HEADERS)
         charset = detect_html_charset(contents)
     else:
-        logging.debug(Debug.CHARSET_IN_HEADERS)
-    logging.debug(Debug.CONTENTS_ENCODING.format(charset))
+        logger.debug(Debug.CHARSET_IN_HEADERS)
+    logger.debug(Debug.CONTENTS_ENCODING.format(charset))
 
     return contents, charset
 
@@ -1316,7 +1330,7 @@ def get_redirected_url(base_url: str, contents: bytes) -> str | None:
             if field in ('scheme', 'netloc') and not getattr(redirected_url, field):
                 redirected_url = redirected_url._replace(**{field: value})
         redirected_url = urlunparse(redirected_url)
-        logging.debug(Debug.REDIRECTED_URL.format(redirected_url))
+        logger.debug(Debug.REDIRECTED_URL.format(redirected_url))
         return redirected_url
     return None
 
@@ -1338,14 +1352,14 @@ def detect_html_charset(contents: bytes) -> str:
     charset = Constants.FALLBACK_HTML_CHARSET
     if match := re.search(Constants.META_HTTP_EQUIV_CHARSET_RE, contents, re.I):
         # Next best thing, from the meta http-equiv="content-type".
-        logging.debug(Debug.CHARSET_FROM_HTTP_EQUIV)
+        logger.debug(Debug.CHARSET_FROM_HTTP_EQUIV)
         charset = match.group(1).decode(Constants.ASCII)
     elif match := re.search(Constants.META_CHARSET_RE, contents, re.I):
         # Last resort, from some meta charset, if any…
-        logging.debug(Debug.CHARSET_FROM_META_CHARSET)
+        logger.debug(Debug.CHARSET_FROM_META_CHARSET)
         charset = match.group(1).decode(Constants.ASCII)
     else:
-        logging.debug(Debug.CHARSET_FROM_DEFAULT)
+        logger.debug(Debug.CHARSET_FROM_DEFAULT)
     return charset
 
 
@@ -1370,47 +1384,47 @@ def main(*args: str) -> ExitCodes:
         profiles = load_profiles(Constants.INIFILE_PATH)
         if not profiles:
             raise ProfilesError(Messages.EMPTY_PROFILES.format(Constants.INIFILE_PATH))
-        logging.debug(Debug.FOUND_PROFILES.format(', '.join(profiles.keys())))
+        logger.debug(Debug.FOUND_PROFILES.format(', '.join(profiles.keys())))
     except ProfilesError as exc:
         error(exc, exc.details)
         return ExitCodes.ERROR
 
-    logging.info(Messages.SKIMMING_MARKER)
-    logging.indent()
+    logger.info(Messages.SKIMMING_MARKER)
+    logger.indent()
     for source, handler in parse_arguments(*args):
-        logging.info(Messages.SOURCE_LABEL.format(source))
+        logger.info(Messages.SOURCE_LABEL.format(source))
         try:
             if handler is None:
                 raise SourceError(Messages.UNSUPPORTED_SOURCE)
             bootstrap(handler)
         except SourceError as exc:
-            logging.indent()
+            logger.indent()
             warning(exc)
-            logging.dedent()
+            logger.dedent()
             exitcode = ExitCodes.WARNING
             continue
 
-        logging.indent()
+        logger.indent()
         for url in handler:
-            logging.info(url)
+            logger.info(url)
             metadata = {}
             try:
                 if (parser := get_parser(url, profiles)) is None:
                     raise SkimmingError(Messages.NO_MATCHING_PROFILE)
                 metadata = saca_las_mantecas(url, parser)
             except SkimmingError as exc:
-                logging.indent()
+                logger.indent()
                 warning(exc)
-                logging.debug(exc.details)
-                logging.dedent()
+                logger.debug(exc.details)
+                logger.dedent()
                 exitcode = ExitCodes.WARNING
             finally:
                 # No matter if metadata has actual contents or not, the handler
                 # has to be 'advanced' to the next URL, so the metadata it is
                 # expecting has to be sent to the handler.
                 handler.send(metadata)
-        logging.dedent()
-    logging.dedent()
+        logger.dedent()
+    logger.dedent()
     return exitcode
 
 

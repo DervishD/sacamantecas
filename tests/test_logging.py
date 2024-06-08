@@ -7,7 +7,7 @@ from typing import NamedTuple
 import pytest
 
 from conftest import LogPaths
-from sacamantecas import Constants, error, Messages, setup_logging, warning
+from sacamantecas import Constants, error, logger, Messages, warning
 
 
 ERROR_HEADER = Messages.ERROR_HEADER
@@ -16,7 +16,7 @@ ERROR_DETAILS_PREAMBLE = Messages.ERROR_DETAILS_PREAMBLE
 ERROR_DETAILS_TAIL = Messages.ERROR_DETAILS_TAIL
 PAD = ' ' * Constants.ERROR_PAYLOAD_INDENT
 WARNING_HEADER = Messages.WARNING_HEADER
-LOGGING_LEVELNAME_SEPARATOR = Constants.LOGGING_LEVELNAME_SEPARATOR
+LEVELNAME_SEPARATOR = Constants.LOGGING_LEVELNAME_SEPARATOR
 
 
 def test_logging_files_creation(log_paths: LogPaths) -> None:  # pylint: disable=unused-variable
@@ -24,7 +24,7 @@ def test_logging_files_creation(log_paths: LogPaths) -> None:  # pylint: disable
     assert not log_paths.log.is_file()
     assert not log_paths.debug.is_file()
 
-    setup_logging(log_paths.log, log_paths.debug)
+    logger.config(log_paths.log, log_paths.debug)
 
     logging.shutdown()
 
@@ -44,41 +44,41 @@ class Expected(NamedTuple):
     out: str
     err: str
 @pytest.mark.parametrize('logfunc, expected', [
-    (logging.debug, Expected(
+    (logger.debug, Expected(
         '',
-        f'DEBUG   {LOGGING_LEVELNAME_SEPARATOR}{TEST_MESSAGE}',
+        f'DEBUG   {LEVELNAME_SEPARATOR}{TEST_MESSAGE}',
         '',
         ''
     )),
-    (logging.info, Expected(
+    (logger.info, Expected(
         TEST_MESSAGE,
-        f'INFO    {LOGGING_LEVELNAME_SEPARATOR}{TEST_MESSAGE}',
+        f'INFO    {LEVELNAME_SEPARATOR}{TEST_MESSAGE}',
         f'{TEST_MESSAGE}\n',
         ''
     )),
-    (logging.warning, Expected(
+    (logger.warning, Expected(
         TEST_MESSAGE,
-        f'WARNING {LOGGING_LEVELNAME_SEPARATOR}{TEST_MESSAGE}',
+        f'WARNING {LEVELNAME_SEPARATOR}{TEST_MESSAGE}',
         '',
         f'{TEST_MESSAGE}\n'
     )),
-    (logging.error, Expected(
+    (logger.error, Expected(
         TEST_MESSAGE,
-        f'ERROR   {LOGGING_LEVELNAME_SEPARATOR}{TEST_MESSAGE}',
+        f'ERROR   {LEVELNAME_SEPARATOR}{TEST_MESSAGE}',
         '',
         f'{TEST_MESSAGE}\n'
     )),
     (warning, Expected(
         f'{WARNING_HEADER}{TEST_MESSAGE[0].lower()}{TEST_MESSAGE[1:]}',
-        f'WARNING {LOGGING_LEVELNAME_SEPARATOR}{WARNING_HEADER}{TEST_MESSAGE[0].lower()}{TEST_MESSAGE[1:]}',
+        f'WARNING {LEVELNAME_SEPARATOR}{WARNING_HEADER}{TEST_MESSAGE[0].lower()}{TEST_MESSAGE[1:]}',
         '',
         f'{WARNING_HEADER}{TEST_MESSAGE[0].lower()}{TEST_MESSAGE[1:]}\n'
     )),
     (error, Expected(
-        '\n'.join((ERROR_HEADER, f'{PAD}{TEST_MESSAGE}')),
+        '\n'.join((ERROR_HEADER, f'{PAD}{TEST_MESSAGE}'.rstrip())),
         '\n'.join((
-            '\n'.join(f'ERROR   {LOGGING_LEVELNAME_SEPARATOR}{line}' for line in ERROR_HEADER.split('\n')),
-            '\n'.join(f'ERROR   {LOGGING_LEVELNAME_SEPARATOR}{PAD}{line}' for line in TEST_MESSAGE.split('\n'))
+            '\n'.join(f'ERROR   {LEVELNAME_SEPARATOR}{line}'.rstrip() for line in ERROR_HEADER.split('\n')),
+            '\n'.join(f'ERROR   {LEVELNAME_SEPARATOR}{PAD}{line}'.rstrip() for line in TEST_MESSAGE.split('\n'))
         )),
         '',
         '\n'.join((ERROR_HEADER, f'{PAD}{TEST_MESSAGE}', '')),
@@ -92,7 +92,7 @@ def test_logging_functions(
     expected: Expected
 ) -> None:
     """Test all logging functions."""
-    setup_logging(log_paths.log, log_paths.debug)
+    logger.config(log_paths.log, log_paths.debug)
 
     logfunc(TEST_MESSAGE)
 
@@ -119,7 +119,7 @@ def test_logging_functions(
 # pylint: disable-next=unused-variable
 def test_error_details(log_paths: LogPaths, capsys: pytest.CaptureFixture[str]) -> None:
     """Test handling of details by the error() function."""
-    setup_logging(log_paths.log, log_paths.debug)
+    logger.config(log_paths.log, log_paths.debug)
 
     details = 'Additional details in multiple lines.'.replace(' ', '\n')
     error(TEST_MESSAGE, details)
@@ -128,7 +128,7 @@ def test_error_details(log_paths: LogPaths, capsys: pytest.CaptureFixture[str]) 
 
     expected = '\n'.join((
         ERROR_HEADER,
-        '\n'.join(f'{PAD}{line}' for line in (
+        '\n'.join(f'{PAD}{line}'.rstrip() for line in (
             TEST_MESSAGE.split('\n') +
             ERROR_DETAILS_HEADING.split('\n') +
             list(f'{ERROR_DETAILS_PREAMBLE}{line}' for line in details.split('\n')) +
@@ -144,7 +144,7 @@ def test_error_details(log_paths: LogPaths, capsys: pytest.CaptureFixture[str]) 
     assert log_file_contents == expected
 
     debug_file_contents = log_paths.debug.read_text(encoding='utf-8').split('\n')
-    debug_file_contents = [line.split(LOGGING_LEVELNAME_SEPARATOR, maxsplit=1)[1:] for line in debug_file_contents]
+    debug_file_contents = [line.split(LEVELNAME_SEPARATOR, maxsplit=1)[1:] for line in debug_file_contents]
     debug_file_contents = [''.join(line) for line in debug_file_contents]
     debug_file_contents = '\n'.join(debug_file_contents)
 
@@ -159,21 +159,19 @@ def test_error_details(log_paths: LogPaths, capsys: pytest.CaptureFixture[str]) 
 @pytest.mark.parametrize('message', [
     'No whitespace.',
     '   Leading whitespace.',
-    'Trailing whitespace.   ',
-    '   Leading and trailing whitespace.   ',
     '\nLeading newline.',
     'Trailing newline.\n',
     '\bLeading and trailing newline.\n',
 ])
 # pylint: disable-next=unused-variable
 def test_whitespace_honoring(log_paths: LogPaths, capsys: pytest.CaptureFixture[str], message: str) -> None:
-    "Test whether leading and trailing whitespace are honored."
+    "Test whether whitespace is honored where it should."
     terminator = '<TERMINATOR>'
 
-    setup_logging(log_paths.log, log_paths.debug)
+    logger.config(log_paths.log, log_paths.debug)
 
     logging.StreamHandler.terminator, saved_terminator = terminator, logging.StreamHandler.terminator
-    logging.info(message)
+    logger.info(message)
     logging.StreamHandler.terminator = saved_terminator
 
     logging.shutdown()

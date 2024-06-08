@@ -6,7 +6,7 @@ from typing import NoReturn
 import pytest
 
 from conftest import LogPaths
-from sacamantecas import Constants, keyboard_interrupt_handler, loggerize, Messages, setup_logging
+from sacamantecas import Constants, keyboard_interrupt_handler, logger, loggerize, Messages
 
 @loggerize
 def loggerized_function() -> None:
@@ -39,7 +39,7 @@ def test_loggerize(log_paths: LogPaths, monkeypatch: pytest.MonkeyPatch) -> None
 # pylint: disable-next=unused-variable
 def test_keyboard_interrupt_handler(log_paths: LogPaths, capsys: pytest.CaptureFixture[str]) -> None:
     """Test the keyboard_interrupt_handler() decorator."""
-    setup_logging(log_paths.log, log_paths.debug)
+    logger.config(log_paths.log, log_paths.debug)
 
     try:
         interrupted_function()
