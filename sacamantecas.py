@@ -293,20 +293,6 @@ class SkimmingError(BaseApplicationError):
     """Raise for skimming-related errors."""
 
 
-class Profile():  # pylint: disable=too-few-public-methods
-    """Abstraction for profiles."""
-    def __init__(self, url_pattern, parser, parser_config):
-        self.url_pattern = url_pattern
-        self.parser = parser
-        self.parser_config = parser_config
-    def __eq__(self, other):
-        if not isinstance(other, self.__class__):
-            return NotImplemented
-        if self.url_pattern != other.url_pattern or self.parser_config != other.parser_config:
-            return False
-        return type(self.parser).__name__ == type(other.parser).__name__
-
-
 class BaseParser(HTMLParser):
     """Base class for catalogue parsers."""
     PARAMETERS = set()
@@ -557,7 +543,25 @@ class BaratzParser(BaseParser):   # pylint: disable=unused-variable
             return
 
 
-def error(message, details=''):
+class Profile():  # pylint: disable=too-few-public-methods
+    """Abstraction for profiles."""
+    def __init__(
+        self,
+        url_pattern: re.Pattern[str],
+        parser: BaseParser,
+        parser_config: dict[str, re.Pattern[str]]
+    ) -> None:
+        self.url_pattern = url_pattern
+        self.parser = parser
+        self.parser_config = parser_config
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, self.__class__):
+            return NotImplemented
+        if self.url_pattern != other.url_pattern or self.parser_config != other.parser_config:
+            return False
+        return type(self.parser).__name__ == type(other.parser).__name__
+
+
     """Helper for preprocessing error messages."""
     message = str(message)
     details = str(details)
