@@ -7,6 +7,7 @@ if sys.platform != 'win32':
 
 # pylint: disable=wrong-import-position
 import atexit
+from collections.abc import Generator
 import configparser
 from ctypes import byref, c_uint, create_unicode_buffer, windll
 from ctypes.wintypes import MAX_PATH as MAX_PATH_LEN
@@ -933,7 +934,7 @@ def parse_arguments(*args):
 # initialization after priming the generator/coroutine.
 
 
-def single_url_handler(url):
+def single_url_handler(url: str) -> Handler:
     """
     Handle single URLs.
 
@@ -973,7 +974,7 @@ def url_to_filename(url):
     return Path(re.sub(Constants.URL_UNSAFE_CHARS_RE, Constants.URL_UNSAFE_REPLACE_CHAR, url, re.ASCII))
 
 
-def textfile_handler(source_filename):
+def textfile_handler(source_filename: Path) -> Handler:
     """
     Handle text files containing URLs, one per line.
 
@@ -1002,7 +1003,7 @@ def textfile_handler(source_filename):
                     sink.write(Constants.TEXTSINK_METADATA_FOOTER)
 
 
-def spreadsheet_handler(source_filename):
+def spreadsheet_handler(source_filename: Path) -> Handler:
     """
     Handle spreadsheets containing URLs, one per row. Ish.
 
@@ -1027,7 +1028,7 @@ def spreadsheet_handler(source_filename):
         details = details[0].lower() + details[1:]
         raise SourceError(Messages.INPUT_FILE_INVALID.format(type(exc).__name__)) from exc
     sink_workbook = load_workbook(sink_filename)
-    yield True  # Successful initialization.
+    yield Constants.HANDLER_BOOTSTRAP_SUCCESS
 
     source_sheet = source_workbook.worksheets[0]
     logging.debug(Debug.WORKING_SHEET.format(source_sheet.title))
@@ -1041,8 +1042,7 @@ def spreadsheet_handler(source_filename):
         if (url := get_url_from_row(row)) is None:
             continue
         metadata = yield url
-        yield
-        store_metadata_in_sheet(sink_sheet, row, metadata)
+        yield url
     sink_workbook.save(sink_filename)
     sink_workbook.close()
     source_workbook.close()
