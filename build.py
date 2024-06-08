@@ -2,9 +2,12 @@
 Build application executable for Win32 in a virtual environment
 and pack it with the INI file in a ZIP file for distribution.
 """
+from collections.abc import Sequence
+from io import TextIOWrapper
 import os
-from subprocess import CalledProcessError, run
+from subprocess import CalledProcessError, CompletedProcess, run
 import sys
+from typing import TextIO
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from sacamantecas import Constants
@@ -23,11 +26,13 @@ INIFILE_PATH = Constants.INIFILE_PATH
 
 # Reconfigure standard output streams so they use UTF-8 encoding, no matter
 # if they are redirected to a file when running the program from a shell.
-sys.stdout.reconfigure(encoding=UTF8)
-sys.stderr.reconfigure(encoding=UTF8)
+if sys.stdout and isinstance(sys.stdout, TextIOWrapper):
+    sys.stdout.reconfigure(encoding=Constants.UTF8)
+if sys.stderr and isinstance(sys.stderr, TextIOWrapper):
+    sys.stderr.reconfigure(encoding=Constants.UTF8)
 
 
-def pretty_print(marker, header, message, stream):
+def pretty_print(marker: str, header: str, message: str, stream: TextIO) -> None:
     """
     Pretty-print message to stream, with a final newline.
 
@@ -46,7 +51,7 @@ def pretty_print(marker, header, message, stream):
     stream.flush()
 
 
-def error(message):
+def error(message: str) -> None:
     """Pretty-print error message to sys.stderr."""
     marker = '*** '
     header = 'Error, '
@@ -55,13 +60,13 @@ def error(message):
     pretty_print(marker, header, message, stream)
 
 
-def progress(message):
+def progress(message: str) -> None:
     """Pretty-print progress message to sys.stdout."""
     marker = '  ▶ '
     pretty_print(marker, '', message, sys.stdout)
 
 
-def run_command(command):
+def run_command(command: Sequence[str]) -> CompletedProcess[str]:
     """Helper for running commands and capturing the output."""
     try:
         return run(command, check=True, capture_output=True, encoding=UTF8, text=True)
@@ -69,7 +74,7 @@ def run_command(command):
         raise CalledProcessError(0, command, None, f"Command '{command[0]}' not found.\n") from exc
 
 
-def is_venv_ready():
+def is_venv_ready() -> bool:
     """Checks if virtual environment is active and functional."""
     progress(f'Checking virtual environment at {VENV_PATH}')
 
@@ -89,7 +94,7 @@ def is_venv_ready():
     return True
 
 
-def are_required_packages_installed():
+def are_required_packages_installed() -> bool:
     """Check installed packages to ensure they fit requirements.txt contents."""
     progress('Checking that required packages are installed')
 
@@ -108,17 +113,17 @@ def are_required_packages_installed():
     return True
 
 
-def build_frozen_executable():
+def build_frozen_executable() -> bool:
     """Build frozen executable."""
     progress('Building frozen executable')
 
     if FROZEN_EXE_PATH.exists():
         os.remove(FROZEN_EXE_PATH)
 
-    cmd = [PYINSTALLER]
+    cmd = [str(PYINSTALLER)]
     cmd.append('--log-level=WARN')
     cmd.extend([f'--workpath={BUILD_PATH}', f'--specpath={BUILD_PATH}', f'--distpath={BUILD_PATH}'])
-    cmd.extend(['--onefile', APP_PATH])
+    cmd.extend(['--onefile', str(APP_PATH)])
     try:
         run_command(cmd)
     except CalledProcessError as exc:
@@ -128,7 +133,7 @@ def build_frozen_executable():
     return True
 
 
-def build_package():
+def build_package() -> None:
     """Build distributable package."""
     progress(f'Building distributable package {PACKAGE_PATH}.')
 
@@ -137,7 +142,7 @@ def build_package():
         bundle.write(INIFILE_PATH, INIFILE_PATH.name)
 
 
-def main():
+def main() -> int:
     """."""
     print(f'Building {APP_PATH.stem} {SEMVER}')
 
