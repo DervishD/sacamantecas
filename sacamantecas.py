@@ -1147,9 +1147,6 @@ def store_metadata_in_sheet(sheet, row, metadata, static = SimpleNamespace(known
 
 def bootstrap(handler):
     """Bootstrap (prime) and handle initialization errors for handler."""
-    if handler is None:
-        raise SourceError(Messages.UNSUPPORTED_SOURCE)
-
     try:
         handler.send(None)
     except FileNotFoundError as exc:
@@ -1363,6 +1360,8 @@ def main(*args):
     for source, handler in parse_arguments(*args):
         logging.info(Messages.SOURCE_LABEL.format(source))
         try:
+            if handler is None:
+                raise SourceError(Messages.UNSUPPORTED_SOURCE)
             bootstrap(handler)
         except SourceError as exc:
             logging.indent()
