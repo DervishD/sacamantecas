@@ -1043,6 +1043,8 @@ def spreadsheet_handler(source_filename: Path) -> Handler:
             continue
         metadata = yield url
         yield url
+        if metadata:
+            store_metadata_in_sheet(sink_sheet, row, metadata)
     sink_workbook.save(sink_filename)
     sink_workbook.close()
     source_workbook.close()
