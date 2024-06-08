@@ -7,7 +7,7 @@ if sys.platform != 'win32':
 
 # pylint: disable=wrong-import-position
 import atexit
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 import configparser
 from ctypes import byref, c_uint, create_unicode_buffer, windll
 from ctypes.wintypes import MAX_PATH as MAX_PATH_LEN
@@ -15,6 +15,7 @@ from enum import auto, IntEnum, StrEnum
 import errno
 from http.client import HTTPException
 from html.parser import HTMLParser
+from io import TextIOWrapper
 import logging
 from logging.config import dictConfig
 from msvcrt import get_osfhandle, getch
@@ -25,14 +26,15 @@ from shutil import copy2
 from textwrap import dedent
 import time
 import traceback as tb
-from types import SimpleNamespace
+from types import SimpleNamespace, TracebackType
+from typing import Any, NoReturn
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, unquote, urlparse, urlunparse
 from urllib.request import urlopen, Request
 from zipfile import BadZipFile
 
 from openpyxl import load_workbook
-from openpyxl.cell.cell import TYPE_STRING as CELLTYPE_STRING
+from openpyxl.cell.cell import Cell, TYPE_STRING as CELLTYPE_STRING
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils.cell import get_column_letter
 from openpyxl.worksheet.worksheet import Worksheet
@@ -271,15 +273,17 @@ logging.dedent = lambda level=None: None
 
 # Reconfigure standard output streams so they use UTF-8 encoding, even if
 # they are redirected to a file when running the application from a shell.
-sys.stdout.reconfigure(encoding=Constants.UTF8)
-sys.stderr.reconfigure(encoding=Constants.UTF8)
+if sys.stdout and isinstance(sys.stdout, TextIOWrapper):
+    sys.stdout.reconfigure(encoding=Constants.UTF8)
+if sys.stderr and isinstance(sys.stderr, TextIOWrapper):
+    sys.stderr.reconfigure(encoding=Constants.UTF8)
 
 
 class BaseApplicationError(Exception):
     """Base class for all custom application exceptions."""
     # cSpell:ignore vararg
-    def __init__ (self, message, details=None, *args, **kwargs):  # pylint: disable=keyword-arg-before-vararg
-
+    # pylint: disable-next=keyword-arg-before-vararg
+    def __init__ (self, message: str, details: Any = None, *args: object, **kwargs: Any) -> None:
         self.details = details
         super().__init__(message, *args, **kwargs)
 
@@ -295,25 +299,25 @@ class SkimmingError(BaseApplicationError):
 
 class BaseParser(HTMLParser):
     """Base class for catalogue parsers."""
-    PARAMETERS = set()
+    PARAMETERS: set[str] = set()
     DEFAULT_K = ''
     DEFAULT_V = ''
     EMPTY_KEY_PLACEHOLDER = '[vacío]'
     MULTIDATA_SEPARATOR = ' / '
     MULTIVALUE_SEPARATOR = ' === '
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialize object."""
-        self.within_k = None
-        self.within_v = None
-        self.current_k = None
-        self.current_v = None
-        self.last_k = None
-        self.retrieved_metadata = None
-        self.config = None
+        self.within_k: bool
+        self.within_v: bool
+        self.current_k: str
+        self.current_v: str
+        self.last_k: str
+        self.retrieved_metadata: dict[str, list[str]]
+        self.config: dict[str, re.Pattern[str]]
         super().__init__(*args, **kwargs)
 
-    def reset(self):
+    def reset(self) -> None:
         """Reset parser state. Called implicitly from __init__()."""
         super().reset()
         self.within_k = self.within_v = False
@@ -322,11 +326,11 @@ class BaseParser(HTMLParser):
         self.last_k = self.DEFAULT_K
         self.retrieved_metadata = {}
 
-    def handle_starttag(self, tag, attrs):
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         """Handle opening tags."""
         logging.debug(Debug.HTML_START_TAG.format(tag, ' ' * bool(attrs), ' '.join((f'{k}="{v}"' for k, v in attrs))))
 
-    def handle_data(self, data):
+    def handle_data(self, data: str) -> None:
         """Handle data."""
         if self.within_k or self.within_v:
             # Clean up the received data by removing superfluous whitespace
@@ -344,7 +348,7 @@ class BaseParser(HTMLParser):
             self.current_v += f'{self.MULTIDATA_SEPARATOR if self.current_v else ''}{data}'
             return
 
-    def configure(self, config):
+    def configure(self, config: dict[str, re.Pattern[str]]) -> None:
         """
         Set up the parser with a different configuration, that is, a different
         set of values for the suppported parameters.
@@ -356,7 +360,7 @@ class BaseParser(HTMLParser):
         self.reset()
         self.config = {key: value for key, value in config.items() if key in self.PARAMETERS}
 
-    def store_metadata(self):
+    def store_metadata(self) -> None:
         """Store found metadata, handling missing parts."""
         if not self.current_k and not self.current_v:
             logging.debug(Debug.METADATA_IS_EMPTY)
@@ -375,9 +379,9 @@ class BaseParser(HTMLParser):
         self.current_k = self.DEFAULT_K
         self.current_v = self.DEFAULT_V
 
-    def get_metadata(self):
+    def get_metadata(self) -> dict[str, str]:
         """Get retrieved metadata so far."""
-        metadata = {}
+        metadata: dict[str, str] = {}
         for key, value in self.retrieved_metadata.items():
             metadata[key] = self.MULTIVALUE_SEPARATOR.join(value)
         return metadata
@@ -398,21 +402,23 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
     PARAMETERS = BaseParser.PARAMETERS | {K_CLASS, V_CLASS}
     CLASS_ATTR = 'class'
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialize object."""
         self.current_k_tag = None
         self.current_v_tag = None
         super().__init__(*args, **kwargs)
 
-    def reset(self):
+    def reset(self) -> None:
         """Reset parser state. Called implicitly from __init__()."""
         super().reset()
         self.current_k_tag = self.current_v_tag = None
 
-    def handle_starttag(self, tag, attrs):
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         """Handle opening tags."""
         super().handle_starttag(tag, attrs)
         for attr in attrs:
+            if attr[1] is None:
+                continue
             if attr[0] == self.CLASS_ATTR and (match := self.config[self.K_CLASS].search(attr[1])):
                 logging.debug(Debug.METADATA_KEY_MARKER_FOUND.format(match.group(0)))
                 self.within_k = True
@@ -445,7 +451,7 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
                         self.current_v_tag = None
                 break
 
-    def handle_endtag(self, tag):
+    def handle_endtag(self, tag: str) -> None:
         """Handle closing tags."""
         super().handle_endtag(tag)
         if self.within_k and tag == self.current_k_tag:
@@ -481,23 +487,25 @@ class BaratzParser(BaseParser):   # pylint: disable=unused-variable
     K_TAG = 'dt'
     V_TAG = 'dd'
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialize object."""
-        self.within_meta = None
+        self.within_meta: bool
         super().__init__(*args, **kwargs)
 
-    def reset(self):
+    def reset(self) -> None:
         """Reset parser state. Called implicitly from __init__()."""
         super().reset()
         self.within_meta = False
 
-    def handle_starttag(self, tag, attrs):
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         """Handle opening tags."""
         super().handle_starttag(tag, attrs)
         if not self.within_meta:
             if not self.config[self.M_TAG].fullmatch(tag):
                 return
             for attr in attrs:
+                if attr[1] is None:
+                    return
                 if self.config[self.M_ATTR].fullmatch(attr[0]) and self.config[self.M_VALUE].search(attr[1]):
                     logging.debug(Debug.METADATA_MARKER_FOUND.format(attr[1]))
                     self.within_meta = True
@@ -528,7 +536,7 @@ class BaratzParser(BaseParser):   # pylint: disable=unused-variable
                         self.within_v = False
                 return
 
-    def handle_endtag(self, tag):
+    def handle_endtag(self, tag: str) -> None:
         """Handle closing tags."""
         super().handle_endtag(tag)
         if self.within_meta and self.config[self.M_TAG].fullmatch(tag):
@@ -562,6 +570,7 @@ class Profile():  # pylint: disable=too-few-public-methods
         return type(self.parser).__name__ == type(other.parser).__name__
 
 
+def error(message: Any, details: Any='') -> None:
     """Helper for preprocessing error messages."""
     message = str(message)
     details = str(details)
@@ -576,14 +585,14 @@ class Profile():  # pylint: disable=too-few-public-methods
     logging.indent(0)
 
 
-def warning(message):
+def warning(message: Any) -> None:
     """Helper for prepending a header to warning messages."""
     message = str(message)
     message = Messages.WARNING_HEADER + message[0].lower() + message[1:]
     logging.warning(message)
 
 
-def is_accepted_url(value):
+def is_accepted_url(value: str | None) -> bool:
     """Check if value is an accepted URL or not."""
     # The check is quite crude but works for the application's needs.
     try:
@@ -592,7 +601,7 @@ def is_accepted_url(value):
         return False
 
 
-def generate_sink_filename(base_filename):
+def generate_sink_filename(base_filename: Path) -> Path:
     """
     Generate a filename usable as data sink, based upon base_filename.
     """
@@ -608,7 +617,7 @@ class WFKStatuses(IntEnum):
     NO_TRANSIENT_PYTHON = auto()
     WAIT_FOR_KEYPRESS = auto()
 
-def wait_for_keypress():
+def wait_for_keypress() -> WFKStatuses:
     """Wait for a keypress to continue if sys.stdout is a real console AND the console is transient."""
     # First of all, if this script is being imported rather than run,
     # then the application must NOT pause. Absolutely NOT.
@@ -658,7 +667,7 @@ def wait_for_keypress():
     return WFKStatuses.WAIT_FOR_KEYPRESS
 
 
-def excepthook(exc_type, exc_value, exc_traceback):
+def excepthook(exc_type: type[BaseException], exc_value: BaseException, exc_traceback: TracebackType | None) -> None:
     """Handle unhandled exceptions, default exception hook."""
     if isinstance(exc_value, OSError):
         message = Messages.UNEXPECTED_OSERROR
@@ -688,9 +697,9 @@ def excepthook(exc_type, exc_value, exc_traceback):
     error(message, details)
 
 
-def loggerize(function):
+def loggerize(function: Callable[..., Any]) -> Callable[..., Any]:
     """Decorator which enables logging for function."""
-    def loggerize_wrapper(*args, **kwargs):
+    def loggerize_wrapper(*args: str, **kwargs: Any) -> ExitCodes:
         setup_logging(Constants.LOGFILE_PATH, Constants.DEBUGFILE_PATH)
 
         logging.debug(Messages.DEBUGGING_INIT)
@@ -706,7 +715,7 @@ def loggerize(function):
     return loggerize_wrapper
 
 
-def setup_logging(log_filename, debug_filename):
+def setup_logging(log_filename: Path, debug_filename: Path) -> None:
     """
     Sets up logging system, disabling all existing loggers.
 
@@ -719,7 +728,7 @@ def setup_logging(log_filename, debug_filename):
     """
     class CustomFormatter(logging.Formatter):
         """Simple custom formatter for logging messages."""
-        def format(self, record):
+        def format(self, record: logging.LogRecord) -> str:
             """
             Format multiline records so they look like multiple records.
             Indent message according to current indentation level.
@@ -810,7 +819,7 @@ def setup_logging(log_filename, debug_filename):
 
     current_factory = logging.getLogRecordFactory()
     levelname_template = f'{{:{len(max(logging.getLevelNamesMapping(), key=len))}}}'
-    def record_factory(*args, **kwargs):
+    def record_factory(*args: Any, **kwargs: Any) -> logging.LogRecord:
         """LogRecord factory which supports indentation."""
         record = current_factory(*args, **kwargs)
         record.indent = Constants.LOGGING_INDENTCHAR * logging.getLogger().indentlevel
@@ -820,7 +829,7 @@ def setup_logging(log_filename, debug_filename):
 
     increase_indent_symbol = '+'
     decrease_indent_symbol = '-'
-    def set_indent_level(level):
+    def set_indent_level(level: str | int) -> None:
         """
         Set current indentation level.
 
@@ -848,9 +857,9 @@ def setup_logging(log_filename, debug_filename):
     logging.dedent = lambda level=None: set_indent_level(decrease_indent_symbol if level is None else level)
 
 
-def keyboard_interrupt_handler(function):
+def keyboard_interrupt_handler(function: Callable[..., Any]) -> Callable[..., Any]:
     """Decorator which wraps function with a simple KeyboardInterrupt handler."""
-    def handle_keyboard_interrupt_wrapper(*args, **kwargs):
+    def handle_keyboard_interrupt_wrapper(*args: str, **kwargs: Any) -> ExitCodes:
         try:
             return function(*args, **kwargs)
         except KeyboardInterrupt:
@@ -859,7 +868,7 @@ def keyboard_interrupt_handler(function):
     return handle_keyboard_interrupt_wrapper
 
 
-def load_profiles(filename):
+def load_profiles(filename: Path) -> dict[str, Profile]:
     """
     Load the profiles from filename.
 
@@ -885,12 +894,12 @@ def load_profiles(filename):
         errorname = type(exc).__name__.removesuffix('Error')
         raise ProfilesError(Messages.PROFILES_WRONG_SYNTAX.format(errorname), exc) from exc
 
-    profiles = {}
+    profiles: dict[str, Profile] = {}
     parsers = [parser() for parser in BaseParser.__subclasses__()]
     for section in config.sections():
         if not config[section]:
             continue
-        parser_config = {}
+        parser_config: dict[str, re.Pattern[str]] = {}
         for key, value in config[section].items():
             if not value:
                 continue
@@ -900,7 +909,7 @@ def load_profiles(filename):
                 details = Messages.PROFILES_WRONG_SYNTAX_DETAILS.format(
                     section, exc.msg,
                     key, Messages.PROFILES_WRONG_SYNTAX_DETAILS_SEPARATOR, exc.pattern,
-                    '', exc.pos + len(key) + len(Messages.PROFILES_WRONG_SYNTAX_DETAILS_SEPARATOR)
+                    '', (exc.pos or 0) + len(key) + len(Messages.PROFILES_WRONG_SYNTAX_DETAILS_SEPARATOR)
                     # The empty string above is needed as a placeholder for format().
                 )
                 raise ProfilesError(Messages.PROFILES_WRONG_SYNTAX.format('BadRegex'), details) from exc
@@ -916,7 +925,7 @@ def load_profiles(filename):
     return profiles
 
 
-def parse_arguments(*args):
+def parse_arguments(*args: str) -> Generator[tuple[str, Handler | None], None, None]:
     """
     Parse each argument in args to check if it is a valid source, identify its
     type and build the corresponding handler.
@@ -986,7 +995,7 @@ def single_url_handler(url: str) -> Handler:
                 sink.write(Constants.TEXTSINK_METADATA_FOOTER)
 
 
-def url_to_filename(url):
+def url_to_filename(url: str) -> Path:
     """
     Convert the given URL to a valid filename.
 
@@ -1084,21 +1093,26 @@ def spreadsheet_handler(source_filename: Path) -> Handler:
     source_workbook.close()
 
 
-def get_url_from_row(row):
+def get_url_from_row(row: tuple[Cell, ...]) -> str | None:
     """Find first URL in row."""
     url = None
     for cell in row:
         if cell.data_type != CELLTYPE_STRING:
             logging.debug(Debug.NONSTRING_CELL.format(cell.coordinate))
             continue
-        if is_accepted_url(cell.value):
-            url = cell.value
+        if is_accepted_url(str(cell.value)):
+            url = str(cell.value)
             logging.debug(Debug.URL_FOUND_IN_CELL.format(cell.coordinate, url))
             break  # Only the FIRST URL found in each row is considered.
     return url
 
 
-def store_metadata_in_sheet(sheet, row, metadata, static = SimpleNamespace(known_metadata = {})):
+def store_metadata_in_sheet(
+    sheet: Worksheet,
+    row: tuple[Cell, ...],
+    metadata: dict[str, str],
+    static: SimpleNamespace = SimpleNamespace(known_metadata = {})
+) -> None:
     """
     Store metadata in provided sheet at given row.
 
@@ -1145,7 +1159,7 @@ def store_metadata_in_sheet(sheet, row, metadata, static = SimpleNamespace(known
         sheet.cell(row[0].row + 1, static.known_metadata[key], value=value)
 
 
-def bootstrap(handler):
+def bootstrap(handler: Handler) -> None | NoReturn:
     """Bootstrap (prime) and handle initialization errors for handler."""
     try:
         handler.send(None)
@@ -1157,7 +1171,7 @@ def bootstrap(handler):
         raise SourceError(Messages.INPUT_FILE_NO_PERMISSION) from exc
 
 
-def get_parser(url, profiles):
+def get_parser(url: str, profiles: dict[str, Profile]) -> BaseParser | None:
     """
     Return the appropriate parser for the url.
 
@@ -1173,7 +1187,7 @@ def get_parser(url, profiles):
     return None
 
 
-def saca_las_mantecas(url, parser):
+def saca_las_mantecas(url: str, parser: BaseParser) -> dict[str, str]:
     """
     Saca las mantecas from the provided url, that is, retrieve its contents,
     parse them using parser, and obtain library catalogue metadata, if any.
@@ -1202,7 +1216,7 @@ def saca_las_mantecas(url, parser):
             details = Messages.HTTP_PROTOCOL_URLERROR
         else:
             error_code = ''
-            error_reason = exc.reason
+            error_reason = str(exc.reason)
             details = Messages.GENERIC_URLERROR
         error_reason = (error_reason[0].lower() + error_reason[1:]).rstrip('.')
         raise SkimmingError(Messages.URL_ACCESS_ERROR, details.format(error_code, error_reason)) from exc
@@ -1231,7 +1245,7 @@ def saca_las_mantecas(url, parser):
     raise SkimmingError(Messages.NO_METADATA_FOUND)
 
 
-def retrieve_url(url):
+def retrieve_url(url: str) -> tuple[bytes, str]:
     """
     Retrieve contents from url.
 
@@ -1245,20 +1259,24 @@ def retrieve_url(url):
     if not is_accepted_url(url):
         raise URLError(Messages.UNKNOWN_URL_TYPE.format(url))
 
-    if url.startswith('file://'):
-        url = resolve_file_url(url)
+    retrieved_url: str | None = url
 
-    while url:
+    if url.startswith('file://'):
+        retrieved_url = resolve_file_url(url)
+
+    contents = b''
+    charset = ''
+    while retrieved_url:
         logging.debug(Debug.PROCESSING_URL.format(url))
         with urlopen(Request(url, headers={'User-Agent': Constants.USER_AGENT})) as response:
             # First, check if any redirection is needed and get the charset the easy way.
             contents = response.read()
             charset = response.headers.get_content_charset()
-        url = get_redirected_url(url, contents)
+        retrieved_url = get_redirected_url(retrieved_url, contents)
 
     # In this point, we have the contents as a byte string.
     # If the charset is None, it has to be determined the hard way.
-    if charset is None:
+    if not charset:
         logging.debug(Debug.CHARSET_NOT_IN_HEADERS)
         charset = detect_html_charset(contents)
     else:
@@ -1268,7 +1286,7 @@ def retrieve_url(url):
     return contents, charset
 
 
-def resolve_file_url(url):
+def resolve_file_url(url: str) -> str:
     """Resolve relative paths in file: url."""
     parsed_url = urlparse(url)
     resolved_path = unquote(parsed_url.path[1:])
@@ -1277,7 +1295,7 @@ def resolve_file_url(url):
     return parsed_url._replace(path=resolved_path).geturl()
 
 
-def get_redirected_url(base_url, contents):
+def get_redirected_url(base_url: str, contents: bytes) -> str | None:
     """
     Get redirected URL from a meta http-equiv="refresh" pragma in contents. Use
     base_url as base URL for redirection, if some parts are missing in the URL
@@ -1286,10 +1304,10 @@ def get_redirected_url(base_url, contents):
     Return redirected URL, or None if there is no redirection pragma.
     """
     if match := re.search(Constants.META_REFRESH_RE, contents, re.I):
-        base_url = urlparse(base_url)
+        parsed_url = urlparse(base_url)
         redirected_url = urlparse(match.group(1).decode(Constants.ASCII))
-        for field in base_url._fields:
-            value = getattr(base_url, field)
+        for field in parsed_url._fields:
+            value = getattr(parsed_url, field)
             # If not specified in the redirected URL, both the scheme and netloc
             # will be reused from the base URL. Any other field will be obtained
             # from the redirected URL and used, no matter if it is empty.
@@ -1301,7 +1319,7 @@ def get_redirected_url(base_url, contents):
     return None
 
 
-def detect_html_charset(contents):
+def detect_html_charset(contents: bytes) -> str:
     """
     Detect contents charset from HTML tags, if any, and return it.
 
@@ -1331,7 +1349,7 @@ def detect_html_charset(contents):
 
 @loggerize
 @keyboard_interrupt_handler
-def main(*args):
+def main(*args: str) -> ExitCodes:
     """."""
     exitcode = ExitCodes.SUCCESS
 
