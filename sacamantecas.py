@@ -35,6 +35,7 @@ from openpyxl import load_workbook
 from openpyxl.cell.cell import TYPE_STRING as CELLTYPE_STRING
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils.cell import get_column_letter
+from openpyxl.worksheet.worksheet import Worksheet
 
 from version import DEVELOPMENT_MODE, SEMVER
 
@@ -97,6 +98,8 @@ class Constants():  # pylint: disable=too-few-public-methods
     SPREADSHEET_CELL_FONT = 'Calibri'
     SPREADSHEET_CELL_COLOR = 'baddad'
     SPREADSHEET_CELL_FILL = 'solid'
+    SOURCE_SHEET_LABEL = 'entrada'
+    SINK_SHEET_LABEL = 'salida'
 
     URL_UNSAFE_CHARS_RE = r'\W'
     URL_UNSAFE_REPLACE_CHAR = '_'
@@ -172,11 +175,20 @@ class Messages(StrEnum):
     SKIMMING_MARKER = '\nSacando las mantecas:\n'
     SOURCE_LABEL = 'Fuente: {}'
     UNSUPPORTED_SOURCE = 'La fuente no es de un tipo admitido.'
-    INPUT_FILE_INVALID = 'El fichero de entrada es inválido ({}).'
     INPUT_FILE_NOT_FOUND = 'No se encontró el fichero de entrada.'
     INPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para leer el fichero de entrada.'
     OUTPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para crear el fichero de salida.'
     NO_METADATA_FOUND = 'No se obtuvieron metadatos.'
+
+    SOURCE_SHEET_IS_INVALID = 'La hoja de entrada es inválida ({}).'
+    _SHEET_MODE_READONLY = 'sólo lectura'
+    _SHEET_MODE_WRITEONLY = 'sólo escritura'
+    _SHEET_MODE_TEMPLATE = 'La hoja de {} está en modo de {}.'
+    SOURCE_SHEET_IS_WRITE_ONLY = _SHEET_MODE_TEMPLATE.format(Constants.SOURCE_SHEET_LABEL, _SHEET_MODE_WRITEONLY)
+    SINK_SHEET_IS_READ_ONLY = _SHEET_MODE_TEMPLATE.format(Constants.SINK_SHEET_LABEL, _SHEET_MODE_READONLY)
+    _SHEET_UNKNOWN_TYPE_TEMPLATE = 'La hoja de {} es de un tipo desconocido.'
+    SOURCE_SHEET_IS_UNKNOWN_TYPE = _SHEET_UNKNOWN_TYPE_TEMPLATE.format(Constants.SOURCE_SHEET_LABEL)
+    SINK_SHEET_IS_UNKNOWN_TYPE = _SHEET_UNKNOWN_TYPE_TEMPLATE.format(Constants.SINK_SHEET_LABEL)
 
 
 class Debug(StrEnum):
@@ -214,6 +226,9 @@ class Debug(StrEnum):
     METADATA_VALUE_MARKER_FOUND = 'Se encontró una marca de valor «{}».'
     METADATA_MARKER_FOUND = 'Se encontró una marca de metadato «{}».'
 
+    _SHEET_INVALID_TYPE_TEMPLATE = 'La hoja de {} es de tipo inválido, «{{}}» y no «{{}}».'
+    SOURCE_SHEET_INVALID_TYPE = _SHEET_INVALID_TYPE_TEMPLATE.format(Constants.SOURCE_SHEET_LABEL)
+    SINK_SHEET_INVALID_TYPE = _SHEET_INVALID_TYPE_TEMPLATE.format(Constants.SINK_SHEET_LABEL)
     COPYING_WORKBOOK = 'Copiando workbook a «{}».'
     WORKING_SHEET = 'La hoja con la que se trabajará es «{}»".'
     INSERTING_HEADING_ROW = 'Insertando fila de cabeceras.'
@@ -1026,14 +1041,25 @@ def spreadsheet_handler(source_filename: Path) -> Handler:
     except (KeyError, BadZipFile) as exc:
         details = str(exc).strip('"')
         details = details[0].lower() + details[1:]
-        raise SourceError(Messages.INPUT_FILE_INVALID.format(type(exc).__name__)) from exc
+        raise SourceError(Messages.SOURCE_SHEET_IS_INVALID, details) from exc
     sink_workbook = load_workbook(sink_filename)
     yield Constants.HANDLER_BOOTSTRAP_SUCCESS
 
     source_sheet = source_workbook.worksheets[0]
+    if not isinstance(source_sheet, Worksheet):
+        logging.debug(Debug.SOURCE_SHEET_INVALID_TYPE.format(source_sheet.__class__.__name__, Worksheet.__name__))
+        if source_workbook.write_only:
+            raise SourceError(Messages.SOURCE_SHEET_IS_WRITE_ONLY)
+        raise SourceError(Messages.SOURCE_SHEET_IS_UNKNOWN_TYPE)
     logging.debug(Debug.WORKING_SHEET.format(source_sheet.title))
 
     sink_sheet = sink_workbook.worksheets[0]
+    if not isinstance(sink_sheet, Worksheet):
+        logging.debug(Debug.SINK_SHEET_INVALID_TYPE.format(sink_sheet.__class__.__name__, Worksheet.__name__))
+        if sink_workbook.read_only:
+            raise SourceError(Messages.SINK_SHEET_IS_READ_ONLY)
+        raise SourceError(Messages.SINK_SHEET_IS_UNKNOWN_TYPE)
+
     logging.debug(Debug.INSERTING_HEADING_ROW)
     sink_sheet.insert_rows(1, 1)
 
