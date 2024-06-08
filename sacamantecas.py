@@ -93,6 +93,8 @@ class Constants():  # pylint: disable=too-few-public-methods
     LOGGING_LOGFILE_FORMAT = '{asctime} {message}'
     LOGGING_CONSOLE_FORMAT = '{message}'
 
+    HANDLER_BOOTSTRAP_SUCCESS = 'Handler bootstrap successful.'
+
     TEXTSINK_METADATA_HEADER = '{}\n'
     TEXTSINK_METADATA_INDENT = '  '
     TEXTSINK_METADATA_SEPARATOR = ': '
