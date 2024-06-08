@@ -46,6 +46,7 @@ REFACTORED_STRINGS = (*ALLOWED_STRINGS, *PARSER_STRINGS, *CONSTANT_STRINGS, *MES
 def test_strings() -> None:  # pylint: disable=unused-variable
     """Test for non-refactored strings."""
     unrefactored_strings: list[str] = []
+
     with open(Constants.APP_PATH, 'rt', encoding=Constants.UTF8) as code:
         for tokeninfo in generate_tokens(code.readline):
             if tokeninfo.type != STRING:
@@ -54,14 +55,17 @@ def test_strings() -> None:  # pylint: disable=unused-variable
                 continue
             if tokeninfo.string.startswith(('"""', "'''")):
                 continue
+
             string = tokeninfo.string
             if string.startswith('r'):
                 string = tokeninfo.string.lstrip('r')
             else:
                 string = tokeninfo.string.replace('\\n', '\n')
+
             string = string.lstrip('b')
             string = string.strip(string[0])
             if string in REFACTORED_STRINGS:
                 continue
+
             unrefactored_strings.append(tokeninfo.string)
     assert not unrefactored_strings

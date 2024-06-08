@@ -25,6 +25,7 @@ def test_logging_files_creation(log_paths: LogPaths) -> None:  # pylint: disable
     assert not log_paths.debug.is_file()
 
     setup_logging(log_paths.log, log_paths.debug)
+
     logging.shutdown()
 
     assert log_paths.log.is_file()
@@ -92,20 +93,25 @@ def test_logging_functions(
 ) -> None:
     """Test all logging functions."""
     setup_logging(log_paths.log, log_paths.debug)
+
     logfunc(TEST_MESSAGE)
+
     logging.shutdown()
 
     log_file_contents = log_paths.log.read_text(encoding='utf-8').splitlines()
     log_file_contents = [' '.join(line.split(' ')[1:]) for line in log_file_contents]
     log_file_contents = '\n'.join(log_file_contents)
+
     assert log_file_contents == expected.log
 
     debug_file_contents = log_paths.debug.read_text(encoding='utf-8').splitlines()
     debug_file_contents = [' '.join(line.split(' ')[1:]) for line in debug_file_contents]
     debug_file_contents = '\n'.join(debug_file_contents)
+
     assert debug_file_contents == expected.debug
 
     captured_output = capsys.readouterr()
+
     assert captured_output.out == expected.out
     assert captured_output.err == expected.err
 
@@ -113,9 +119,11 @@ def test_logging_functions(
 # pylint: disable-next=unused-variable
 def test_error_details(log_paths: LogPaths, capsys: pytest.CaptureFixture[str]) -> None:
     """Test handling of details by the error() function."""
-    details = 'Additional details in multiple lines.'.replace(' ', '\n')
     setup_logging(log_paths.log, log_paths.debug)
+
+    details = 'Additional details in multiple lines.'.replace(' ', '\n')
     error(TEST_MESSAGE, details)
+
     logging.shutdown()
 
     expected = '\n'.join((
@@ -132,15 +140,18 @@ def test_error_details(log_paths: LogPaths, capsys: pytest.CaptureFixture[str]) 
     log_file_contents = log_paths.log.read_text(encoding='utf-8').split('\n')
     log_file_contents = [' '.join(line.split(' ')[1:]) for line in log_file_contents]
     log_file_contents = '\n'.join(log_file_contents)
+
     assert log_file_contents == expected
 
     debug_file_contents = log_paths.debug.read_text(encoding='utf-8').split('\n')
     debug_file_contents = [line.split(LOGGING_LEVELNAME_SEPARATOR, maxsplit=1)[1:] for line in debug_file_contents]
     debug_file_contents = [''.join(line) for line in debug_file_contents]
     debug_file_contents = '\n'.join(debug_file_contents)
+
     assert debug_file_contents == expected
 
     captured_output = capsys.readouterr()
+
     assert not captured_output.out
     assert captured_output.err == expected
 
@@ -158,11 +169,15 @@ def test_error_details(log_paths: LogPaths, capsys: pytest.CaptureFixture[str]) 
 def test_whitespace_honoring(log_paths: LogPaths, capsys: pytest.CaptureFixture[str], message: str) -> None:
     "Test whether leading and trailing whitespace are honored."
     terminator = '<TERMINATOR>'
+
     setup_logging(log_paths.log, log_paths.debug)
+
     logging.StreamHandler.terminator, saved_terminator = terminator, logging.StreamHandler.terminator
     logging.info(message)
     logging.StreamHandler.terminator = saved_terminator
+
     logging.shutdown()
 
     captured_output = capsys.readouterr().out
+
     assert captured_output == message + terminator

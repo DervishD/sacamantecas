@@ -35,11 +35,13 @@ def test_single_url_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> 
     """Test single URLs."""
     single_url = url_to_filename('url://subdomain.domain.toplevel/path?param1=value1&param2=value2')
     expected = Path('url___subdomain_domain_toplevel_path_param1_value1_param2_value2')
+
     assert single_url == expected
 
     sink_filename = tmp_path / f'testsink{Constants.SINKFILE_STEM}.txt'
     def patched_generate_sink_filename(_: Path) -> Path:
         return sink_filename
+
     monkeypatch.setattr('sacamantecas.generate_sink_filename', patched_generate_sink_filename)
 
     handler = single_url_handler(SAMPLE_URLS[0])
@@ -49,16 +51,22 @@ def test_single_url_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> 
     for url in handler:
         assert url is not None
         assert not isinstance(url, bool)
-        urls.append(url)
+
         handler.send(EXPECTED_METADATA[url])
+
+        urls.append(url)
+
 
     assert sink_filename.is_file()
     assert len(urls) == 1
     assert urls[0] == SAMPLE_URLS[0]
 
     result = sink_filename.read_text().rstrip(Constants.TEXTSINK_METADATA_FOOTER).splitlines()
+
     assert result[0] == SAMPLE_URLS[0]
+
     result = dict(line.strip().split(Constants.TEXTSINK_METADATA_SEPARATOR) for line in result[1:])
+
     assert result == EXPECTED_METADATA[urls[0]]
 
 
@@ -78,8 +86,10 @@ def test_textfile_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> No
     for url in handler:
         assert url is not None
         assert not isinstance(url, bool)
-        urls.append(url)
+
         handler.send(EXPECTED_METADATA[url])
+
+        urls.append(url)
 
     assert sink_filename.is_file()
     assert len(urls) == len(SAMPLE_URLS)
@@ -95,6 +105,7 @@ def test_textfile_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> No
             continue
         current_k = line.strip()
         result[current_k] = {}
+
     assert result == EXPECTED_METADATA
 
 
@@ -107,9 +118,12 @@ def test_spreadsheet_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) ->
 
     workbook = Workbook()
     sheet = workbook.active
+
     assert sheet is not None
     assert isinstance(sheet, Worksheet)
+
     sheet.append(headings)
+
     for column in range(FAKE_METADATA_COLUMNS):
         sheet.column_dimensions[get_column_letter(column + 1)].width = 33
 
@@ -124,6 +138,7 @@ def test_spreadsheet_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) ->
     sink_filename = tmp_path / f'testsink{Constants.SINKFILE_STEM}.xlsx'
     def patched_generate_sink_filename(_: Path) -> Path:
         return sink_filename
+
     monkeypatch.setattr('sacamantecas.generate_sink_filename', patched_generate_sink_filename)
 
     handler = spreadsheet_handler(source_filename)
@@ -132,8 +147,10 @@ def test_spreadsheet_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) ->
     urls: list[str] = []
     for url in handler:
         assert isinstance(url, str)
-        urls.append(url)
+
         handler.send(EXPECTED_METADATA[url])
+
+        urls.append(url)
 
     assert sink_filename.is_file()
     assert len(urls) == len(SAMPLE_URLS)
@@ -142,7 +159,9 @@ def test_spreadsheet_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) ->
     result = {}
     workbook = load_workbook(sink_filename)
     sheet = workbook.worksheets[0]
+
     assert isinstance(sheet, Worksheet)
+
     headers: dict[int ,str] = {}
     for cell in next(sheet.rows):
         value = str(cell.value)
@@ -168,8 +187,10 @@ def test_spreadsheet_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) ->
 def test_missing_source(tmp_path: Path, suffix: str, handler_factory: Callable[[Path], Handler]) -> None:
     """Test for missing source handling."""
     handler = handler_factory(tmp_path / f'non_existent{suffix}')
+
     with pytest.raises(SourceError) as excinfo:
         bootstrap(handler)
+
     assert str(excinfo.value).startswith(Messages.INPUT_FILE_NOT_FOUND)
 
 
@@ -204,6 +225,7 @@ def test_output_no_permission(
     """."""
     def patched_generate_sink_filename(_: Path) -> Path:
         return unwritable_file
+
     monkeypatch.setattr('sacamantecas.generate_sink_filename', patched_generate_sink_filename)
 
     if not source_stem.startswith('http://'):

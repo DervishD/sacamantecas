@@ -29,6 +29,7 @@ def test_file_url_resolution(request: pytest.FixtureRequest, netloc:str, base:st
 
     expected = f'file://{netloc}/{Path(base).resolve().as_posix()}{extra}'
     result = resolve_file_url(f'file://{netloc}/{base}{extra}')
+
     assert result == expected
 
 
@@ -51,6 +52,7 @@ def test_url_redirection(delay: str, url: str, extra: str, expected: str) -> Non
     """Test URL redirections."""
     contents = fr'<meta http-equiv="refresh" content="{delay}url={url}{extra}"'.encode()
     result = get_redirected_url(BASE_URL, contents)
+
     assert result == expected + extra
 
 
@@ -62,6 +64,7 @@ def test_url_redirection(delay: str, url: str, extra: str, expected: str) -> Non
 def test_charset_detection(contents: str, expected: str) -> None:  # pylint: disable=unused-variable
     """Test different ways of detecting the contents charset."""
     result = detect_html_charset(contents.format(expected).encode('ascii'))
+
     assert result == expected
 
 
@@ -69,5 +72,6 @@ def test_url_retrieval() -> None:  # pylint: disable=unused-variable
     """Test full URL retrieval against a live server returning a UTF-8 encoded body."""
     contents, charset = retrieve_url('https://httpbin.org/encoding/utf8')
     contents = contents.decode(charset)
+
     assert 'STARGΛ̊TE SG-1, a = v̇ = r̈, a⃑ ⊥ b⃑' in contents
     assert '((V⍳V)=⍳⍴V)/V←,V    ⌷←⍳→⍴∆∇⊃‾⍎⍕⌈' in contents

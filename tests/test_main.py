@@ -39,6 +39,7 @@ def test_no_arguments(log_paths: LogPaths, monkeypatch: pytest.MonkeyPatch) -> N
         '\n'.join(f'{PAD}{line}' for line in Messages.NO_ARGUMENTS.split('\n')),
         Messages.PROCESS_DONE
     ))
+
     assert result == expected
 
     result = log_paths.debug.read_text(encoding='utf-8').splitlines()
@@ -52,6 +53,7 @@ def test_no_arguments(log_paths: LogPaths, monkeypatch: pytest.MonkeyPatch) -> N
         '\n'.join(f'INFO    {LOGGING_LEVELNAME_SEPARATOR}{line}' for line in Messages.PROCESS_DONE.split('\n')),
         f'DEBUG   {LOGGING_LEVELNAME_SEPARATOR}{Messages.DEBUGGING_DONE}'
     ))
+
     assert result == expected
 
 
@@ -67,8 +69,8 @@ def test_missing_ini(
     monkeypatch.setattr(Constants, 'DEBUGFILE_PATH', log_paths.debug)
 
     filename = str(tmp_path / 'non_existent.ini')
-
     monkeypatch.setattr(Constants, 'INIFILE_PATH', filename)
+
     assert main('') == ExitCodes.ERROR
 
     result = capsys.readouterr().err.splitlines()[3].strip()
@@ -90,8 +92,8 @@ def test_ini_syntax_error(
 
     filename = tmp_path / 'profiles_syntax_error.ini'
     filename.write_text('o')
-
     monkeypatch.setattr(Constants, 'INIFILE_PATH', filename)
+
     assert main('') == ExitCodes.ERROR
 
     result = capsys.readouterr().err.splitlines()[3].strip()

@@ -50,13 +50,16 @@ def test_random_feed() -> None:  # pylint: disable=unused-variable
     fed_random_strings = 0
     while fed_random_strings < MAX_RANDOM_STRINGS_TO_FEED:
         random_string = generate_random_string()
+
         for _ in range(FEEDS_PER_RANDOM_STRING):
             parser.within_k = randchoice([True, False])
             parser.within_v = randchoice([True, False])
             parser.feed(random_string)
             parser.within_k = False
             parser.within_v = False
+
         parser.store_metadata()
+
         fed_random_strings += 1
 
     parser.close()
@@ -77,10 +80,12 @@ def test_parser_reset() -> None:  # pylint: disable=unused-variable
     parser.store_metadata()
 
     result = parser.get_metadata()
+
     assert result == {k: v}
 
     parser.reset()
     result = parser.get_metadata()
+
     assert not result
 
     parser.close()
@@ -96,6 +101,7 @@ def test_parser_reset() -> None:  # pylint: disable=unused-variable
 def test_medatata_storage(caplog: pytest.LogCaptureFixture, k: str, v: str, expected: str) -> None:
     """Test store_metadata() branches."""
     caplog.set_level(logging.DEBUG)
+
     parser = BaseParser()
 
     parser.current_k = k
@@ -120,7 +126,9 @@ MULTIPLE_V = ['multiple_value1', 'multiple_value2', 'multiple_value3']
 def test_metadata_retrieval(metadata: dict[str, list[str]], expected: dict[str, str]) -> None:
     """Test get_metadata()."""
     parser = BaseParser()
+
     parser.retrieved_metadata = metadata
+
     assert parser.get_metadata() == expected
 
 
@@ -164,6 +172,7 @@ def test_parser_baseline(contents: tuple[str | None, str | None], expected: dict
 
     parser.store_metadata()
     parser.close()
+
     result = parser.get_metadata()
 
     assert result == expected
@@ -183,17 +192,22 @@ def test_parser_multivalues(multikeys: bool, separator: str) -> None:  # pylint:
     parser.within_k = True
     parser.feed(key)
     parser.within_k = False
+
     for value in MULTIVALUES:
         parser.within_v = True
         parser.feed(value)
         parser.within_v = False
         if multikeys:
             parser.store_metadata()
+
     if not multikeys:
         parser.store_metadata()
+
     parser.close()
+
     result = parser.get_metadata()
     expected = {key: separator.join(MULTIVALUES)}
+
     assert result == expected
 
 
@@ -246,9 +260,12 @@ def test_old_regime_parser(contents: str, expected: tuple[str, str]) -> None:  #
     v_data = generate_random_string()
 
     parser = OldRegimeParser()
+
     parser.configure({OldRegimeParser.K_CLASS: K_CLASS_RE, OldRegimeParser.V_CLASS: V_CLASS_RE})
     parser.feed(contents.format(K=escape(k_data), V=escape(v_data)))
+
     parser.close()
+
     result = parser.get_metadata()
 
     if not expected:
@@ -258,6 +275,7 @@ def test_old_regime_parser(contents: str, expected: tuple[str, str]) -> None:  #
         expected_k = expected_k.format(K=' '.join(k_data.split()).rstrip(':'))
         expected_v = expected_v.format(V=' '.join(v_data.split()))
         expected_dict = {expected_k: expected_v}
+
     assert result == expected_dict
 
 
@@ -316,9 +334,12 @@ def test_baratz_parser(contents: str, expected: tuple[str, str]) -> None:  # pyl
     v_data = generate_random_string()
 
     parser = BaratzParser()
+
     parser.configure({BaratzParser.M_TAG: M_TAG_RE, BaratzParser.M_ATTR: M_ATTR_RE, BaratzParser.M_VALUE: M_VALUE_RE})
     parser.feed(contents.format(K=escape(k_data), V=escape(v_data)))
+
     parser.close()
+
     result = parser.get_metadata()
 
     if not expected:
@@ -328,4 +349,5 @@ def test_baratz_parser(contents: str, expected: tuple[str, str]) -> None:  # pyl
         expected_k = expected_k.format(K=' '.join(k_data.split()).rstrip(':'))
         expected_v = expected_v.format(V=' '.join(v_data.split()))
         expected_dict = {expected_k: expected_v}
+
     assert result == expected_dict

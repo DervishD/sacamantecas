@@ -29,6 +29,7 @@ def test_loggerize(log_paths: LogPaths, monkeypatch: pytest.MonkeyPatch) -> None
     assert not log_paths.debug.is_file()
 
     loggerized_function()
+
     logging.shutdown()
 
     assert log_paths.log.is_file()

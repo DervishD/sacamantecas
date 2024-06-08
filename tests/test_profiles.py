@@ -25,6 +25,7 @@ def test_missing(tmp_path: Path) -> None: # pylint: disable=unused-variable
     filename = tmp_path / 'non_existent.ini'
     with pytest.raises(ProfilesError) as excinfo:
         load_profiles(filename)
+
     assert str(excinfo.value) == Messages.MISSING_PROFILES.format(filename)
 
 
@@ -33,6 +34,7 @@ def test_unreadable(unreadable_file: Path) -> None:  # pylint: disable=unused-va
     """Test for unreadable profiles configuration file."""
     with pytest.raises(ProfilesError) as excinfo:
         load_profiles(unreadable_file)
+
     assert str(excinfo.value) == Messages.MISSING_PROFILES.format(unreadable_file)
 
 
@@ -55,9 +57,9 @@ def test_syntax_errors(tmp_path: Path, text: str, error: str) -> None:  # pylint
     """Test for syntax errors in profiles configuration file."""
     filename = tmp_path / 'profiles_syntax_error.ini'
     filename.write_text(text)
-
     with pytest.raises(ProfilesError) as excinfo:
         load_profiles(filename)
+
     assert str(excinfo.value).startswith(Messages.PROFILES_WRONG_SYNTAX.format(error))
 
     filename.unlink()
@@ -101,6 +103,7 @@ def test_profile_loading(tmp_path: Path) -> None:   # pylint: disable=unused-var
     filename.write_text(INIFILE_CONTENTS)
     profiles = load_profiles(filename)
     filename.unlink()
+
     assert profiles == EXPECTED_PROFILES
 
 
@@ -175,4 +178,5 @@ class NoneProfile(Profile):  # pylint: disable=too-few-public-methods
 def test_get_url_parser(url: str, expected: Profile) -> None:  # pylint: disable=unused-variable
     """Test finding parser for URL."""
     result = get_parser(url, PROFILES)
+
     assert type(result).__name__ == type(expected.parser).__name__
