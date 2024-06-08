@@ -112,8 +112,6 @@ class Constants():  # pylint: disable=too-few-public-methods
     SPREADSHEET_CELL_FONT = 'Calibri'
     SPREADSHEET_CELL_COLOR = 'baddad'
     SPREADSHEET_CELL_FILL = 'solid'
-    SOURCE_SHEET_LABEL = 'entrada'
-    SINK_SHEET_LABEL = 'salida'
 
     URL_UNSAFE_CHARS_RE = r'\W'
     URL_UNSAFE_REPLACE_CHAR = '_'
@@ -193,14 +191,6 @@ class Messages(StrEnum):
     NO_METADATA_FOUND = 'No se obtuvieron metadatos.'
 
     SOURCE_SHEET_IS_INVALID = 'La hoja de entrada es inválida ({}).'
-    _SHEET_MODE_READONLY = 'sólo lectura'
-    _SHEET_MODE_WRITEONLY = 'sólo escritura'
-    _SHEET_MODE_TEMPLATE = 'La hoja de {} está en modo de {}.'
-    SOURCE_SHEET_IS_WRITE_ONLY = _SHEET_MODE_TEMPLATE.format(Constants.SOURCE_SHEET_LABEL, _SHEET_MODE_WRITEONLY)
-    SINK_SHEET_IS_READ_ONLY = _SHEET_MODE_TEMPLATE.format(Constants.SINK_SHEET_LABEL, _SHEET_MODE_READONLY)
-    _SHEET_UNKNOWN_TYPE_TEMPLATE = 'La hoja de {} es de un tipo desconocido.'
-    SOURCE_SHEET_IS_UNKNOWN_TYPE = _SHEET_UNKNOWN_TYPE_TEMPLATE.format(Constants.SOURCE_SHEET_LABEL)
-    SINK_SHEET_IS_UNKNOWN_TYPE = _SHEET_UNKNOWN_TYPE_TEMPLATE.format(Constants.SINK_SHEET_LABEL)
 
 
 class Debug(StrEnum):
@@ -238,9 +228,6 @@ class Debug(StrEnum):
     METADATA_VALUE_MARKER_FOUND = 'Se encontró una marca de valor «{}».'
     METADATA_MARKER_FOUND = 'Se encontró una marca de metadato «{}».'
 
-    _SHEET_INVALID_TYPE_TEMPLATE = 'La hoja de {} es de tipo inválido, «{{}}» y no «{{}}».'
-    SOURCE_SHEET_INVALID_TYPE = _SHEET_INVALID_TYPE_TEMPLATE.format(Constants.SOURCE_SHEET_LABEL)
-    SINK_SHEET_INVALID_TYPE = _SHEET_INVALID_TYPE_TEMPLATE.format(Constants.SINK_SHEET_LABEL)
     COPYING_WORKBOOK = 'Copiando workbook a «{}».'
     WORKING_SHEET = 'La hoja con la que se trabajará es «{}»".'
     INSERTING_HEADING_ROW = 'Insertando fila de cabeceras.'
@@ -1076,19 +1063,9 @@ def spreadsheet_handler(source_filename: Path) -> Handler:
     yield Constants.HANDLER_BOOTSTRAP_SUCCESS
 
     source_sheet = source_workbook.worksheets[0]
-    if not isinstance(source_sheet, Worksheet):
-        logging.debug(Debug.SOURCE_SHEET_INVALID_TYPE.format(source_sheet.__class__.__name__, Worksheet.__name__))
-        if source_workbook.write_only:
-            raise SourceError(Messages.SOURCE_SHEET_IS_WRITE_ONLY)
-        raise SourceError(Messages.SOURCE_SHEET_IS_UNKNOWN_TYPE)
     logging.debug(Debug.WORKING_SHEET.format(source_sheet.title))
 
     sink_sheet = sink_workbook.worksheets[0]
-    if not isinstance(sink_sheet, Worksheet):
-        logging.debug(Debug.SINK_SHEET_INVALID_TYPE.format(sink_sheet.__class__.__name__, Worksheet.__name__))
-        if sink_workbook.read_only:
-            raise SourceError(Messages.SINK_SHEET_IS_READ_ONLY)
-        raise SourceError(Messages.SINK_SHEET_IS_UNKNOWN_TYPE)
 
     logger.debug(Debug.INSERTING_HEADING_ROW)
     sink_sheet.insert_rows(1, 1)
