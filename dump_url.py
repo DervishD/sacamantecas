@@ -6,7 +6,7 @@ import sys
 from sacamantecas import retrieve_url, url_to_filename
 
 
-def main(*args):
+def main(*args: str) -> int:
     """."""
     logging.getLogger().setLevel(logging.INFO)
     for url in args:
@@ -20,6 +20,7 @@ def main(*args):
         with open(output_filename, 'wt', encoding=encoding) as output_file:
             logging.info('Dumping web page to %s', output_filename)
             output_file.write(contents)
+    return 0
 
 
 if __name__ == '__main__':
