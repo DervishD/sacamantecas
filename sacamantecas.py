@@ -99,7 +99,6 @@ class Constants():  # pylint: disable=too-few-public-methods
     LOGGING_LOGFILE_FORMAT = '{asctime} {message}'
     LOGGING_CONSOLE_FORMAT = '{message}'
 
-
     HANDLER_BOOTSTRAP_SUCCESS = 'Handler bootstrap successful.'
 
     TEXTSINK_METADATA_HEADER = '{}\n'
@@ -128,8 +127,6 @@ class Constants():  # pylint: disable=too-few-public-methods
 
 class Messages(StrEnum):
     """Messages."""
-    INITIALIZATION_ERROR = 'Error de inicialización de la aplicación.'
-
     PRESS_ANY_KEY = '\nPulse cualquier tecla para continuar...'
     KEYBOARD_INTERRUPT = 'El usuario interrumpió la operación de la aplicación.'
     NO_ARGUMENTS = dedent('''
