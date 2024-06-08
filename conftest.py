@@ -1,15 +1,20 @@
 #! /usr/bin/env python3
 """Configuration file for pytest."""
-from collections import namedtuple
+from collections.abc import Generator
 import os
+from pathlib import Path
 import subprocess
+from typing import NamedTuple
 
 import pytest
 
 
-LogPaths = namedtuple('LogPaths', ['log', 'debug'])
-@pytest.fixture()
-def log_paths(tmp_path):  # pylint: disable=unused-variable
+class LogPaths (NamedTuple):
+    """."""
+    log: Path
+    debug: Path
+@pytest.fixture
+def log_paths(tmp_path: Path) -> Generator[LogPaths, None, None]:  # pylint: disable=unused-variable
     """Generate temporary filenames for logging files."""
     logfile_path = tmp_path / 'log.txt'
     debugfile_path = tmp_path / 'debug.txt'
@@ -20,8 +25,9 @@ def log_paths(tmp_path):  # pylint: disable=unused-variable
     debugfile_path.unlink()
 
 
-@pytest.fixture()
-def unreadable_file(tmp_path, request):  # pylint: disable=unused-variable
+@pytest.fixture
+# pylint: disable-next=unused-variable
+def unreadable_file(tmp_path: Path, request: pytest.FixtureRequest) -> Generator[Path, None, None]:
     """Create a file which is unreadable by the current user."""
     filename = tmp_path / request.param
     filename.write_text('')
@@ -33,8 +39,9 @@ def unreadable_file(tmp_path, request):  # pylint: disable=unused-variable
     filename.unlink()
 
 
-@pytest.fixture()
-def unwritable_file(tmp_path, request):  # pylint: disable=unused-variable
+@pytest.fixture
+# pylint: disable-next=unused-variable
+def unwritable_file(tmp_path: Path, request: pytest.FixtureRequest) -> Generator[Path, None, None]:
     """Create a file which is not writable by the current user."""
     filename = tmp_path / request.param
     filename.write_text('')

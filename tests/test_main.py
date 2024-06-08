@@ -1,11 +1,16 @@
 #! /usr/bin/env python3
 """Test suite for main() function."""
+from pathlib import Path
+
+import pytest
+
+from conftest import LogPaths
 from sacamantecas import Constants, ExitCodes, main, Messages
 
 PAD = ' ' * Constants.ERROR_PAYLOAD_INDENT
 LOGGING_LEVELNAME_SEPARATOR = Constants.LOGGING_LEVELNAME_SEPARATOR
 
-def test_logging_setup(log_paths, monkeypatch):  # pylint: disable=unused-variable
+def test_logging_setup(log_paths: LogPaths, monkeypatch: pytest.MonkeyPatch) -> None:  # pylint: disable=unused-variable
     """Test for proper logging setup."""
     monkeypatch.setattr(Constants, 'LOGFILE_PATH', log_paths.log)
     monkeypatch.setattr(Constants, 'DEBUGFILE_PATH', log_paths.debug)
@@ -19,7 +24,7 @@ def test_logging_setup(log_paths, monkeypatch):  # pylint: disable=unused-variab
     assert log_paths.debug.is_file()
 
 
-def test_no_arguments(log_paths, monkeypatch):  # pylint: disable=unused-variable
+def test_no_arguments(log_paths: LogPaths, monkeypatch: pytest.MonkeyPatch) -> None:  # pylint: disable=unused-variable
     """Test handling of missing command line arguments."""
     monkeypatch.setattr(Constants, 'LOGFILE_PATH', log_paths.log)
     monkeypatch.setattr(Constants, 'DEBUGFILE_PATH', log_paths.debug)
@@ -50,7 +55,13 @@ def test_no_arguments(log_paths, monkeypatch):  # pylint: disable=unused-variabl
     assert result == expected
 
 
-def test_missing_ini(log_paths, tmp_path, monkeypatch, capsys):  # pylint: disable=unused-variable
+# pylint: disable-next=unused-variable
+def test_missing_ini(
+    log_paths: LogPaths,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str]
+) -> None:
     """Test for missing main INI file."""
     monkeypatch.setattr(Constants, 'LOGFILE_PATH', log_paths.log)
     monkeypatch.setattr(Constants, 'DEBUGFILE_PATH', log_paths.debug)
@@ -66,7 +77,13 @@ def test_missing_ini(log_paths, tmp_path, monkeypatch, capsys):  # pylint: disab
     assert result == expected
 
 
-def test_ini_syntax_error(log_paths, tmp_path, monkeypatch, capsys):  # pylint: disable=unused-variable
+# pylint: disable-next=unused-variable
+def test_ini_syntax_error(
+    log_paths: LogPaths,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str]
+) -> None:
     """Test for syntax errors in INI file."""
     monkeypatch.setattr(Constants, 'LOGFILE_PATH', log_paths.log)
     monkeypatch.setattr(Constants, 'DEBUGFILE_PATH', log_paths.debug)

@@ -4,10 +4,10 @@ import inspect
 
 import pytest
 
-from sacamantecas import parse_arguments, single_url_handler, spreadsheet_handler, textfile_handler
+from sacamantecas import Handler, parse_arguments, single_url_handler, spreadsheet_handler, textfile_handler
 
 
-def test_unsupported_source():  # pylint: disable=unused-variable
+def test_unsupported_source() -> None:  # pylint: disable=unused-variable
     """Test unsupported source."""
     sources = 'source'
     source, handler = list(parse_arguments(sources))[0]
@@ -21,7 +21,7 @@ def test_unsupported_source():  # pylint: disable=unused-variable
     ('source.txt', textfile_handler),
     ('source.xlsx', spreadsheet_handler)
 ])
-def test_source_identification(sources, expected):  # pylint: disable=unused-variable
+def test_source_identification(sources: str, expected: Handler) -> None:  # pylint: disable=unused-variable
     """Test identification of different sources."""
     source, handler = list(parse_arguments(sources))[0]
     assert source == sources

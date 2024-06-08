@@ -1,10 +1,12 @@
 #! /usr/bin/env python3
 """Test suite for the logging system."""
-from collections import namedtuple
+from collections.abc import Callable
 import logging
+from typing import NamedTuple
 
 import pytest
 
+from conftest import LogPaths
 from sacamantecas import Constants, error, Messages, setup_logging, warning
 
 
@@ -17,7 +19,7 @@ WARNING_HEADER = Messages.WARNING_HEADER
 LOGGING_LEVELNAME_SEPARATOR = Constants.LOGGING_LEVELNAME_SEPARATOR
 
 
-def test_logging_files_creation(log_paths):  # pylint: disable=unused-variable
+def test_logging_files_creation(log_paths: LogPaths) -> None:  # pylint: disable=unused-variable
     """Test that the logging files are created propertly."""
     assert not log_paths.log.is_file()
     assert not log_paths.debug.is_file()
@@ -34,7 +36,12 @@ def test_logging_files_creation(log_paths):  # pylint: disable=unused-variable
 #   - The expected stdout output.
 #   - The expected stderr output.
 TEST_MESSAGE = 'Test message'
-Expected = namedtuple('Expected', ['log', 'debug', 'out','err'])
+class Expected(NamedTuple):
+    """."""
+    log: str
+    debug: str
+    out: str
+    err: str
 @pytest.mark.parametrize('logfunc, expected', [
     (logging.debug, Expected(
         '',
@@ -76,7 +83,13 @@ Expected = namedtuple('Expected', ['log', 'debug', 'out','err'])
         '\n'.join((ERROR_HEADER, f'{PAD}{TEST_MESSAGE}', '')),
     ))
 ])
-def test_logging_functions(log_paths, capsys, logfunc, expected):  # pylint: disable=unused-variable
+# pylint: disable-next=unused-variable
+def test_logging_functions(
+    log_paths: LogPaths,
+    capsys: pytest.CaptureFixture[str],
+    logfunc: Callable[[str], None],
+    expected: Expected
+) -> None:
     """Test all logging functions."""
     setup_logging(log_paths.log, log_paths.debug)
     logfunc(TEST_MESSAGE)
@@ -97,7 +110,8 @@ def test_logging_functions(log_paths, capsys, logfunc, expected):  # pylint: dis
     assert captured_output.err == expected.err
 
 
-def test_error_details(log_paths, capsys):  # pylint: disable=unused-variable
+# pylint: disable-next=unused-variable
+def test_error_details(log_paths: LogPaths, capsys: pytest.CaptureFixture[str]) -> None:
     """Test handling of details by the error() function."""
     details = 'Additional details in multiple lines.'.replace(' ', '\n')
     setup_logging(log_paths.log, log_paths.debug)
@@ -140,7 +154,8 @@ def test_error_details(log_paths, capsys):  # pylint: disable=unused-variable
     'Trailing newline.\n',
     '\bLeading and trailing newline.\n',
 ])
-def test_whitespace_honoring(log_paths, capsys, message):  # pylint: disable=unused-variable
+# pylint: disable-next=unused-variable
+def test_whitespace_honoring(log_paths: LogPaths, capsys: pytest.CaptureFixture[str], message: str) -> None:
     "Test whether leading and trailing whitespace are honored."
     terminator = '<TERMINATOR>'
     setup_logging(log_paths.log, log_paths.debug)

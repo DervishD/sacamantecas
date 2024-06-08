@@ -17,7 +17,8 @@ from sacamantecas import Constants, detect_html_charset, get_redirected_url, res
     ('', '/./relpath', '?query#fragment'),
     ('netloc.url', '/./relpath', '?query#fragment')
 ])
-def test_file_url_resolution(request, netloc, base, extra):  # pylint: disable=unused-variable
+# pylint: disable-next=unused-variable
+def test_file_url_resolution(request: pytest.FixtureRequest, netloc:str, base:str, extra:str) -> None:
     """Test resolution of file:// URLs."""
     rootpath = Path(request.config.rootpath).as_posix()
     rootpath = f'{rootpath[0].upper()}{rootpath[1:]}'
@@ -46,7 +47,7 @@ BASE_URL = f'{SCHEME}{NETLOC}{PATH}{EXTRA}'
     (f'{RSCHEME}{RNETLOC}{RPATH}', f'{RSCHEME}{RNETLOC}{RPATH}'),
     (f'{RPATH}', f'{SCHEME}{NETLOC}{RPATH}'),
 ])
-def test_url_redirection(delay, url, extra, expected):  # pylint: disable=unused-variable
+def test_url_redirection(delay: str, url: str, extra: str, expected: str) -> None:  # pylint: disable=unused-variable
     """Test URL redirections."""
     contents = fr'<meta http-equiv="refresh" content="{delay}url={url}{extra}"'.encode()
     result = get_redirected_url(BASE_URL, contents)
@@ -58,14 +59,13 @@ def test_url_redirection(delay, url, extra, expected):  # pylint: disable=unused
     ('<meta charset="{}">', 'cp850'),
     ('{}', Constants.FALLBACK_HTML_CHARSET)
 ])
-def test_charset_detection(contents, expected):  # pylint: disable=unused-variable
+def test_charset_detection(contents: str, expected: str) -> None:  # pylint: disable=unused-variable
     """Test different ways of detecting the contents charset."""
-    contents = contents.format(expected).encode('ascii')
-    result = detect_html_charset(contents)
+    result = detect_html_charset(contents.format(expected).encode('ascii'))
     assert result == expected
 
 
-def test_url_retrieval():  # pylint: disable=unused-variable
+def test_url_retrieval() -> None:  # pylint: disable=unused-variable
     """Test full URL retrieval against a live server returning a UTF-8 encoded body."""
     contents, charset = retrieve_url('https://httpbin.org/encoding/utf8')
     contents = contents.decode(charset)

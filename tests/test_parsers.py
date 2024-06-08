@@ -33,7 +33,7 @@ ALLOWED_CHARS = [chr(cp) for cp in range(START_CP, END_CP+1) if category(chr(cp)
 
 MIN_LENGTH = 1
 MAX_LENGTH = 42
-def generate_random_string():
+def generate_random_string() -> str:
     """
     Generate a random string with MIN_LENGTH <= length <= MAX_LENGTH.
     Only characters from the ALLOWED_* sets are used.
@@ -43,7 +43,7 @@ def generate_random_string():
 
 MAX_RANDOM_STRINGS_TO_FEED = 2 ** 10
 FEEDS_PER_RANDOM_STRING = 10
-def test_random_feed():  # pylint: disable=unused-variable
+def test_random_feed() -> None:  # pylint: disable=unused-variable
     """Test parser behavior against random data."""
     parser = BaseParser()
 
@@ -62,7 +62,7 @@ def test_random_feed():  # pylint: disable=unused-variable
     parser.close()
 
 
-def test_parser_reset():  # pylint: disable=unused-variable
+def test_parser_reset() -> None:  # pylint: disable=unused-variable
     """Test parser state after a reset."""
     parser = BaseParser()
 
@@ -92,7 +92,8 @@ def test_parser_reset():  # pylint: disable=unused-variable
     (None, V, Debug.METADATA_MISSING_KEY.format(BaseParser.EMPTY_KEY_PLACEHOLDER)),
     (K, V, Debug.METADATA_OK.format(K, V))
 ])
-def test_medatata_storage(caplog, k, v, expected):  # pylint: disable=unused-variable
+# pylint: disable-next=unused-variable
+def test_medatata_storage(caplog: pytest.LogCaptureFixture, k: str, v: str, expected: str) -> None:
     """Test store_metadata() branches."""
     caplog.set_level(logging.DEBUG)
     parser = BaseParser()
@@ -115,7 +116,8 @@ MULTIPLE_V = ['multiple_value1', 'multiple_value2', 'multiple_value3']
     ({SINGLE_K: SINGLE_V}, {SINGLE_K: SINGLE_V[0]}),
     ({MULTIPLE_K: MULTIPLE_V}, {MULTIPLE_K: BaseParser.MULTIVALUE_SEPARATOR.join(MULTIPLE_V)})
 ])
-def test_metadata_retrieval(metadata, expected):   # pylint: disable=unused-variable
+# pylint: disable-next=unused-variable
+def test_metadata_retrieval(metadata: dict[str, list[str]], expected: dict[str, str]) -> None:
     """Test get_metadata()."""
     parser = BaseParser()
     parser.retrieved_metadata = metadata
@@ -143,7 +145,8 @@ WS_NL = '  {}\n   whitespaced     \n       and\t\n    newlined   '
     # Empty metadata.
     ((EMPTY, EMPTY), {})
 ])
-def test_parser_baseline(contents, expected):  # pylint: disable=unused-variable
+# pylint: disable-next=unused-variable
+def test_parser_baseline(contents: tuple[str | None, str | None], expected: dict[str, str]) -> None:
     """Test the basic functionality of parsers."""
     parser = BaseParser()
 
@@ -171,7 +174,7 @@ MULTIVALUES = [f'value_{n}' for n in range(9)]
     (True, BaseParser.MULTIVALUE_SEPARATOR),
     (False, BaseParser.MULTIDATA_SEPARATOR),
 ])
-def test_parser_multivalues(multikeys, separator):  # pylint: disable=unused-variable
+def test_parser_multivalues(multikeys: bool, separator: str) -> None:  # pylint: disable=unused-variable
     """Test parsing of multiple values per key."""
     key = 'key'
 
@@ -202,42 +205,42 @@ V_CLASS = 'v_marker'
 K_CLASS_RE = re_compile(f'{K_CLASS}.*')
 V_CLASS_RE =  re_compile(f'{V_CLASS}.*')
 TAG = 'div'
-KB = ELEMENT_B.format(TAG=TAG, MARKER=K_CLASS)
-VB = ELEMENT_B.format(TAG=TAG, MARKER=V_CLASS)
+OP_KB = ELEMENT_B.format(TAG=TAG, MARKER=K_CLASS)
+OP_VB = ELEMENT_B.format(TAG=TAG, MARKER=V_CLASS)
 EE = ELEMENT_E.format(TAG=TAG)
 @pytest.mark.parametrize('contents, expected', [
     # Normal metadata.
-    (f'{KB}{{K}}{EE}{VB}{{V}}{EE}', ('{K}', '{V}')),
+    (f'{OP_KB}{{K}}{EE}{OP_VB}{{V}}{EE}', ('{K}', '{V}')),
 
     # Incomplete metadata, missing value.
-    (f'{KB}{{K}}{EE}{VB}{{V}}', ()),
-    (f'{KB}{{K}}{EE}{VB}{EE}', ()),
-    (f'{VB}{{V}}', ()),
-    (f'{VB}{EE}', ()),
+    (f'{OP_KB}{{K}}{EE}{OP_VB}{{V}}', ()),
+    (f'{OP_KB}{{K}}{EE}{OP_VB}{EE}', ()),
+    (f'{OP_VB}{{V}}', ()),
+    (f'{OP_VB}{EE}', ()),
 
     # Incomplete metadata, missing key.
-    (f'{KB}{EE}{VB}{{V}}{EE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
-    (f'{VB}{{V}}{EE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
+    (f'{OP_KB}{EE}{OP_VB}{{V}}{EE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
+    (f'{OP_VB}{{V}}{EE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
 
     # Nesting, value inside key.
-    (f'{KB}{{K}}{VB}{{V}}{EE}', ('{K}', '{V}')),
-    (f'{KB}{{K}}{VB}{EE}', ()),
+    (f'{OP_KB}{{K}}{OP_VB}{{V}}{EE}', ('{K}', '{V}')),
+    (f'{OP_KB}{{K}}{OP_VB}{EE}', ()),
 
     # Nesting, key inside value.
-    (f'{VB}_{{V}}_{KB}{{K}}{EE}{VB}{{V}}{EE}', ('{K}', '{V}')),
-    (f'{VB}{KB}{{K}}{EE}{VB}{{V}}{EE}', ('{K}', '{V}')),
-    (f'{VB}_{{V}}_{KB}{EE}{VB}{{V}}{EE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
-    (f'{VB}{KB}{EE}{VB}{{V}}{EE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
-    (f'{VB}_{{V}}_{KB}{{K}}{EE}{VB}{{V}}', (),),
-    (f'{VB}{KB}{{K}}{EE}{VB}{{V}}', (),),
+    (f'{OP_VB}_{{V}}_{OP_KB}{{K}}{EE}{OP_VB}{{V}}{EE}', ('{K}', '{V}')),
+    (f'{OP_VB}{OP_KB}{{K}}{EE}{OP_VB}{{V}}{EE}', ('{K}', '{V}')),
+    (f'{OP_VB}_{{V}}_{OP_KB}{EE}{OP_VB}{{V}}{EE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
+    (f'{OP_VB}{OP_KB}{EE}{OP_VB}{{V}}{EE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
+    (f'{OP_VB}_{{V}}_{OP_KB}{{K}}{EE}{OP_VB}{{V}}', (),),
+    (f'{OP_VB}{OP_KB}{{K}}{EE}{OP_VB}{{V}}', (),),
 
     # Ill-formed, no closing tags.
-    (f'{KB}{{K}}{VB}{{V}}', ()),
-    (f'{KB}{{K}}{VB}', ()),
-    (f'{KB}{VB}{{V}}', ()),
-    (f'{KB}{VB}', ()),
+    (f'{OP_KB}{{K}}{OP_VB}{{V}}', ()),
+    (f'{OP_KB}{{K}}{OP_VB}', ()),
+    (f'{OP_KB}{OP_VB}{{V}}', ()),
+    (f'{OP_KB}{OP_VB}', ()),
 ])
-def test_old_regime_parser(contents, expected):  # pylint: disable=unused-variable
+def test_old_regime_parser(contents: str, expected: tuple[str, str]) -> None:  # pylint: disable=unused-variable
     """Test Old Regime parser."""
     k_data = generate_random_string()
     v_data = generate_random_string()
@@ -249,13 +252,13 @@ def test_old_regime_parser(contents, expected):  # pylint: disable=unused-variab
     result = parser.get_metadata()
 
     if not expected:
-        expected = {}
+        expected_dict = {}
     else:
         expected_k, expected_v = expected
         expected_k = expected_k.format(K=' '.join(k_data.split()).rstrip(':'))
         expected_v = expected_v.format(V=' '.join(v_data.split()))
-        expected = {expected_k: expected_v}
-    assert result == expected
+        expected_dict = {expected_k: expected_v}
+    assert result == expected_dict
 
 
 M_TAG = 'dl'
@@ -266,48 +269,48 @@ M_VALUE = 'meta_marker'
 M_VALUE_RE = re_compile(f'{M_VALUE}.*')
 MB = ELEMENT_B.format(TAG=M_TAG, MARKER=M_VALUE)
 ME = ELEMENT_E.format(TAG=M_TAG)
-KB = ELEMENT_B.format(TAG=BaratzParser.K_TAG, MARKER='')
+BP_KB = ELEMENT_B.format(TAG=BaratzParser.K_TAG, MARKER='')
 KE = ELEMENT_E.format(TAG=BaratzParser.K_TAG)
-VB = ELEMENT_B.format(TAG=BaratzParser.V_TAG, MARKER='')
+BP_VB = ELEMENT_B.format(TAG=BaratzParser.V_TAG, MARKER='')
 VE = ELEMENT_E.format(TAG=BaratzParser.V_TAG)
 @pytest.mark.parametrize('contents, expected', [
     # Normal metadata.
-    (f'{MB}{KB}{{K}}{KE}{VB}{{V}}{VE}{ME}', ('{K}', '{V}')),
-    (f'{MB}{KB}{{K}}{KE}{VB}{{V}}{VE}', ('{K}', '{V}')),
+    (f'{MB}{BP_KB}{{K}}{KE}{BP_VB}{{V}}{VE}{ME}', ('{K}', '{V}')),
+    (f'{MB}{BP_KB}{{K}}{KE}{BP_VB}{{V}}{VE}', ('{K}', '{V}')),
 
     # No metadata marker.
-    (f'{KB}{{K}}{KE}{VB}{{V}}{VE}{ME}', ()),
-    (f'{KB}{{K}}{KE}{VB}{{V}}{VE}', ()),
+    (f'{BP_KB}{{K}}{KE}{BP_VB}{{V}}{VE}{ME}', ()),
+    (f'{BP_KB}{{K}}{KE}{BP_VB}{{V}}{VE}', ()),
 
     # Incomplete metadata, missing value.
-    (f'{MB}{KB}{{K}}{KE}{VB}{{V}}', ()),
-    (f'{MB}{KB}{{K}}{KE}{VB}{VE}', ()),
-    (f'{MB}{VB}{{V}}', ()),
-    (f'{MB}{VB}{VE}', ()),
+    (f'{MB}{BP_KB}{{K}}{KE}{BP_VB}{{V}}', ()),
+    (f'{MB}{BP_KB}{{K}}{KE}{BP_VB}{VE}', ()),
+    (f'{MB}{BP_VB}{{V}}', ()),
+    (f'{MB}{BP_VB}{VE}', ()),
 
     # Incomplete metadata, missing key.
-    (f'{MB}{KB}{KE}{VB}{{V}}{VE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
-    (f'{MB}{VB}{{V}}{VE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
+    (f'{MB}{BP_KB}{KE}{BP_VB}{{V}}{VE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
+    (f'{MB}{BP_VB}{{V}}{VE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
 
     # Nesting, value inside key.
-    (f'{MB}{KB}{{K}}{VB}{{V}}{VE}{KE}', ('{K}', '{V}')),
-    (f'{MB}{KB}{{K}}{VB}{VE}{KE}', ()),
+    (f'{MB}{BP_KB}{{K}}{BP_VB}{{V}}{VE}{KE}', ('{K}', '{V}')),
+    (f'{MB}{BP_KB}{{K}}{BP_VB}{VE}{KE}', ()),
 
     # Nesting, key inside value.
-    (f'{MB}{VB}_{{V}}_{KB}{{K}}{KE}{VB}{{V}}{VE}', ('{K}', '{V}')),
-    (f'{MB}{VB}{KB}{{K}}{KE}{VB}{{V}}{VE}', ('{K}', '{V}')),
-    (f'{MB}{VB}_{{V}}_{KB}{KE}{VB}{{V}}{VE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
-    (f'{MB}{VB}{KB}{KE}{VB}{{V}}{VE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
-    (f'{MB}{VB}_{{V}}_{KB}{{K}}{KE}{VB}{{V}}', ()),
-    (f'{MB}{VB}{KB}{{K}}{KE}{VB}{{V}}', ()),
+    (f'{MB}{BP_VB}_{{V}}_{BP_KB}{{K}}{KE}{BP_VB}{{V}}{VE}', ('{K}', '{V}')),
+    (f'{MB}{BP_VB}{BP_KB}{{K}}{KE}{BP_VB}{{V}}{VE}', ('{K}', '{V}')),
+    (f'{MB}{BP_VB}_{{V}}_{BP_KB}{KE}{BP_VB}{{V}}{VE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
+    (f'{MB}{BP_VB}{BP_KB}{KE}{BP_VB}{{V}}{VE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
+    (f'{MB}{BP_VB}_{{V}}_{BP_KB}{{K}}{KE}{BP_VB}{{V}}', ()),
+    (f'{MB}{BP_VB}{BP_KB}{{K}}{KE}{BP_VB}{{V}}', ()),
 
     # Ill-formed, no closing tags.
-    (f'{MB}{KB}{{K}}{VB}{{V}}', ()),
-    (f'{MB}{KB}{{K}}{VB}', ()),
-    (f'{MB}{KB}{VB}{{V}}', ()),
-    (f'{MB}{KB}{VB}', ()),
+    (f'{MB}{BP_KB}{{K}}{BP_VB}{{V}}', ()),
+    (f'{MB}{BP_KB}{{K}}{BP_VB}', ()),
+    (f'{MB}{BP_KB}{BP_VB}{{V}}', ()),
+    (f'{MB}{BP_KB}{BP_VB}', ()),
 ])
-def test_baratz_parser(contents, expected):  # pylint: disable=unused-variable
+def test_baratz_parser(contents: str, expected: tuple[str, str]) -> None:  # pylint: disable=unused-variable
     """Test Baratz parser."""
     k_data = generate_random_string()
     v_data = generate_random_string()
@@ -319,10 +322,10 @@ def test_baratz_parser(contents, expected):  # pylint: disable=unused-variable
     result = parser.get_metadata()
 
     if not expected:
-        expected = {}
+        expected_dict = {}
     else:
         expected_k, expected_v = expected
         expected_k = expected_k.format(K=' '.join(k_data.split()).rstrip(':'))
         expected_v = expected_v.format(V=' '.join(v_data.split()))
-        expected = {expected_k: expected_v}
-    assert result == expected
+        expected_dict = {expected_k: expected_v}
+    assert result == expected_dict

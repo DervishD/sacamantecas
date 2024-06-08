@@ -31,17 +31,21 @@ ALLOWED_STRINGS = (
     'file://',
     'scheme', 'netloc',
 )
-PARSER_STRINGS = (BaseParser.__dict__,) + tuple(c.__dict__ for c in BaseParser.__subclasses__())
-PARSER_STRINGS = (v for d in PARSER_STRINGS for k, v in d.items() if not k.startswith('__') and isinstance(v, str))
-CONSTANT_STRINGS = {k: v for k,v in Constants.__dict__.items() if not k.startswith('__')}
-CONSTANT_STRINGS = (v.decode(Constants.UTF8) if isinstance(v, bytes) else v for v in CONSTANT_STRINGS.values())
-CONSTANT_STRINGS = (str(v) for item in CONSTANT_STRINGS for v in (item if isinstance(item, tuple) else (item,)))
+PARSER_STRINGS = (
+    v for d in ((BaseParser.__dict__,) + tuple(c.__dict__ for c in BaseParser.__subclasses__()))
+        for k, v in d.items() if not k.startswith('__') and isinstance(v, str)
+)
+CONSTANT_STRINGS = (
+    str(v) for item in ((v.decode(Constants.UTF8) if isinstance(v, bytes) else v)  # type: ignore
+        for v in {k: v for k,v in Constants.__dict__.items() if not k.startswith('__')}.values())
+            for v in (item if isinstance(item, tuple) else (item,))  # type: ignore
+)
 MESSAGE_STRINGS = Messages.__members__.values()
 DEBUG_STRINGS = Debug.__members__.values()
 REFACTORED_STRINGS = (*ALLOWED_STRINGS, *PARSER_STRINGS, *CONSTANT_STRINGS, *MESSAGE_STRINGS, *DEBUG_STRINGS)
-def test_strings():  # pylint: disable=unused-variable
+def test_strings() -> None:  # pylint: disable=unused-variable
     """Test for non-refactored strings."""
-    unrefactored_strings = []
+    unrefactored_strings: list[str] = []
     with open(Constants.APP_PATH, 'rt', encoding=Constants.UTF8) as code:
         for tokeninfo in generate_tokens(code.readline):
             if tokeninfo.type != STRING:
