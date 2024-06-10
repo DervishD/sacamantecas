@@ -1,5 +1,6 @@
 #! /usr/bin/env python
 """See "README.md" for details."""
+from functools import wraps
 import sys
 if sys.platform != 'win32':
     print('\nThis application is compatible only with the Win32 platform.')
@@ -841,6 +842,7 @@ def excepthook(exc_type: type[BaseException], exc_value: BaseException, exc_trac
 
 def loggerize(function: Callable[..., Any]) -> Callable[..., Any]:
     """Decorator which enables logging for function."""
+    @wraps(function)
     def loggerize_wrapper(*args: str, **kwargs: Any) -> ExitCodes:
         logger.config(Constants.LOGFILE_PATH, Constants.DEBUGFILE_PATH)
 
@@ -859,6 +861,7 @@ def loggerize(function: Callable[..., Any]) -> Callable[..., Any]:
 
 def keyboard_interrupt_handler(function: Callable[..., Any]) -> Callable[..., Any]:
     """Decorator which wraps function with a simple KeyboardInterrupt handler."""
+    @wraps(function)
     def handle_keyboard_interrupt_wrapper(*args: str, **kwargs: Any) -> ExitCodes:
         try:
             return function(*args, **kwargs)
