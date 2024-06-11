@@ -8,7 +8,6 @@ import re
 import pytest
 
 from sacamantecas import (
-    BaseParser,
     BaratzParser,
     Constants,
     get_parser,
@@ -101,10 +100,19 @@ def test_profile_loading(tmp_path: Path) -> None:   # pylint: disable=unused-var
     """Test full profile loading."""
     filename = tmp_path / Constants.INIFILE_PATH.name
     filename.write_text(INIFILE_CONTENTS)
+
     profiles = load_profiles(filename)
+
     filename.unlink()
 
-    assert profiles == EXPECTED_PROFILES
+    assert profiles.keys() == EXPECTED_PROFILES.keys()
+
+    for profile_name, result_profile in profiles.items():
+        expected_profile = EXPECTED_PROFILES[profile_name]
+        assert result_profile.url_pattern == expected_profile.url_pattern
+        assert result_profile.parser_config == expected_profile.parser_config
+        # pylint: disable-next=unidiomatic-typecheck
+        assert type(result_profile.parser) == type(expected_profile.parser)  # noqa E721
 
 
 class MockBaseParser(HTMLParser):
@@ -160,23 +168,16 @@ PROFILES = {
         }
     ),
 }
-class NoneProfile(Profile):  # pylint: disable=too-few-public-methods
-    """Mock profile for non-matching URLs."""
-    def __init__(self) -> None:
-        super().__init__(re.compile(''), BaseParser(), {})
-        self.url_pattern = None
-        self.parser = None
-        self.parser_config = None
 @pytest.mark.parametrize('url, expected', [
-    ('http://profile1.tld', PROFILES['profile_baratz']),
-    ('http://optional.profile1.tld', PROFILES['profile_baratz']),
-    ('http://mandatory.profile2.tld', PROFILES['profile_old_regime']),
-    ('http://optional.mandatory.profile2.tld', PROFILES['profile_old_regime']),
-    ('http://optional.forbidden.profile1.tld', NoneProfile()),
-    ('http://profile2.tld', NoneProfile()),
+    ('http://profile1.tld', PROFILES['profile_baratz'].parser),
+    ('http://optional.profile1.tld', PROFILES['profile_baratz'].parser),
+    ('http://mandatory.profile2.tld', PROFILES['profile_old_regime'].parser),
+    ('http://optional.mandatory.profile2.tld', PROFILES['profile_old_regime'].parser),
+    ('http://optional.forbidden.profile1.tld', None),
+    ('http://profile2.tld', None),
 ])
 def test_get_url_parser(url: str, expected: Profile) -> None:  # pylint: disable=unused-variable
     """Test finding parser for URL."""
     result = get_parser(url, PROFILES)
 
-    assert type(result).__name__ == type(expected.parser).__name__
+    assert type(result) == type(expected)  # pylint: disable=unidiomatic-typecheck

@@ -28,7 +28,7 @@ from textwrap import dedent
 import time
 import traceback as tb
 from types import SimpleNamespace, TracebackType
-from typing import Any, LiteralString, NoReturn, cast
+from typing import Any, LiteralString, NamedTuple, NoReturn, cast
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, unquote, urlparse, urlunparse
 from urllib.request import urlopen, Request
@@ -694,23 +694,11 @@ class BaratzParser(BaseParser):   # pylint: disable=unused-variable
             return
 
 
-class Profile():  # pylint: disable=too-few-public-methods
+class Profile(NamedTuple):
     """Abstraction for profiles."""
-    def __init__(
-        self,
-        url_pattern: re.Pattern[str],
-        parser: BaseParser,
-        parser_config: dict[str, re.Pattern[str]]
-    ) -> None:
-        self.url_pattern = url_pattern
-        self.parser = parser
-        self.parser_config = parser_config
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, self.__class__):
-            return NotImplemented
-        if self.url_pattern != other.url_pattern or self.parser_config != other.parser_config:
-            return False
-        return type(self.parser).__name__ == type(other.parser).__name__
+    url_pattern: re.Pattern[str]
+    parser: BaseParser
+    parser_config: dict[str, re.Pattern[str]]
 
 
 def error(message: Any, details: Any='') -> None:
