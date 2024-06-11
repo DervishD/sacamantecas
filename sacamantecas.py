@@ -1147,8 +1147,8 @@ def store_metadata_in_sheet(
                 # less than 'max'… So, it's better to fix that field.
             sheet.column_dimensions[get_column_letter(column)].max = column
         logger.debug(Debug.DUMPING_METADATA_K_V.format(key, value))
-            # Since a heading row is inserted, the rows where metadata has to go
-            # have now an +1 offset, as they have been displaced.
+        # Since a heading row is inserted, the rows where metadata has to go
+        # have now an +1 offset, as they have been displaced.
         sheet.cell(row[0].row + 1, static.known_metadata[key], value=value)
 
 
