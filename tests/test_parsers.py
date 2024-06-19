@@ -10,7 +10,7 @@ from unicodedata import category
 
 import pytest
 
-from sacamantecas import BaratzParser, BaseParser, Debug, logger, OldRegimeParser
+from sacamantecas import BaratzParser, BaseParser, logger, Messages, OldRegimeParser
 
 
 SPACE = 0x20
@@ -92,10 +92,10 @@ def test_parser_reset() -> None:  # pylint: disable=unused-variable
 
 
 @pytest.mark.parametrize('k, v, expected', [
-    (None, None, Debug.METADATA_IS_EMPTY),
-    (K, None, Debug.METADATA_MISSING_VALUE.format(K)),
-    (None, V, Debug.METADATA_MISSING_KEY.format(BaseParser.EMPTY_KEY_PLACEHOLDER)),
-    (K, V, Debug.METADATA_OK.format(K, V))
+    (None, None, Messages.METADATA_IS_EMPTY),
+    (K, None, Messages.METADATA_MISSING_VALUE.format(K)),
+    (None, V, Messages.METADATA_MISSING_KEY.format(BaseParser.EMPTY_KEY_PLACEHOLDER)),
+    (K, V, Messages.METADATA_OK.format(K, V))
 ])
 # pylint: disable-next=unused-variable
 def test_medatata_storage(caplog: pytest.LogCaptureFixture, k: str, v: str, expected: str) -> None:

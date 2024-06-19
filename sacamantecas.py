@@ -165,6 +165,13 @@ class Messages(StrEnum):
     TRACEBACK_TOPLEVEL_FRAME = '<module>'
     UNKNOWN_ERRNO = 'desconocido'
 
+    PROCESSING_ARG = 'Procesando argumento «{}».'
+    ARG_IS_SOURCE_SINGLE_URL = 'El argumento es una fuente de tipo single_url.'
+    ARG_IS_SOURCE_TEXTFILE = 'El argumento es una fuente de tipo textfile.'
+    ARG_IS_SOURCE_SPREADSHEET = 'El argumento es una fuente de tipo spreadsheet.'
+    ARG_IS_SOURCE_UNSUPPORTED = 'El argumento no es un tipo de fuente admitido.'
+
+    LOADING_PROFILES = 'Obteniendo perfiles desde «{}».'
     EMPTY_PROFILES = 'No hay perfiles definidos en el fichero de perfiles «{}».'
     MISSING_PROFILES = 'No se encontró o no se pudo leer el fichero de perfiles «{}».'
     PROFILES_WRONG_SYNTAX = 'Error de sintaxis «{}» leyendo el fichero de perfiles.'
@@ -174,7 +181,11 @@ class Messages(StrEnum):
     PROFILE_WITHOUT_URL = 'El perfil no incluye un patrón de URL.'
     UNKNOWN_URL_TYPE = 'El URL «{}» es de tipo desconocido.'
     NO_MATCHING_PROFILE = 'No se encontró un perfil para procesar el URL.'
+    FOUND_PROFILES = 'Se obtuvieron los siguientes perfiles: {}.'
+    DETECTED_PROFILE = 'Perfil detectado: «{}».'
 
+    PROCESSING_URL = 'Procesando URL «{}».'
+    REDIRECTED_URL = 'URL redirigido a «{}».'
     OSLIKE_URLERROR = 'Error de red {}: {}.'
     HTTP_PROTOCOL_URLERROR = 'Error de protocolo HTTP {}: {}.'
     GENERIC_URLERROR = 'Error de URL{}: {}.'
@@ -183,6 +194,13 @@ class Messages(StrEnum):
     CONNECTION_ERROR = 'Se produjo un error de conexión «{}» accediendo al URL.'
     NO_CONTENTS_ERROR = 'No se recibieron contenidos del URL.'
 
+    CHARSET_NOT_IN_HEADERS = 'Charset no detectado en las cabeceras.'
+    CHARSET_IN_HEADERS = 'Charset detectado en las cabeceras.'
+    CHARSET_FROM_HTTP_EQUIV = 'Charset detectado mediante meta http-equiv.'
+    CHARSET_FROM_META_CHARSET = 'Charset detectado mediante meta charset.'
+    CHARSET_FROM_DEFAULT = 'Charset not detectado, usando valor por defecto.'
+    CONTENTS_ENCODING = 'Contenidos codificados con charset «{}».'
+
     SKIMMING_MARKER = '\nSacando las mantecas:\n'
     SOURCE_LABEL = 'Fuente: {}'
     UNSUPPORTED_SOURCE = 'La fuente no es de un tipo admitido.'
@@ -190,33 +208,6 @@ class Messages(StrEnum):
     INPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para leer el fichero de entrada.'
     OUTPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para crear el fichero de salida.'
     NO_METADATA_FOUND = 'No se obtuvieron metadatos.'
-
-    SOURCE_SHEET_IS_INVALID = 'La hoja de entrada es inválida ({}).'
-
-
-class Debug(StrEnum):
-    """Debugging messages."""
-    PROCESSING_ARG = 'Procesando argumento «{}».'
-    ARG_IS_SOURCE_SINGLE_URL = 'El argumento es una fuente de tipo single_url.'
-    ARG_IS_SOURCE_TEXTFILE = 'El argumento es una fuente de tipo textfile.'
-    ARG_IS_SOURCE_SPREADSHEET = 'El argumento es una fuente de tipo spreadsheet.'
-    ARG_IS_SOURCE_UNSUPPORTED = 'El argumento no es un tipo de fuente admitido.'
-
-    LOADING_PROFILES = 'Obteniendo perfiles desde «{}».'
-    FOUND_PROFILES = 'Se obtuvieron los siguientes perfiles: {}.'
-    DETECTED_PROFILE = 'Perfil detectado: «{}».'
-
-    PROCESSING_URL = 'Procesando URL «{}».'
-    REDIRECTED_URL = 'URL redirigido a «{}».'
-
-    CHARSET_NOT_IN_HEADERS = 'Charset no detectado en las cabeceras.'
-    CHARSET_IN_HEADERS = 'Charset detectado en las cabeceras.'
-
-    CHARSET_FROM_HTTP_EQUIV = 'Charset detectado mediante meta http-equiv.'
-    CHARSET_FROM_META_CHARSET = 'Charset detectado mediante meta charset.'
-    CHARSET_FROM_DEFAULT = 'Charset not detectado, usando valor por defecto.'
-
-    CONTENTS_ENCODING = 'Contenidos codificados con charset «{}».'
 
     HTML_START_TAG = '➜ HTML <{}{}{}>'
     METADATA_KEY_FOUND = 'Se encontró la clave «{}».'
@@ -228,21 +219,20 @@ class Debug(StrEnum):
     METADATA_KEY_MARKER_FOUND = 'Se encontró una marca de clave «{}».'
     METADATA_VALUE_MARKER_FOUND = 'Se encontró una marca de valor «{}».'
     METADATA_MARKER_FOUND = 'Se encontró una marca de metadato «{}».'
+    DUMPING_METADATA_TO_SINK = 'Volcando metadatos a «{}».'
+    DUMPING_METADATA_K_V = 'Añadiendo metadato «{}» con valor «{}».'
+    PARSER_NESTING_ERROR_K_IN_V = 'Problema de anidación (clave dentro de valor), restableciendo parser.'
+    PARSER_NESTING_ERROR_V_IN_K = 'Problema de anidación (valor dentro de clave), restableciendo parser.'
 
     COPYING_WORKBOOK = 'Copiando workbook a «{}».'
     WORKING_SHEET = 'La hoja con la que se trabajará es «{}»".'
+    SOURCE_SHEET_IS_INVALID = 'La hoja de entrada es inválida ({}).'
     INSERTING_HEADING_ROW = 'Insertando fila de cabeceras.'
     PROCESSING_ROW = 'Procesando fila {}.'
     NONSTRING_CELL = 'La celda «{}» no es de tipo cadena, será ignorada.'
     URL_FOUND_IN_CELL = 'Se encontró un URL en la celda «{}»: {}'
     NEW_METADATA_FOUND = 'Se encontró un metadato nuevo, «{}».'
     METADATA_STORED_IN_COLUMN = 'El metadato «{}» irá en la columna «{}».'
-
-    DUMPING_METADATA_TO_SINK = 'Volcando metadatos a «{}».'
-    DUMPING_METADATA_K_V = 'Añadiendo metadato «{}» con valor «{}».'
-
-    PARSER_NESTING_ERROR_K_IN_V = 'Problema de anidación (clave dentro de valor), restableciendo parser.'
-    PARSER_NESTING_ERROR_V_IN_K = 'Problema de anidación (valor dentro de clave), restableciendo parser.'
 
 
 class ExitCodes(IntEnum):
@@ -471,7 +461,7 @@ class BaseParser(HTMLParser):
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         """Handle opening tags."""
-        logger.debug(Debug.HTML_START_TAG.format(tag, ' ' * bool(attrs), ' '.join((f'{k}="{v}"' for k, v in attrs))))
+        logger.debug(Messages.HTML_START_TAG.format(tag, ' ' * bool(attrs), ' '.join((f'{k}="{v}"' for k, v in attrs))))
 
     def handle_data(self, data: str) -> None:
         """Handle data."""
@@ -482,12 +472,12 @@ class BaseParser(HTMLParser):
             if not data:
                 return
         if self.within_k:
-            logger.debug(Debug.METADATA_KEY_FOUND.format(data))
+            logger.debug(Messages.METADATA_KEY_FOUND.format(data))
             self.current_k += data.rstrip(':')
             self.last_k = self.current_k
             return
         if self.within_v:
-            logger.debug(Debug.METADATA_VALUE_FOUND.format(data))
+            logger.debug(Messages.METADATA_VALUE_FOUND.format(data))
             self.current_v += f'{self.MULTIDATA_SEPARATOR if self.current_v else ''}{data}'
             return
 
@@ -506,19 +496,19 @@ class BaseParser(HTMLParser):
     def store_metadata(self) -> None:
         """Store found metadata, handling missing parts."""
         if not self.current_k and not self.current_v:
-            logger.debug(Debug.METADATA_IS_EMPTY)
+            logger.debug(Messages.METADATA_IS_EMPTY)
         if self.current_k and not self.current_v:
-            logger.debug(Debug.METADATA_MISSING_VALUE.format(self.current_k))
+            logger.debug(Messages.METADATA_MISSING_VALUE.format(self.current_k))
         if not self.current_k and self.current_v:
             self.current_k = self.last_k if self.last_k else self.EMPTY_KEY_PLACEHOLDER
-            logger.debug(Debug.METADATA_MISSING_KEY.format(self.current_k))
+            logger.debug(Messages.METADATA_MISSING_KEY.format(self.current_k))
         if self.current_k and self.current_v:
             if self.current_k not in self.retrieved_metadata:
                 self.retrieved_metadata[self.current_k] = []
             # A set is not used instead of the code below, to preserve order.
             if self.current_v not in self.retrieved_metadata[self.current_k]:
                 self.retrieved_metadata[self.current_k].append(self.current_v)
-            logger.debug(Debug.METADATA_OK.format(self.current_k, self.current_v))
+            logger.debug(Messages.METADATA_OK.format(self.current_k, self.current_v))
         self.current_k = self.DEFAULT_K
         self.current_v = self.DEFAULT_V
 
@@ -563,7 +553,7 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
             if attr[1] is None:
                 continue
             if attr[0] == self.CLASS_ATTR and (match := self.config[self.K_CLASS].search(attr[1])):
-                logger.debug(Debug.METADATA_KEY_MARKER_FOUND.format(match.group(0)))
+                logger.debug(Messages.METADATA_KEY_MARKER_FOUND.format(match.group(0)))
                 self.within_k = True
                 self.current_k = self.DEFAULT_K
                 self.current_k_tag = tag
@@ -571,13 +561,13 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
                     # If still processing a value, notify about the nesting error
                     # but reset parser so everything starts afresh, like if a new
                     # key had been found.
-                    logger.debug(Debug.PARSER_NESTING_ERROR_K_IN_V)
+                    logger.debug(Messages.PARSER_NESTING_ERROR_K_IN_V)
                     self.within_v = False
                     self.current_v = self.DEFAULT_V
                     self.current_v_tag = None
                 break
             if attr[0] == self.CLASS_ATTR and (match := self.config[self.V_CLASS].search(attr[1])):
-                logger.debug(Debug.METADATA_VALUE_MARKER_FOUND.format(match.group(0)))
+                logger.debug(Messages.METADATA_VALUE_MARKER_FOUND.format(match.group(0)))
                 self.within_v = True
                 self.current_v = self.DEFAULT_V
                 self.current_v_tag = tag
@@ -586,7 +576,7 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
                     # recovered up to a certain point. If some data was got for
                     # the key, the parser is left in within_v mode to try to get
                     # the corresponding value. Otherwise the parser is reset.
-                    logger.debug(Debug.PARSER_NESTING_ERROR_V_IN_K)
+                    logger.debug(Messages.PARSER_NESTING_ERROR_V_IN_K)
                     self.within_k = False
                     self.current_k_tag = None
                     if not self.current_k:
@@ -650,30 +640,30 @@ class BaratzParser(BaseParser):   # pylint: disable=unused-variable
                 if attr[1] is None:
                     return
                 if self.config[self.M_ATTR].fullmatch(attr[0]) and self.config[self.M_VALUE].search(attr[1]):
-                    logger.debug(Debug.METADATA_MARKER_FOUND.format(attr[1]))
+                    logger.debug(Messages.METADATA_MARKER_FOUND.format(attr[1]))
                     self.within_meta = True
                     return
         else:
             if tag == self.K_TAG:
-                logger.debug(Debug.METADATA_KEY_MARKER_FOUND.format(tag))
+                logger.debug(Messages.METADATA_KEY_MARKER_FOUND.format(tag))
                 self.within_k = True
                 if self.within_v:
                     # If still processing a value, notify about the nesting error
                     # but reset parser so everything starts afresh, like if a new
                     # key had been found.
-                    logger.debug(Debug.PARSER_NESTING_ERROR_K_IN_V)
+                    logger.debug(Messages.PARSER_NESTING_ERROR_K_IN_V)
                     self.within_v = False
                     self.current_v = self.DEFAULT_V
                 return
             if tag == self.V_TAG:
-                logger.debug(Debug.METADATA_VALUE_MARKER_FOUND.format(tag))
+                logger.debug(Messages.METADATA_VALUE_MARKER_FOUND.format(tag))
                 self.within_v = True
                 if self.within_k:
                     # If still processing a key, the nesting error can still be
                     # recovered up to a certain point. If some data was got for
                     # the key, the parser is left in within_v mode to try to get
                     # the corresponding value. Otherwise the parser is reset.
-                    logger.debug(Debug.PARSER_NESTING_ERROR_V_IN_K)
+                    logger.debug(Messages.PARSER_NESTING_ERROR_V_IN_K)
                     self.within_k = False
                     if not self.current_k:
                         self.within_v = False
@@ -875,7 +865,7 @@ def load_profiles(filename: Path) -> dict[str, Profile]:
     are present in filename.
     """
     config = configparser.ConfigParser()
-    logger.debug(Debug.LOADING_PROFILES.format(filename))
+    logger.debug(Messages.LOADING_PROFILES.format(filename))
     try:
         with open(filename, encoding=Constants.UTF8) as inifile:
             config.read_file(inifile)
@@ -925,18 +915,18 @@ def parse_arguments(*args: str) -> Generator[tuple[str, Handler | None], None, N
     be None for unsupported sources.
     """
     for arg in args:
-        logger.debug(Debug.PROCESSING_ARG.format(arg))
+        logger.debug(Messages.PROCESSING_ARG.format(arg))
         if is_accepted_url(arg):
-            logger.debug(Debug.ARG_IS_SOURCE_SINGLE_URL)
+            logger.debug(Messages.ARG_IS_SOURCE_SINGLE_URL)
             handler = single_url_handler(arg)
         elif arg.endswith(Constants.TEXTFILE_SUFFIX):
-            logger.debug(Debug.ARG_IS_SOURCE_TEXTFILE)
+            logger.debug(Messages.ARG_IS_SOURCE_TEXTFILE)
             handler = textfile_handler(Path(arg))
         elif arg.endswith(Constants.SPREADSHEET_SUFFIX):
-            logger.debug(Debug.ARG_IS_SOURCE_SPREADSHEET)
+            logger.debug(Messages.ARG_IS_SOURCE_SPREADSHEET)
             handler = spreadsheet_handler(Path(arg))
         else:
-            logger.debug(Debug.ARG_IS_SOURCE_UNSUPPORTED)
+            logger.debug(Messages.ARG_IS_SOURCE_UNSUPPORTED)
             handler = None
         yield arg, handler
 
@@ -969,7 +959,7 @@ def single_url_handler(url: str) -> Handler:
     """
     sink_filename = generate_sink_filename(url_to_filename(url).with_suffix(Constants.TEXTFILE_SUFFIX))
     with open(sink_filename, 'w', encoding=Constants.UTF8) as sink:
-        logger.debug(Debug.DUMPING_METADATA_TO_SINK.format(sink_filename))
+        logger.debug(Messages.DUMPING_METADATA_TO_SINK.format(sink_filename))
         yield Constants.HANDLER_BOOTSTRAP_SUCCESS
         if is_accepted_url(url):
             metadata = yield url
@@ -977,7 +967,7 @@ def single_url_handler(url: str) -> Handler:
             if metadata:
                 sink.write(Constants.TEXTSINK_METADATA_HEADER.format(url))
                 for key, value in metadata.items():
-                    logger.debug(Debug.DUMPING_METADATA_K_V.format(key, value))
+                    logger.debug(Messages.DUMPING_METADATA_K_V.format(key, value))
                     message = Constants.TEXTSINK_METADATA_PAIR.format(key, value)
                     logger.indent()
                     logger.info(message)  # Output allowed here because it is part of the handler.
@@ -1010,7 +1000,7 @@ def textfile_handler(source_filename: Path) -> Handler:
     sink_filename = generate_sink_filename(source_filename)
     with open(source_filename, encoding=Constants.UTF8) as source:
         with open(sink_filename, 'w', encoding=Constants.UTF8) as sink:
-            logger.debug(Debug.DUMPING_METADATA_TO_SINK.format(sink_filename))
+            logger.debug(Messages.DUMPING_METADATA_TO_SINK.format(sink_filename))
             yield Constants.HANDLER_BOOTSTRAP_SUCCESS
             for url in source.readlines():
                 url = url.strip()
@@ -1021,7 +1011,7 @@ def textfile_handler(source_filename: Path) -> Handler:
                 if metadata:
                     sink.write(Constants.TEXTSINK_METADATA_HEADER.format(url))
                     for key, value in metadata.items():
-                        logger.debug(Debug.DUMPING_METADATA_K_V.format(key, value))
+                        logger.debug(Messages.DUMPING_METADATA_K_V.format(key, value))
                         sink.write(Constants.TEXTSINK_METADATA_PAIR.format(key, value))
                     sink.write(Constants.TEXTSINK_METADATA_FOOTER)
 
@@ -1041,7 +1031,7 @@ def spreadsheet_handler(source_filename: Path) -> Handler:
     where the URLs for the items are. Allegedly…
     """
     sink_filename = generate_sink_filename(source_filename)
-    logger.debug(Debug.COPYING_WORKBOOK.format(sink_filename))
+    logger.debug(Messages.COPYING_WORKBOOK.format(sink_filename))
 
     copy2(source_filename, sink_filename)
     try:
@@ -1054,15 +1044,15 @@ def spreadsheet_handler(source_filename: Path) -> Handler:
     yield Constants.HANDLER_BOOTSTRAP_SUCCESS
 
     source_sheet = source_workbook.worksheets[0]
-    logging.debug(Debug.WORKING_SHEET.format(source_sheet.title))
+    logging.debug(Messages.WORKING_SHEET.format(source_sheet.title))
 
     sink_sheet = sink_workbook.worksheets[0]
 
-    logger.debug(Debug.INSERTING_HEADING_ROW)
+    logger.debug(Messages.INSERTING_HEADING_ROW)
     sink_sheet.insert_rows(1, 1)
 
     for row in source_sheet.rows:
-        logger.debug(Debug.PROCESSING_ROW.format(row[0].row))
+        logger.debug(Messages.PROCESSING_ROW.format(row[0].row))
         if (url := get_url_from_row(row)) is None:
             continue
         metadata = yield url
@@ -1079,11 +1069,11 @@ def get_url_from_row(row: tuple[Cell, ...]) -> str | None:
     url = None
     for cell in row:
         if cell.data_type != CELLTYPE_STRING:
-            logger.debug(Debug.NONSTRING_CELL.format(cell.coordinate))
+            logger.debug(Messages.NONSTRING_CELL.format(cell.coordinate))
             continue
         if is_accepted_url(str(cell.value)):
             url = str(cell.value)
-            logger.debug(Debug.URL_FOUND_IN_CELL.format(cell.coordinate, url))
+            logger.debug(Messages.URL_FOUND_IN_CELL.format(cell.coordinate, url))
             break  # Only the FIRST URL found in each row is considered.
     return url
 
@@ -1108,10 +1098,10 @@ def store_metadata_in_sheet(
     for key, value in metadata.items():
         key = Constants.SPREADSHEET_METADATA_COLUMN_TITLE.format(key)
         if key not in static.known_metadata:
-            logger.debug(Debug.NEW_METADATA_FOUND.format(key))
+            logger.debug(Messages.NEW_METADATA_FOUND.format(key))
             column = sheet.max_column + 1
             static.known_metadata[key] = column
-            logger.debug(Debug.METADATA_STORED_IN_COLUMN.format(key, get_column_letter(column)))
+            logger.debug(Messages.METADATA_STORED_IN_COLUMN.format(key, get_column_letter(column)))
             cell = sheet.cell(row=1, column=column, value=key)
             cell.font = Font(name=Constants.SPREADSHEET_CELL_FONT)
             cell.fill = PatternFill(fgColor=Constants.SPREADSHEET_CELL_COLOR, fill_type=Constants.SPREADSHEET_CELL_FILL)
@@ -1134,7 +1124,7 @@ def store_metadata_in_sheet(
                 # of that column affects ALL the following ones whose index is
                 # less than 'max'… So, it's better to fix that field.
             sheet.column_dimensions[get_column_letter(column)].max = column
-        logger.debug(Debug.DUMPING_METADATA_K_V.format(key, value))
+        logger.debug(Messages.DUMPING_METADATA_K_V.format(key, value))
         # Since a heading row is inserted, the rows where metadata has to go
         # have now an +1 offset, as they have been displaced.
         sheet.cell(row[0].row + 1, static.known_metadata[key], value=value)
@@ -1162,7 +1152,7 @@ def get_parser(url: str, profiles: dict[str, Profile]) -> BaseParser | None:
     """
     for profile_name, profile in profiles.items():
         if profile.url_pattern.search(url):
-            logger.debug(Debug.DETECTED_PROFILE.format(profile_name))
+            logger.debug(Messages.DETECTED_PROFILE.format(profile_name))
             profile.parser.configure(profile.parser_config)
             return profile.parser
     return None
@@ -1248,7 +1238,7 @@ def retrieve_url(url: str) -> tuple[bytes, str]:
     contents = b''
     charset = ''
     while retrieved_url:
-        logger.debug(Debug.PROCESSING_URL.format(url))
+        logger.debug(Messages.PROCESSING_URL.format(url))
         with urlopen(Request(url, headers={'User-Agent': Constants.USER_AGENT})) as response:
             # First, check if any redirection is needed and get the charset the easy way.
             contents = response.read()
@@ -1258,11 +1248,11 @@ def retrieve_url(url: str) -> tuple[bytes, str]:
     # In this point, we have the contents as a byte string.
     # If the charset is None, it has to be determined the hard way.
     if not charset:
-        logger.debug(Debug.CHARSET_NOT_IN_HEADERS)
+        logger.debug(Messages.CHARSET_NOT_IN_HEADERS)
         charset = detect_html_charset(contents)
     else:
-        logger.debug(Debug.CHARSET_IN_HEADERS)
-    logger.debug(Debug.CONTENTS_ENCODING.format(charset))
+        logger.debug(Messages.CHARSET_IN_HEADERS)
+    logger.debug(Messages.CONTENTS_ENCODING.format(charset))
 
     return contents, charset
 
@@ -1295,7 +1285,7 @@ def get_redirected_url(base_url: str, contents: bytes) -> str | None:
             if field in ('scheme', 'netloc') and not getattr(redirected_url, field):
                 redirected_url = redirected_url._replace(**{field: value})
         redirected_url = urlunparse(redirected_url)
-        logger.debug(Debug.REDIRECTED_URL.format(redirected_url))
+        logger.debug(Messages.REDIRECTED_URL.format(redirected_url))
         return redirected_url
     return None
 
@@ -1317,14 +1307,14 @@ def detect_html_charset(contents: bytes) -> str:
     charset = Constants.FALLBACK_HTML_CHARSET
     if match := re.search(Constants.META_HTTP_EQUIV_CHARSET_RE, contents, re.I):
         # Next best thing, from the meta http-equiv="content-type".
-        logger.debug(Debug.CHARSET_FROM_HTTP_EQUIV)
+        logger.debug(Messages.CHARSET_FROM_HTTP_EQUIV)
         charset = match.group(1).decode(Constants.ASCII)
     elif match := re.search(Constants.META_CHARSET_RE, contents, re.I):
         # Last resort, from some meta charset, if any…
-        logger.debug(Debug.CHARSET_FROM_META_CHARSET)
+        logger.debug(Messages.CHARSET_FROM_META_CHARSET)
         charset = match.group(1).decode(Constants.ASCII)
     else:
-        logger.debug(Debug.CHARSET_FROM_DEFAULT)
+        logger.debug(Messages.CHARSET_FROM_DEFAULT)
     return charset
 
 
@@ -1349,7 +1339,7 @@ def main(*args: str) -> ExitCodes:
         profiles = load_profiles(Constants.INIFILE_PATH)
         if not profiles:
             raise ProfilesError(Messages.EMPTY_PROFILES.format(Constants.INIFILE_PATH))
-        logger.debug(Debug.FOUND_PROFILES.format(', '.join(profiles.keys())))
+        logger.debug(Messages.FOUND_PROFILES.format(', '.join(profiles.keys())))
     except ProfilesError as exc:
         error(exc, exc.details)
         return ExitCodes.ERROR

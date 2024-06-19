@@ -2,7 +2,7 @@
 """Test suite for non-refactored code strings."""
 from tokenize import generate_tokens, STRING
 
-from sacamantecas import BaseParser, Constants, Debug, Messages
+from sacamantecas import BaseParser, Constants, Messages
 
 
 ALLOWED_STRINGS = (
@@ -43,8 +43,7 @@ CONSTANT_STRINGS = (
             for v in (item if isinstance(item, tuple) else (item,))  # type: ignore
 )
 MESSAGE_STRINGS = Messages.__members__.values()
-DEBUG_STRINGS = Debug.__members__.values()
-REFACTORED_STRINGS = (*ALLOWED_STRINGS, *PARSER_STRINGS, *CONSTANT_STRINGS, *MESSAGE_STRINGS, *DEBUG_STRINGS)
+REFACTORED_STRINGS = (*ALLOWED_STRINGS, *PARSER_STRINGS, *CONSTANT_STRINGS, *MESSAGE_STRINGS)
 def test_strings() -> None:  # pylint: disable=unused-variable
     """Test for non-refactored strings."""
     unrefactored_strings: list[str] = []

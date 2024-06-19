@@ -58,7 +58,6 @@ CODETREE = ast.parse(inspect.getsource(sacamantecas))
 @pytest.mark.parametrize('classname', [
     sacamantecas.Constants.__name__,
     sacamantecas.Messages.__name__,
-    sacamantecas.Debug.__name__,
     sacamantecas.ExitCodes.__name__,
     sacamantecas.WFKStatuses.__name__
 ])
