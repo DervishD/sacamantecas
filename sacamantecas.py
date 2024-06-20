@@ -24,7 +24,6 @@ from pathlib import Path
 import platform
 import re
 from shutil import copy2
-from textwrap import dedent
 import time
 import traceback as tb
 from types import SimpleNamespace, TracebackType
@@ -54,25 +53,26 @@ class Constants():  # pylint: disable=too-few-public-methods
 
     UTF8 = 'utf-8'
     ASCII = 'ascii'
+    DOUBLE_QUOTE_CHAR = '"'
+    PERIOD = '.'
+
+    OUTPUT_SEPARATOR = ', '
 
     ERROR_MARKER = '*** '
     ERROR_PAYLOAD_INDENT = len(ERROR_MARKER)
 
     TIMESTAMP_FORMAT = '%Y%m%d_%H%M%S'
 
-    USER_AGENT = ' '.join(dedent(f'''
-        {APP_NAME}/{SEMVER}
-        +https://github.com/DervishD/sacamantecas
-        (Windows {platform.version()};
-        {platform.architecture()[0]};
-        {platform.machine()})
-    ''').splitlines()).lstrip()
+    REPOSITORY = 'https://github.com/DervishD/sacamantecas'
+    PLATFORM = f'Windows {platform.version()};{platform.architecture()[0]};{platform.machine()}'
+    USER_AGENT = f'{APP_NAME}/{SEMVER} +{REPOSITORY} ({PLATFORM})'
 
     ACCEPTED_URL_SCHEMES = ('https', 'http', 'file')
 
     FALLBACK_HTML_CHARSET = 'ISO-8859-1'
 
     PROFILE_URL_PATTERN_KEY = 'url'
+    PROFILE_BAD_REGEX_ERROR = 'BadRegex'
 
     TEXTFILE_SUFFIX = '.txt'
     SPREADSHEET_SUFFIX = '.xlsx'
@@ -90,12 +90,12 @@ class Constants():  # pylint: disable=too-few-public-methods
     LOGGING_FORMAT_STYLE = '{'
     LOGGING_LEVELNAME_MAX_LEN = len(max(logging.getLevelNamesMapping(), key=len))
     LOGGING_LEVELNAME_SEPARATOR = '| '
-    LOGGING_DEBUGFILE_FORMAT = ''.join((
-        '{asctime}.{msecs:04.0f} ',
-        f'{{levelname:{LOGGING_LEVELNAME_MAX_LEN}}}',
-        LOGGING_LEVELNAME_SEPARATOR,
+    LOGGING_DEBUGFILE_FORMAT = (
+        '{asctime}.{msecs:04.0f} '
+        f'{{levelname:{LOGGING_LEVELNAME_MAX_LEN}}}'
+        f'{LOGGING_LEVELNAME_SEPARATOR}'
         '{message}'
-    ))
+    )
     LOGGING_FALLBACK_FORMAT = '{message}'
     LOGGING_LOGFILE_FORMAT = '{asctime} {message}'
     LOGGING_CONSOLE_FORMAT = '{message}'
@@ -108,6 +108,8 @@ class Constants():  # pylint: disable=too-few-public-methods
     TEXTSINK_METADATA_PAIR = f'{TEXTSINK_METADATA_INDENT}{{}}{TEXTSINK_METADATA_SEPARATOR}{{}}\n'
     TEXTSINK_METADATA_FOOTER = '\n'
 
+    METADATA_KEY_TERMINATOR = ':'
+
     SPREADSHEET_METADATA_COLUMN_MARKER = '[sm] '
     SPREADSHEET_METADATA_COLUMN_TITLE = f'{SPREADSHEET_METADATA_COLUMN_MARKER}{{}}'
     SPREADSHEET_CELL_FONT = 'Calibri'
@@ -116,24 +118,27 @@ class Constants():  # pylint: disable=too-few-public-methods
 
     URL_UNSAFE_CHARS_RE = r'\W'
     URL_UNSAFE_REPLACE_CHAR = '_'
-
     FILE_URL_SAFE_CHARS = ':/'
+    FILE_SCHEME = 'file://'
+
+    USER_AGENT_HEADER = 'User-Agent'
 
     META_HTTP_EQUIV_CHARSET_RE = rb'<meta http-equiv="content-type".*charset="([^"]+)"'
     META_CHARSET_RE = rb'<meta charset="([^"]+)"'
     META_REFRESH_RE = rb'<meta http-equiv="refresh" content="(?:[^;]+;\s+)?URL=([^"]+)"'
+    URL_FIELDS_TO_REUSE = ('scheme', 'netloc')
 
 
 class Messages(StrEnum):
     """Messages."""
     PRESS_ANY_KEY = '\nPulse cualquier tecla para continuar...'
     KEYBOARD_INTERRUPT = 'El usuario interrumpió la operación de la aplicación.'
-    NO_ARGUMENTS = dedent('''
-        No se han especificado fuentes de entrada para ser procesadas.
-
-        Arrastre y suelte un fichero de entrada sobre el icono de la aplicación,
-        o bien proporcione los nombres de las fuentes de entrada como argumentos.
-    ''').strip()
+    NO_ARGUMENTS = (
+        'No se han especificado fuentes de entrada para ser procesadas.\n'
+        '\n'
+        'Arrastre y suelte un fichero de entrada sobre el icono de la aplicación,\n'
+        'o bien proporcione los nombres de las fuentes de entrada como argumentos.'
+    )
 
     DEBUGGING_INIT = 'Registro de depuración iniciado.'
     APP_BANNER = f'{Constants.APP_NAME} versión {SEMVER}'
@@ -147,14 +152,14 @@ class Messages(StrEnum):
     ERROR_DETAILS_TAIL = '╰'
 
     UNEXPECTED_OSERROR = 'Error inesperado del sistema operativo.'
-    OSERROR_DETAILS = dedent('''
-         type = {}
-        errno = {}
-     winerror = {}
-     strerror = {}
-     filename = {}
-    filename2 = {}
-    ''').strip('\n')
+    OSERROR_DETAILS = (
+        '     type = {}\n'
+        '    errno = {}\n'
+        ' winerror = {}\n'
+        ' strerror = {}\n'
+        ' filename = {}\n'
+        'filename2 = {}\n'
+    )
     OSERROR_DETAIL_NA = '[No disponible]'
     UNHANDLED_EXCEPTION = 'Excepción sin gestionar.'
     EXCEPTION_DETAILS = 'type = {}\nvalue = {}\nargs: {}'
@@ -473,7 +478,7 @@ class BaseParser(HTMLParser):
                 return
         if self.within_k:
             logger.debug(Messages.METADATA_KEY_FOUND.format(data))
-            self.current_k += data.rstrip(':')
+            self.current_k += data.rstrip(Constants.METADATA_KEY_TERMINATOR)
             self.last_k = self.current_k
             return
         if self.within_v:
@@ -872,7 +877,7 @@ def load_profiles(filename: Path) -> dict[str, Profile]:
     except (FileNotFoundError, PermissionError) as exc:
         raise ProfilesError(Messages.MISSING_PROFILES.format(exc.filename)) from exc
     except configparser.Error as exc:
-        errorname = type(exc).__name__.removesuffix('Error')
+        errorname = type(exc).__name__.removesuffix(configparser.Error.__name__)
         raise ProfilesError(Messages.PROFILES_WRONG_SYNTAX.format(errorname), exc) from exc
 
     profiles: dict[str, Profile] = {}
@@ -887,13 +892,14 @@ def load_profiles(filename: Path) -> dict[str, Profile]:
             try:
                 parser_config[key] = re.compile(value, re.IGNORECASE)
             except re.error as exc:
+                message = Messages.PROFILES_WRONG_SYNTAX.format(Constants.PROFILE_BAD_REGEX_ERROR)
                 details = Messages.PROFILES_WRONG_SYNTAX_DETAILS.format(
                     section, exc.msg,
                     key, Messages.PROFILES_WRONG_SYNTAX_DETAILS_SEPARATOR, exc.pattern,
                     '', (exc.pos or 0) + len(key) + len(Messages.PROFILES_WRONG_SYNTAX_DETAILS_SEPARATOR)
                     # The empty string above is needed as a placeholder for format().
                 )
-                raise ProfilesError(Messages.PROFILES_WRONG_SYNTAX.format('BadRegex'), details) from exc
+                raise ProfilesError(message, details) from exc
         url_pattern = parser_config.pop(Constants.PROFILE_URL_PATTERN_KEY, None)
         if url_pattern is None:
             raise ProfilesError(Messages.INVALID_PROFILE.format(section), Messages.PROFILE_WITHOUT_URL)
@@ -1037,7 +1043,7 @@ def spreadsheet_handler(source_filename: Path) -> Handler:
     try:
         source_workbook = load_workbook(source_filename)
     except (KeyError, BadZipFile) as exc:
-        details = str(exc).strip('"')
+        details = str(exc).strip(Constants.DOUBLE_QUOTE_CHAR)
         details = details[0].lower() + details[1:]
         raise SourceError(Messages.SOURCE_SHEET_IS_INVALID, details) from exc
     sink_workbook = load_workbook(sink_filename)
@@ -1189,7 +1195,7 @@ def saca_las_mantecas(url: str, parser: BaseParser) -> dict[str, str]:
             error_code = ''
             error_reason = str(exc.reason)
             details = Messages.GENERIC_URLERROR
-        error_reason = (error_reason[0].lower() + error_reason[1:]).rstrip('.')
+        error_reason = (error_reason[0].lower() + error_reason[1:]).rstrip(Constants.PERIOD)
         raise SkimmingError(Messages.URL_ACCESS_ERROR, details.format(error_code, error_reason)) from exc
     # Apparently, HTTPException, ConnectionError and derived exceptions are
     # masked or wrapped by urllib, and documentation is not very informative.
@@ -1232,14 +1238,14 @@ def retrieve_url(url: str) -> tuple[bytes, str]:
 
     retrieved_url: str | None = url
 
-    if url.startswith('file://'):
+    if url.startswith(Constants.FILE_SCHEME):
         retrieved_url = resolve_file_url(url)
 
     contents = b''
     charset = ''
     while retrieved_url:
         logger.debug(Messages.PROCESSING_URL.format(url))
-        with urlopen(Request(url, headers={'User-Agent': Constants.USER_AGENT})) as response:
+        with urlopen(Request(url, headers={Constants.USER_AGENT_HEADER: Constants.USER_AGENT})) as response:
             # First, check if any redirection is needed and get the charset the easy way.
             contents = response.read()
             charset = response.headers.get_content_charset()
@@ -1282,7 +1288,7 @@ def get_redirected_url(base_url: str, contents: bytes) -> str | None:
             # If not specified in the redirected URL, both the scheme and netloc
             # will be reused from the base URL. Any other field will be obtained
             # from the redirected URL and used, no matter if it is empty.
-            if field in ('scheme', 'netloc') and not getattr(redirected_url, field):
+            if field in Constants.URL_FIELDS_TO_REUSE and not getattr(redirected_url, field):
                 redirected_url = redirected_url._replace(**{field: value})
         redirected_url = urlunparse(redirected_url)
         logger.debug(Messages.REDIRECTED_URL.format(redirected_url))
@@ -1339,7 +1345,7 @@ def main(*args: str) -> ExitCodes:
         profiles = load_profiles(Constants.INIFILE_PATH)
         if not profiles:
             raise ProfilesError(Messages.EMPTY_PROFILES.format(Constants.INIFILE_PATH))
-        logger.debug(Messages.FOUND_PROFILES.format(', '.join(profiles.keys())))
+        logger.debug(Messages.FOUND_PROFILES.format(Constants.OUTPUT_SEPARATOR.join(profiles.keys())))
     except ProfilesError as exc:
         error(exc, exc.details)
         return ExitCodes.ERROR

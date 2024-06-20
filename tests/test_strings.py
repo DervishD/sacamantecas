@@ -1,72 +1,83 @@
 #! /usr/bin/env python3
 """Test suite for non-refactored code strings."""
-from tokenize import generate_tokens, STRING
+import ast
 
-from sacamantecas import BaseParser, Constants, Messages
-
+from sacamantecas import Constants
 
 ALLOWED_STRINGS = (
     # Early platform check.
     'win32', '\nThis application is compatible only with the Win32 platform.',
     # Python well-known strings.
-    'frozen', '__main__',
-    # Punctuation characters.
-    '/', ':', '.', '"', ', ',
-    # String not properly detected in Constants.
-    '{asctime}.{msecs:04.0f} ',
+    'frozen', '__main__', 'w',
     # Strings used for logging.dictConfig configuration dictionary.
-    'version', 'disable_existing_loggers', 'propagate',
-    '+', '-',
-    '()', 'style', 'format', 'datefmt',
-    'formatters', 'handlers', 'loggers', 'filters',
-    'level', 'formatter',
+    'version', 'disable_existing_loggers', 'level', 'propagate',
+    '()', 'style', 'format', 'datefmt', 'formatter', 'class',
     'filename', 'mode', 'encoding', 'stream',
     'debugfile_formatter', 'logfile_formatter', 'console_formatter',
     'debugfile_handler', 'logfile_handler', 'stdout_handler', 'stderr_handler',
-    # Miscellaneous strings that should not be refactored.
-    'w',
-    ' versión ',
-    'kernel32',
-    'BadRegex',
-    'User-Agent',
-    'Error',
-    'file://',
-    'scheme', 'netloc',
+    'loggers', 'handlers', 'formatters', 'filters',
 )
-PARSER_STRINGS = (
-    v for d in ((BaseParser.__dict__,) + tuple(c.__dict__ for c in BaseParser.__subclasses__()))
-        for k, v in d.items() if not k.startswith('__') and isinstance(v, str)
-)
-CONSTANT_STRINGS = (
-    str(v) for item in ((v.decode(Constants.UTF8) if isinstance(v, bytes) else v)  # type: ignore
-        for v in {k: v for k,v in Constants.__dict__.items() if not k.startswith('__')}.values())
-            for v in (item if isinstance(item, tuple) else (item,))  # type: ignore
-)
-MESSAGE_STRINGS = Messages.__members__.values()
-REFACTORED_STRINGS = (*ALLOWED_STRINGS, *PARSER_STRINGS, *CONSTANT_STRINGS, *MESSAGE_STRINGS)
+
+class UnrefactoredStringsFinderVisitor(ast.NodeVisitor):
+    """Simple visitor to find non-refactored literal strings."""
+    def __init__(self) -> None:
+        self.ignored_strings: list[str | bytes] = []
+        self.unrefactored_strings: list[tuple[int, str]] = []
+
+    def ignore_docstring(self, node: ast.AsyncFunctionDef | ast.FunctionDef | ast.ClassDef | ast.Module) -> None:
+        """ Ignore docstring string constants for node. """
+        if docstring := ast.get_docstring(node, clean=False):
+            self.ignored_strings.append(docstring)
+
+    def visit_Module(self, node: ast.Module) -> None:  # pylint: disable=invalid-name
+        """."""
+        self.ignore_docstring(node)
+        self.generic_visit(node)
+
+    def visit_ClassDef(self, node: ast.ClassDef) -> None:  # pylint: disable=invalid-name
+        """."""
+        self.ignore_docstring(node)
+
+        subnodes: list[ast.AST] = []
+        for child in node.body:
+            if not isinstance(child, ast.Assign):
+                continue
+            if isinstance(child.value, ast.Tuple):
+                for element in child.value.elts:
+                    subnodes.append(element)
+            else:
+                subnodes.append(child.value)
+
+        for subnode in subnodes:
+            if isinstance(subnode, ast.Constant) and isinstance(subnode.value, (str, bytes)):
+                self.ignored_strings.append(subnode.value)
+        self.generic_visit(node)
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:   # pylint: disable=invalid-name
+        """."""
+        self.ignore_docstring(node)
+        self.generic_visit(node)
+
+    def visit_JoinedStr(self, node: ast.JoinedStr) -> None:  # pylint: disable=invalid-name
+        """."""
+        # pylint: disable=unused-argument
+        return
+
+    def visit_Constant(self, node: ast.Constant) -> None:   # pylint: disable=invalid-name
+        """."""
+        if node.value in self.ignored_strings:
+            self.ignored_strings.remove(node.value)
+            return
+        if node.value in ALLOWED_STRINGS:
+            return
+        if isinstance(node.value, (str, bytes)) and node.value.strip():
+            self.unrefactored_strings.append((node.lineno, repr(node.value)))
+
+
 def test_strings() -> None:  # pylint: disable=unused-variable
     """Test for non-refactored strings."""
-    unrefactored_strings: list[str] = []
+    visitor = UnrefactoredStringsFinderVisitor()
+    visitor.visit(ast.parse(Constants.APP_PATH.read_text(encoding=Constants.UTF8)))
 
-    with open(Constants.APP_PATH, 'rt', encoding=Constants.UTF8) as code:
-        for tokeninfo in generate_tokens(code.readline):
-            if tokeninfo.type != STRING:
-                continue
-            if tokeninfo.line.strip().startswith('__'):
-                continue
-            if tokeninfo.string.startswith(('"""', "'''")):
-                continue
-
-            string = tokeninfo.string
-            if string.startswith('r'):
-                string = tokeninfo.string.lstrip('r')
-            else:
-                string = tokeninfo.string.replace('\\n', '\n')
-
-            string = string.lstrip('b')
-            string = string.strip(string[0])
-            if string in REFACTORED_STRINGS:
-                continue
-
-            unrefactored_strings.append(tokeninfo.string)
-    assert not unrefactored_strings
+    assert not visitor.ignored_strings
+    assert not visitor.unrefactored_strings
