@@ -1,6 +1,5 @@
 #! /usr/bin/env python
 """See "README.md" for details."""
-from functools import wraps
 import sys
 if sys.platform != 'win32':
     print('\nThis application is compatible only with the Win32 platform.')
@@ -14,6 +13,7 @@ from ctypes import byref, c_uint, create_unicode_buffer, windll
 from ctypes.wintypes import MAX_PATH as MAX_PATH_LEN
 from enum import auto, IntEnum, StrEnum
 import errno
+from functools import wraps
 from http.client import HTTPException
 from html.parser import HTMLParser
 from io import TextIOWrapper
