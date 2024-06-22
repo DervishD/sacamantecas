@@ -50,6 +50,8 @@ class Constants():  # pylint: disable=too-few-public-methods
     """Application configuration values."""
     APP_PATH = Path(__file__)
     APP_NAME = APP_PATH.stem
+    APP_REPOSITORY = 'https://github.com/DervishD/sacamantecas'
+    APP_PLATFORM = f'Windows {platform.version()};{platform.architecture()[0]};{platform.machine()}'
 
     UTF8 = 'utf-8'
     ASCII = 'ascii'
@@ -63,9 +65,7 @@ class Constants():  # pylint: disable=too-few-public-methods
 
     TIMESTAMP_FORMAT = '%Y%m%d_%H%M%S'
 
-    REPOSITORY = 'https://github.com/DervishD/sacamantecas'
-    PLATFORM = f'Windows {platform.version()};{platform.architecture()[0]};{platform.machine()}'
-    USER_AGENT = f'{APP_NAME}/{SEMVER} +{REPOSITORY} ({PLATFORM})'
+    USER_AGENT = f'{APP_NAME}/{SEMVER} +{APP_REPOSITORY} ({APP_PLATFORM})'
 
     ACCEPTED_URL_SCHEMES = ('https', 'http', 'file')
 
