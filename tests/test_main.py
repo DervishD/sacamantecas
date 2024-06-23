@@ -68,7 +68,7 @@ def test_missing_ini(
     monkeypatch.setattr(Constants, 'LOGFILE_PATH', log_paths.log)
     monkeypatch.setattr(Constants, 'DEBUGFILE_PATH', log_paths.debug)
 
-    filename = str(tmp_path / 'non_existent.ini')
+    filename = tmp_path / 'non_existent.ini'
     monkeypatch.setattr(Constants, 'INIFILE_PATH', filename)
 
     assert main('') == ExitCodes.ERROR

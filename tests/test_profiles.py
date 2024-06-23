@@ -28,7 +28,7 @@ def test_missing(tmp_path: Path) -> None: # pylint: disable=unused-variable
     assert str(excinfo.value) == Messages.MISSING_PROFILES.format(filename)
 
 
-@pytest.mark.parametrize('unreadable_file', ['unreadable_profiles.ini'])
+@pytest.mark.parametrize('unreadable_file', [Path('unreadable_profiles.ini')])
 def test_unreadable(unreadable_file: Path) -> None:  # pylint: disable=unused-variable
     """Test for unreadable profiles configuration file."""
     with pytest.raises(ProfilesError) as excinfo:
