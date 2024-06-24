@@ -16,6 +16,7 @@ from sacamantecas import (
     OldRegimeParser,
     Profile,
     ProfilesError,
+    SkimmingError,
 )
 
 
@@ -43,7 +44,10 @@ def test_empty(tmp_path: Path, text: str) -> None:  # pylint: disable=unused-var
     filename = tmp_path / 'profiles_empty.ini'
     filename.write_text(text)
 
-    assert not load_profiles(filename)
+    with pytest.raises(ProfilesError) as excinfo:
+        load_profiles(filename)
+
+    assert str(excinfo.value) == Messages.EMPTY_PROFILES.format(filename)
 
 
 @pytest.mark.parametrize(('text', 'error'), [
@@ -181,3 +185,11 @@ def test_get_url_parser(url: str, expected: Profile) -> None:  # pylint: disable
     result = get_parser(url, PROFILES)
 
     assert type(result) == type(expected)  # pylint: disable=unidiomatic-typecheck
+
+@pytest.mark.parametrize('url', ['http://optional.forbidden.profile1.tld','http://profile2.tld'])
+def test_no_matching_profile(url: str) -> None:  # pylint: disable=unused-variable
+    """Test URLs with no matching profile (no parser)."""
+    with pytest.raises(SkimmingError) as excinfo:
+        get_parser(url, PROFILES)
+
+    assert str(excinfo.value) == Messages.NO_MATCHING_PROFILE
