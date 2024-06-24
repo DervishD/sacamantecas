@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 """Test suite for main() function."""
-from typing import Any
+from ctypes import wintypes
+from typing import cast
 import pytest
 
 from sacamantecas import Constants, wait_for_keypress, WFKStatuses
@@ -13,8 +14,10 @@ def test_imported() -> None:  # pylint: disable=unused-variable
 
 def test_no_console_attached(monkeypatch: pytest.MonkeyPatch) -> None:  # pylint: disable=unused-variable
     """Test wait_for_keypress() when there is no console attached."""
-    def patched_getconsolemode(*_: Any) -> int:
-        return 0
+    def patched_getconsolemode(handle: wintypes.HANDLE, mode: wintypes.LPDWORD) -> wintypes.BOOL:  # noqa: ARG001
+        # pylint: disable=unused-argument
+        """Mock version of GetConsoleMode."""
+        return cast(wintypes.BOOL, 0)
 
     monkeypatch.setattr('sacamantecas.__name__', '__main__')
     monkeypatch.setattr('ctypes.windll.kernel32.GetConsoleMode', patched_getconsolemode)
@@ -31,15 +34,18 @@ def test_no_console_attached(monkeypatch: pytest.MonkeyPatch) -> None:  # pylint
 # pylint: disable-next=unused-variable
 def test_wait_for_keypress(monkeypatch: pytest.MonkeyPatch, title: str, frozen: bool, result: WFKStatuses) -> None:
     """Test wait_for_keypress() general scenarios, with attached console."""
-    def patched_getconsolemode(*_: Any) -> int:
-        return 1
+    def patched_getconsolemode(handle: wintypes.HANDLE, mode: wintypes.LPDWORD) -> wintypes.BOOL:  # noqa: ARG001
+        # pylint: disable=unused-argument
+        """Mock version of GetConsoleMode."""
+        return cast(wintypes.BOOL, 1)
 
-    def patched_getconsoletitle(buffer: object, *_: Any) -> int:
-        setattr(buffer, 'value', title)
+    def patched_getconsoletitle(buffer: wintypes.LPWSTR, buffer_size: wintypes.DWORD) -> int:  # noqa: ARG001
+        # pylint: disable=unused-argument
+        buffer.value = title
         return len(title)
 
-    def patched_getch() -> int:
-        return 0
+    def patched_getch() -> bytes:
+        return b''
 
     monkeypatch.setattr('sacamantecas.__name__', '__main__')
     monkeypatch.setattr('ctypes.windll.kernel32.GetConsoleMode', patched_getconsolemode)
