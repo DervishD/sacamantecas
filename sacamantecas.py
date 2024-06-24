@@ -912,6 +912,8 @@ def load_profiles(filename: Path) -> dict[str, Profile]:
         else:
             raise ProfilesError(Messages.INVALID_PROFILE.format(section))
         profiles[section] = Profile(url_pattern, parser, parser_config)
+    if not profiles:
+        raise ProfilesError(Messages.EMPTY_PROFILES.format(filename))
     return profiles
 
 
@@ -1341,8 +1343,6 @@ def main(*args: str) -> ExitCodes:
 
     try:
         profiles = load_profiles(Constants.INIFILE_PATH)
-        if not profiles:
-            raise ProfilesError(Messages.EMPTY_PROFILES.format(Constants.INIFILE_PATH))
         logger.debug(Messages.FOUND_PROFILES.format(Constants.OUTPUT_SEPARATOR.join(profiles.keys())))
     except ProfilesError as exc:
         error(exc, exc.details)
