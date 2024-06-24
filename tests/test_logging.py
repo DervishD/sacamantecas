@@ -43,7 +43,7 @@ class Expected(NamedTuple):
     debug: str
     out: str
     err: str
-@pytest.mark.parametrize('logfunc, expected', [
+@pytest.mark.parametrize(('logfunc', 'expected'), [
     (logger.debug, Expected(
         '',
         f'DEBUG   {LEVELNAME_SEPARATOR}{TEST_MESSAGE}',

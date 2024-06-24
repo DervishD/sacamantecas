@@ -91,7 +91,7 @@ def test_parser_reset() -> None:  # pylint: disable=unused-variable
     parser.close()
 
 
-@pytest.mark.parametrize('k, v, expected', [
+@pytest.mark.parametrize(('k', 'v', 'expected'), [
     (None, None, Messages.METADATA_IS_EMPTY),
     (K, None, Messages.METADATA_MISSING_VALUE.format(K)),
     (None, V, Messages.METADATA_MISSING_KEY.format(BaseParser.EMPTY_KEY_PLACEHOLDER)),
@@ -119,7 +119,7 @@ SINGLE_K = 'single_key'
 SINGLE_V = ['single_value']
 MULTIPLE_K = 'multiple_key'
 MULTIPLE_V = ['multiple_value1', 'multiple_value2', 'multiple_value3']
-@pytest.mark.parametrize('metadata, expected', [
+@pytest.mark.parametrize(('metadata', 'expected'), [
     ({SINGLE_K: SINGLE_V}, {SINGLE_K: SINGLE_V[0]}),
     ({MULTIPLE_K: MULTIPLE_V}, {MULTIPLE_K: BaseParser.MULTIVALUE_SEPARATOR.join(MULTIPLE_V)})
 ])
@@ -137,7 +137,7 @@ EMPTY = ' '
 WS_NL = '  {}\n   whitespaced     \n       and\t\n    newlined   '
 # In the baseline test below, EMPTY means that parser.feed() gets empty data,
 # and None that parser.feed() is not even called for that particular item.
-@pytest.mark.parametrize('contents, expected', [
+@pytest.mark.parametrize(('contents', 'expected'), [
     # Normal metadata.
     ((K, V), {K: V}),
     ((f'{K}:', V), {K: V}),
@@ -180,7 +180,7 @@ def test_parser_baseline(contents: tuple[str | None, str | None], expected: dict
 
 
 MULTIVALUES = [f'value_{n}' for n in range(9)]
-@pytest.mark.parametrize('multikeys, separator', [
+@pytest.mark.parametrize(('multikeys', 'separator'), [
     (True, BaseParser.MULTIVALUE_SEPARATOR),
     (False, BaseParser.MULTIDATA_SEPARATOR),
 ])
@@ -223,7 +223,7 @@ TAG = 'div'
 OP_KB = ELEMENT_B.format(TAG=TAG, MARKER=K_CLASS)
 OP_VB = ELEMENT_B.format(TAG=TAG, MARKER=V_CLASS)
 EE = ELEMENT_E.format(TAG=TAG)
-@pytest.mark.parametrize('contents, expected', [
+@pytest.mark.parametrize(('contents', 'expected'), [
     # Normal metadata.
     (f'{OP_KB}{{K}}{EE}{OP_VB}{{V}}{EE}', ('{K}', '{V}')),
 
@@ -292,7 +292,7 @@ BP_KB = ELEMENT_B.format(TAG=BaratzParser.K_TAG, MARKER='')
 KE = ELEMENT_E.format(TAG=BaratzParser.K_TAG)
 BP_VB = ELEMENT_B.format(TAG=BaratzParser.V_TAG, MARKER='')
 VE = ELEMENT_E.format(TAG=BaratzParser.V_TAG)
-@pytest.mark.parametrize('contents, expected', [
+@pytest.mark.parametrize(('contents', 'expected'), [
     # Normal metadata.
     (f'{MB}{BP_KB}{{K}}{KE}{BP_VB}{{V}}{VE}{ME}', ('{K}', '{V}')),
     (f'{MB}{BP_KB}{{K}}{KE}{BP_VB}{{V}}{VE}', ('{K}', '{V}')),

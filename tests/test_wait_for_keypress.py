@@ -22,7 +22,7 @@ def test_no_console_attached(monkeypatch: pytest.MonkeyPatch) -> None:  # pylint
     assert wait_for_keypress() == WFKStatuses.NO_CONSOLE_ATTACHED
 
 
-@pytest.mark.parametrize('title, frozen, result', [
+@pytest.mark.parametrize(('title', 'frozen', 'result'), [
     ('', False, WFKStatuses.NO_CONSOLE_TITLE),
     (Constants.APP_NAME, True, WFKStatuses.NO_TRANSIENT_FROZEN),
     (Constants.APP_NAME, False, WFKStatuses.NO_TRANSIENT_PYTHON),

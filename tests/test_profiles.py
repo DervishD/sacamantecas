@@ -46,7 +46,7 @@ def test_empty(tmp_path: Path, text: str) -> None:  # pylint: disable=unused-var
     assert not load_profiles(filename)
 
 
-@pytest.mark.parametrize('text, error', [
+@pytest.mark.parametrize(('text', 'error'), [
     ('o', 'MissingSectionHeader'),
     ('[s]\no', 'Parsing'),
     ('[s]\no = v\no = v', 'DuplicateOption'),
@@ -124,7 +124,7 @@ class AParser(MockBaseParser):  # pylint: disable=unused-variable
 class BParser(MockBaseParser):  # pylint: disable=unused-variable
     """Mock 'Type B' parser."""
     PARAMETERS = MockBaseParser.PARAMETERS | {'bkey_1', 'bkey_2', 'bkey_3'}
-@pytest.mark.parametrize('inifile_contents, context_manager', [
+@pytest.mark.parametrize(('inifile_contents', 'context_manager'), [
     ('[ok_a]\nurl=v\nakey_1=v\nakey_2=v\nakey_3=v\n', nullcontext()),
     ('[ok_b]\nurl=v\nbkey_1=v\nbkey_2=v\nbkey_3=v\n', nullcontext()),
     ('[bad_extra_keys]\nurl=v\nakey_1=v\nakey_2=v\nakey_3=v\nk=v\n', pytest.raises(ProfilesError)),
@@ -168,7 +168,7 @@ PROFILES = {
         }
     ),
 }
-@pytest.mark.parametrize('url, expected', [
+@pytest.mark.parametrize(('url', 'expected'), [
     ('http://profile1.tld', PROFILES['profile_baratz'].parser),
     ('http://optional.profile1.tld', PROFILES['profile_baratz'].parser),
     ('http://mandatory.profile2.tld', PROFILES['profile_old_regime'].parser),

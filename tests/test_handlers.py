@@ -179,7 +179,7 @@ def test_spreadsheet_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) ->
     assert result == EXPECTED_METADATA
 
 
-@pytest.mark.parametrize('suffix, handler_factory', [
+@pytest.mark.parametrize(('suffix', 'handler_factory'), [
     ('.txt', textfile_handler),
     ('.xlsx', spreadsheet_handler)
 ])
@@ -194,7 +194,7 @@ def test_missing_source(tmp_path: Path, suffix: str, handler_factory: Callable[[
     assert str(excinfo.value).startswith(Messages.INPUT_FILE_NOT_FOUND)
 
 
-@pytest.mark.parametrize('unreadable_file, handler_factory', [
+@pytest.mark.parametrize(('unreadable_file', 'handler_factory'), [
     ('unreadable_textfile.txt', textfile_handler),
     ('unreadable_spreadsheet.xlsx', spreadsheet_handler)
 ], indirect=['unreadable_file'])
@@ -209,7 +209,7 @@ def test_input_no_permission(unreadable_file: Path, handler_factory: Callable[[P
     assert str(excinfo.value).startswith(Messages.INPUT_FILE_NO_PERMISSION)
 
 
-@pytest.mark.parametrize('source_stem, unwritable_file, handler_factory', [
+@pytest.mark.parametrize(('source_stem', 'unwritable_file', 'handler_factory'), [
     ('http://s.url', f'unwritable_single_url{Constants.SINKFILE_STEM}.txt', single_url_handler),
     ('s.txt', f'unwritable_textfile{Constants.SINKFILE_STEM}.txt', textfile_handler),
     ('s.xlsx', f'unwritable_spreadsheet{Constants.SINKFILE_STEM}.xlsx', spreadsheet_handler)

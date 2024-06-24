@@ -16,7 +16,7 @@ def test_unsupported_source() -> None:  # pylint: disable=unused-variable
     assert handler is None
 
 
-@pytest.mark.parametrize('sources, expected', [
+@pytest.mark.parametrize(('sources', 'expected'), [
     ('http://source', single_url_handler),
     ('file://source', single_url_handler),
     ('source.txt', textfile_handler),

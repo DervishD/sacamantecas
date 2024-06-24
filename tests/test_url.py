@@ -7,7 +7,7 @@ import pytest
 from sacamantecas import Constants, detect_html_charset, get_redirected_url, resolve_file_url, retrieve_url
 
 
-@pytest.mark.parametrize('netloc, base, extra', [
+@pytest.mark.parametrize(('netloc', 'base', 'extra'), [
     ('', '/abspath', ''),
     ('netloc.url', '/abspath', ''),
     ('', '/abspath', '?query#fragment'),
@@ -44,7 +44,7 @@ REXTRA = ';rpr?rk1=rv1&rk2=rv2#rfr'
 BASE_URL = f'{SCHEME}{NETLOC}{PATH}{EXTRA}'
 @pytest.mark.parametrize('delay', ['0; ', '1234; ', ''])
 @pytest.mark.parametrize('extra', [REXTRA, ''])
-@pytest.mark.parametrize('url, expected', [
+@pytest.mark.parametrize(('url', 'expected'), [
     (f'{RSCHEME}{RNETLOC}{RPATH}', f'{RSCHEME}{RNETLOC}{RPATH}'),
     (f'{RPATH}', f'{SCHEME}{NETLOC}{RPATH}'),
 ])
@@ -56,7 +56,7 @@ def test_url_redirection(delay: str, url: str, extra: str, expected: str) -> Non
     assert result == expected + extra
 
 
-@pytest.mark.parametrize('contents, expected', [
+@pytest.mark.parametrize(('contents', 'expected'), [
     ('<meta http-equiv="content-type" charset="{}">', 'cp1252'),
     ('<meta charset="{}">', 'cp850'),
     ('{}', Constants.FALLBACK_HTML_CHARSET)
