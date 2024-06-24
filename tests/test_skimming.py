@@ -20,7 +20,7 @@ UNKNOWN_URL_TYPE = (Messages.UNKNOWN_URL_TYPE[0].lower() + Messages.UNKNOWN_URL_
     ('https://httpbin.org/status/404', Messages.HTTP_PROTOCOL_URLERROR.format('404', 'not found')),
     ('https://httpbin.org/status/200:', Messages.HTTP_PROTOCOL_URLERROR.format('400', 'bad request')),
     ('http://127.0.0.1:9999', Messages.OSLIKE_URLERROR.format(errorcode[CONNREFUSED_ERRNO], CONNREFUSED_MSG.lower())),
-    ('http://nonexistent', Messages.OSLIKE_URLERROR.format(GETADDRINFO_ERRNO, GETADDRINFO_MSG))
+    ('http://nonexistent', Messages.OSLIKE_URLERROR.format(GETADDRINFO_ERRNO, GETADDRINFO_MSG)),
 ])
 def test_url_errors(url: str, expected: str) -> None:  # pylint: disable=unused-variable
     """Test URL retrieval errors."""

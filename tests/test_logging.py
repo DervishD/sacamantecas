@@ -48,48 +48,48 @@ class Expected(NamedTuple):
         '',
         f'DEBUG   {LEVELNAME_SEPARATOR}{TEST_MESSAGE}',
         '',
-        ''
+        '',
     )),
     (logger.info, Expected(
         TEST_MESSAGE,
         f'INFO    {LEVELNAME_SEPARATOR}{TEST_MESSAGE}',
         f'{TEST_MESSAGE}\n',
-        ''
+        '',
     )),
     (logger.warning, Expected(
         TEST_MESSAGE,
         f'WARNING {LEVELNAME_SEPARATOR}{TEST_MESSAGE}',
         '',
-        f'{TEST_MESSAGE}\n'
+        f'{TEST_MESSAGE}\n',
     )),
     (logger.error, Expected(
         TEST_MESSAGE,
         f'ERROR   {LEVELNAME_SEPARATOR}{TEST_MESSAGE}',
         '',
-        f'{TEST_MESSAGE}\n'
+        f'{TEST_MESSAGE}\n',
     )),
     (warning, Expected(
         f'{WARNING_HEADER}{TEST_MESSAGE[0].lower()}{TEST_MESSAGE[1:]}',
         f'WARNING {LEVELNAME_SEPARATOR}{WARNING_HEADER}{TEST_MESSAGE[0].lower()}{TEST_MESSAGE[1:]}',
         '',
-        f'{WARNING_HEADER}{TEST_MESSAGE[0].lower()}{TEST_MESSAGE[1:]}\n'
+        f'{WARNING_HEADER}{TEST_MESSAGE[0].lower()}{TEST_MESSAGE[1:]}\n',
     )),
     (error, Expected(
         '\n'.join((ERROR_HEADER, f'{PAD}{TEST_MESSAGE}'.rstrip())),
         '\n'.join((
             '\n'.join(f'ERROR   {LEVELNAME_SEPARATOR}{line}'.rstrip() for line in ERROR_HEADER.split('\n')),
-            '\n'.join(f'ERROR   {LEVELNAME_SEPARATOR}{PAD}{line}'.rstrip() for line in TEST_MESSAGE.split('\n'))
+            '\n'.join(f'ERROR   {LEVELNAME_SEPARATOR}{PAD}{line}'.rstrip() for line in TEST_MESSAGE.split('\n')),
         )),
         '',
         '\n'.join((ERROR_HEADER, f'{PAD}{TEST_MESSAGE}', '')),
-    ))
+    )),
 ])
 # pylint: disable-next=unused-variable
 def test_logging_functions(
     log_paths: LogPaths,
     capsys: pytest.CaptureFixture[str],
     logfunc: Callable[[str], None],
-    expected: Expected
+    expected: Expected,
 ) -> None:
     """Test all logging functions."""
     logger.config(log_paths.log, log_paths.debug)
@@ -134,7 +134,7 @@ def test_error_details(log_paths: LogPaths, capsys: pytest.CaptureFixture[str]) 
             list(f'{ERROR_DETAILS_PREAMBLE}{line}' for line in details.split('\n')) +
             ERROR_DETAILS_TAIL.split('\n')
         )),
-        ''
+        '',
     ))
 
     log_file_contents = log_paths.log.read_text(encoding='utf-8').split('\n')

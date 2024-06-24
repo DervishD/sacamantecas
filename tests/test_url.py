@@ -15,7 +15,7 @@ from sacamantecas import Constants, detect_html_charset, get_redirected_url, res
     ('', '/./relpath', ''),
     ('netloc.url', '/./relpath', ''),
     ('', '/./relpath', '?query#fragment'),
-    ('netloc.url', '/./relpath', '?query#fragment')
+    ('netloc.url', '/./relpath', '?query#fragment'),
 ])
 # pylint: disable-next=unused-variable
 def test_file_url_resolution(request: pytest.FixtureRequest, netloc:str, base:str, extra:str) -> None:
@@ -59,7 +59,7 @@ def test_url_redirection(delay: str, url: str, extra: str, expected: str) -> Non
 @pytest.mark.parametrize(('contents', 'expected'), [
     ('<meta http-equiv="content-type" charset="{}">', 'cp1252'),
     ('<meta charset="{}">', 'cp850'),
-    ('{}', Constants.FALLBACK_HTML_CHARSET)
+    ('{}', Constants.FALLBACK_HTML_CHARSET),
 ])
 def test_charset_detection(contents: str, expected: str) -> None:  # pylint: disable=unused-variable
     """Test different ways of detecting the contents charset."""

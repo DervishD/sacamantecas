@@ -254,7 +254,7 @@ logging.basicConfig(
     level=logging.NOTSET,
     style=Constants.LOGGING_FORMAT_STYLE,
     format=Constants.LOGGING_FALLBACK_FORMAT,
-    force=True
+    force=True,
 )
 
 
@@ -896,7 +896,7 @@ def load_profiles(filename: Path) -> dict[str, Profile]:
                 details = Messages.PROFILES_WRONG_SYNTAX_DETAILS.format(
                     section, exc.msg,
                     key, Messages.PROFILES_WRONG_SYNTAX_DETAILS_SEPARATOR, exc.pattern,
-                    '', (exc.pos or 0) + len(key) + len(Messages.PROFILES_WRONG_SYNTAX_DETAILS_SEPARATOR)
+                    '', (exc.pos or 0) + len(key) + len(Messages.PROFILES_WRONG_SYNTAX_DETAILS_SEPARATOR),
                     # The empty string above is needed as a placeholder for format().
                 )
                 raise ProfilesError(message, details) from exc
@@ -1088,7 +1088,7 @@ def store_metadata_in_sheet(
     sheet: Worksheet,
     row: tuple[Cell, ...],
     metadata: dict[str, str],
-    static: SimpleNamespace = SimpleNamespace(known_metadata = {})
+    static: SimpleNamespace = SimpleNamespace(known_metadata = {}),
 ) -> None:
     """
     Store metadata in provided sheet at given row.

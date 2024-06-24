@@ -181,7 +181,7 @@ def test_spreadsheet_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) ->
 
 @pytest.mark.parametrize(('suffix', 'handler_factory'), [
     ('.txt', textfile_handler),
-    ('.xlsx', spreadsheet_handler)
+    ('.xlsx', spreadsheet_handler),
 ])
 # pylint: disable-next=unused-variable
 def test_missing_source(tmp_path: Path, suffix: str, handler_factory: Callable[[Path], Handler]) -> None:
@@ -196,7 +196,7 @@ def test_missing_source(tmp_path: Path, suffix: str, handler_factory: Callable[[
 
 @pytest.mark.parametrize(('unreadable_file', 'handler_factory'), [
     ('unreadable_textfile.txt', textfile_handler),
-    ('unreadable_spreadsheet.xlsx', spreadsheet_handler)
+    ('unreadable_spreadsheet.xlsx', spreadsheet_handler),
 ], indirect=['unreadable_file'])
 # pylint: disable-next=unused-variable
 def test_input_no_permission(unreadable_file: Path, handler_factory: Callable[[Path], Handler]) -> None:
@@ -212,7 +212,7 @@ def test_input_no_permission(unreadable_file: Path, handler_factory: Callable[[P
 @pytest.mark.parametrize(('source_stem', 'unwritable_file', 'handler_factory'), [
     ('http://s.url', f'unwritable_single_url{Constants.SINKFILE_STEM}.txt', single_url_handler),
     ('s.txt', f'unwritable_textfile{Constants.SINKFILE_STEM}.txt', textfile_handler),
-    ('s.xlsx', f'unwritable_spreadsheet{Constants.SINKFILE_STEM}.xlsx', spreadsheet_handler)
+    ('s.xlsx', f'unwritable_spreadsheet{Constants.SINKFILE_STEM}.xlsx', spreadsheet_handler),
 ], indirect=['unwritable_file'])
 # pylint: disable-next=unused-variable
 def test_output_no_permission(
@@ -220,7 +220,7 @@ def test_output_no_permission(
     monkeypatch: pytest.MonkeyPatch,
     source_stem: str,
     unwritable_file: Path,
-    handler_factory: Callable[[str | Path], Handler]
+    handler_factory: Callable[[str | Path], Handler],
 ) -> None:
     """."""
     def patched_generate_sink_filename(_: Path) -> Path:

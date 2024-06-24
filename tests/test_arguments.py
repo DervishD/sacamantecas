@@ -20,7 +20,7 @@ def test_unsupported_source() -> None:  # pylint: disable=unused-variable
     ('http://source', single_url_handler),
     ('file://source', single_url_handler),
     ('source.txt', textfile_handler),
-    ('source.xlsx', spreadsheet_handler)
+    ('source.xlsx', spreadsheet_handler),
 ])
 def test_source_identification(sources: str, expected: Handler) -> None:  # pylint: disable=unused-variable
     """Test identification of different sources."""

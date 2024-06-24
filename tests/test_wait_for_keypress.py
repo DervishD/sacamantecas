@@ -26,7 +26,7 @@ def test_no_console_attached(monkeypatch: pytest.MonkeyPatch) -> None:  # pylint
     ('', False, WFKStatuses.NO_CONSOLE_TITLE),
     (Constants.APP_NAME, True, WFKStatuses.NO_TRANSIENT_FROZEN),
     (Constants.APP_NAME, False, WFKStatuses.NO_TRANSIENT_PYTHON),
-    (Constants.APP_NAME.upper(), False, WFKStatuses.WAIT_FOR_KEYPRESS)
+    (Constants.APP_NAME.upper(), False, WFKStatuses.WAIT_FOR_KEYPRESS),
 ])
 # pylint: disable-next=unused-variable
 def test_wait_for_keypress(monkeypatch: pytest.MonkeyPatch, title: str, frozen: bool, result: WFKStatuses) -> None:

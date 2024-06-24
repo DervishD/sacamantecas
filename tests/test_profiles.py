@@ -15,7 +15,7 @@ from sacamantecas import (
     Messages,
     OldRegimeParser,
     Profile,
-    ProfilesError
+    ProfilesError,
 )
 
 
@@ -50,7 +50,7 @@ def test_empty(tmp_path: Path, text: str) -> None:  # pylint: disable=unused-var
     ('o', 'MissingSectionHeader'),
     ('[s]\no', 'Parsing'),
     ('[s]\no = v\no = v', 'DuplicateOption'),
-    ('[s]\no = (', 'BadRegex')
+    ('[s]\no = (', 'BadRegex'),
 ])
 def test_syntax_errors(tmp_path: Path, text: str, error: str) -> None:  # pylint: disable=unused-variable
     """Test for syntax errors in profiles configuration file."""
@@ -84,17 +84,17 @@ EXPECTED_PROFILES = {
         parser_config = {
             'm_tag': re.compile(r'tag', re.IGNORECASE),
             'm_attr': re.compile(r'attr', re.IGNORECASE),
-            'm_value': re.compile(r'value', re.IGNORECASE)
-        }
+            'm_value': re.compile(r'value', re.IGNORECASE),
+        },
     ),
     'profile_old_regime': Profile(
         url_pattern = re.compile(r'profile2.domain.tld', re.IGNORECASE),
         parser = OldRegimeParser(),
         parser_config = {
             'k_class': re.compile(r'key_class', re.IGNORECASE),
-            'v_class': re.compile(r'value_class', re.IGNORECASE)
-        }
-    )
+            'v_class': re.compile(r'value_class', re.IGNORECASE),
+        },
+    ),
 }
 def test_profile_loading(tmp_path: Path) -> None:   # pylint: disable=unused-variable
     """Test full profile loading."""
@@ -137,7 +137,7 @@ def test_profile_validation(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
     inifile_contents: str,
-    context_manager: AbstractContextManager[None | Exception]
+    context_manager: AbstractContextManager[None | Exception],
 ) -> None:
     """Test profile validation using declared parsers."""
     monkeypatch.setattr('sacamantecas.BaseParser', MockBaseParser)
@@ -156,16 +156,16 @@ PROFILES = {
         parser_config = {
             'm_tag': re.compile(r'tag', re.IGNORECASE),
             'm_attr': re.compile(r'attr', re.IGNORECASE),
-            'm_value': re.compile(r'value', re.IGNORECASE)
-        }
+            'm_value': re.compile(r'value', re.IGNORECASE),
+        },
     ),
     'profile_old_regime': Profile(
         url_pattern = re.compile(r'(optional\.)?mandatory\.profile2\.tld', re.IGNORECASE),
         parser = OldRegimeParser(),
         parser_config = {
             'k_class': re.compile(r'key_class', re.IGNORECASE),
-            'v_class': re.compile(r'value_class', re.IGNORECASE)
-        }
+            'v_class': re.compile(r'value_class', re.IGNORECASE),
+        },
     ),
 }
 @pytest.mark.parametrize(('url', 'expected'), [

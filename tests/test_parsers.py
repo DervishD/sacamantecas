@@ -95,7 +95,7 @@ def test_parser_reset() -> None:  # pylint: disable=unused-variable
     (None, None, Messages.METADATA_IS_EMPTY),
     (K, None, Messages.METADATA_MISSING_VALUE.format(K)),
     (None, V, Messages.METADATA_MISSING_KEY.format(BaseParser.EMPTY_KEY_PLACEHOLDER)),
-    (K, V, Messages.METADATA_OK.format(K, V))
+    (K, V, Messages.METADATA_OK.format(K, V)),
 ])
 # pylint: disable-next=unused-variable
 def test_medatata_storage(caplog: pytest.LogCaptureFixture, k: str, v: str, expected: str) -> None:
@@ -121,7 +121,7 @@ MULTIPLE_K = 'multiple_key'
 MULTIPLE_V = ['multiple_value1', 'multiple_value2', 'multiple_value3']
 @pytest.mark.parametrize(('metadata', 'expected'), [
     ({SINGLE_K: SINGLE_V}, {SINGLE_K: SINGLE_V[0]}),
-    ({MULTIPLE_K: MULTIPLE_V}, {MULTIPLE_K: BaseParser.MULTIVALUE_SEPARATOR.join(MULTIPLE_V)})
+    ({MULTIPLE_K: MULTIPLE_V}, {MULTIPLE_K: BaseParser.MULTIVALUE_SEPARATOR.join(MULTIPLE_V)}),
 ])
 # pylint: disable-next=unused-variable
 def test_metadata_retrieval(metadata: dict[str, list[str]], expected: dict[str, str]) -> None:
@@ -152,7 +152,7 @@ WS_NL = '  {}\n   whitespaced     \n       and\t\n    newlined   '
     ((None, V), {BaseParser.EMPTY_KEY_PLACEHOLDER: V}),
 
     # Empty metadata.
-    ((EMPTY, EMPTY), {})
+    ((EMPTY, EMPTY), {}),
 ])
 # pylint: disable-next=unused-variable
 def test_parser_baseline(contents: tuple[str | None, str | None], expected: dict[str, str]) -> None:
@@ -246,8 +246,8 @@ EE = ELEMENT_E.format(TAG=TAG)
     (f'{OP_VB}{OP_KB}{{K}}{EE}{OP_VB}{{V}}{EE}', ('{K}', '{V}')),
     (f'{OP_VB}_{{V}}_{OP_KB}{EE}{OP_VB}{{V}}{EE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
     (f'{OP_VB}{OP_KB}{EE}{OP_VB}{{V}}{EE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
-    (f'{OP_VB}_{{V}}_{OP_KB}{{K}}{EE}{OP_VB}{{V}}', (),),
-    (f'{OP_VB}{OP_KB}{{K}}{EE}{OP_VB}{{V}}', (),),
+    (f'{OP_VB}_{{V}}_{OP_KB}{{K}}{EE}{OP_VB}{{V}}', ()),
+    (f'{OP_VB}{OP_KB}{{K}}{EE}{OP_VB}{{V}}', ()),
 
     # Ill-formed, no closing tags.
     (f'{OP_KB}{{K}}{OP_VB}{{V}}', ()),

@@ -37,7 +37,7 @@ def test_no_arguments(log_paths: LogPaths, monkeypatch: pytest.MonkeyPatch) -> N
         Messages.APP_BANNER,
         Messages.ERROR_HEADER,
         '\n'.join(f'{PAD}{line}'.rstrip() for line in Messages.NO_ARGUMENTS.split('\n')),
-        Messages.PROCESS_DONE
+        Messages.PROCESS_DONE,
     ))
 
     assert result == expected
@@ -51,7 +51,7 @@ def test_no_arguments(log_paths: LogPaths, monkeypatch: pytest.MonkeyPatch) -> N
         '\n'.join(f'ERROR   {LEVELNAME_SEPARATOR}{line}'.rstrip() for line in Messages.ERROR_HEADER.split('\n')),
         '\n'.join(f'ERROR   {LEVELNAME_SEPARATOR}{PAD}{line}'.rstrip() for line in Messages.NO_ARGUMENTS.split('\n')),
         '\n'.join(f'INFO    {LEVELNAME_SEPARATOR}{line}'.rstrip() for line in Messages.PROCESS_DONE.split('\n')),
-        f'DEBUG   {LEVELNAME_SEPARATOR}{Messages.DEBUGGING_DONE}'
+        f'DEBUG   {LEVELNAME_SEPARATOR}{Messages.DEBUGGING_DONE}',
     ))
 
     assert result == expected
@@ -62,7 +62,7 @@ def test_missing_ini(
     log_paths: LogPaths,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str]
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     """Test for missing main INI file."""
     monkeypatch.setattr(Constants, 'LOGFILE_PATH', log_paths.log)
@@ -84,7 +84,7 @@ def test_ini_syntax_error(
     log_paths: LogPaths,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str]
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     """Test for syntax errors in INI file."""
     monkeypatch.setattr(Constants, 'LOGFILE_PATH', log_paths.log)
