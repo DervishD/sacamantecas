@@ -10,7 +10,7 @@ import pytest
 
 
 class LogPaths (NamedTuple):
-    """."""
+    """Log paths abstraction."""  # noqa: D204
     log: Path
     debug: Path
 @pytest.fixture

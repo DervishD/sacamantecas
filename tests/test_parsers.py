@@ -34,7 +34,8 @@ ALLOWED_CHARS = [chr(cp) for cp in range(START_CP, END_CP+1) if category(chr(cp)
 MIN_LENGTH = 1
 MAX_LENGTH = 42
 def generate_random_string() -> str:
-    """
+    """Generate a random string.
+
     Generate a random string with MIN_LENGTH <= length <= MAX_LENGTH.
     Only characters from the ALLOWED_* sets are used.
     """

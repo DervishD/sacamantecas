@@ -1,4 +1,5 @@
-"""
+"""Building script.
+
 Build application executable for Win32 in a virtual environment
 and pack it with the INI file in a ZIP file for distribution.
 """
@@ -33,8 +34,7 @@ if sys.stderr and isinstance(sys.stderr, TextIOWrapper):
 
 
 def pretty_print(marker: str, header: str, message: str, stream: TextIO) -> None:
-    """
-    Pretty-print message to stream, with a final newline.
+    """Pretty-print message to stream, with a final newline.
 
     The first line contains the marker and header, and the rest are indented
     according to the length of the marker so they are aligned with the header.
@@ -67,7 +67,7 @@ def progress(message: str) -> None:
 
 
 def run_command(command: Sequence[str]) -> CompletedProcess[str]:
-    """Helper for running commands and capturing the output."""
+    """Run command, capturing the output."""
     try:
         return run(command, check=True, capture_output=True, encoding=UTF8, text=True)
     except FileNotFoundError as exc:
@@ -75,7 +75,7 @@ def run_command(command: Sequence[str]) -> CompletedProcess[str]:
 
 
 def is_venv_ready() -> bool:
-    """Checks if virtual environment is active and functional."""
+    """Check if virtual environment is active and functional."""
     progress(f'Checking virtual environment at {VENV_PATH}')
 
     # If no virtual environment exists, try to use global packages.

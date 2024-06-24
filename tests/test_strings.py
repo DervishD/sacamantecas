@@ -20,12 +20,14 @@ ALLOWED_STRINGS = (
 
 class UnrefactoredStringsFinderVisitor(ast.NodeVisitor):
     """Simple visitor to find non-refactored literal strings."""
+
     def __init__(self) -> None:
+        """Initialize."""
         self.ignored_strings: list[str | bytes] = []
         self.unrefactored_strings: list[tuple[int, str]] = []
 
     def ignore_docstring(self, node: ast.AsyncFunctionDef | ast.FunctionDef | ast.ClassDef | ast.Module) -> None:
-        """ Ignore docstring string constants for node. """
+        """Ignore docstring string constants for node."""
         if docstring := ast.get_docstring(node, clean=False):
             self.ignored_strings.append(docstring)
 
