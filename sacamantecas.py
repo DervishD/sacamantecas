@@ -1147,6 +1147,7 @@ def bootstrap(handler: Handler) -> None | NoReturn:
         raise SourceError(Messages.INPUT_FILE_NO_PERMISSION) from exc
 
 
+def get_parser(url: str, profiles: dict[str, Profile]) -> BaseParser:
     """Return the appropriate parser for the url.
 
     The appropriate parser is retrieved by finding the profile within profiles
@@ -1158,7 +1159,7 @@ def bootstrap(handler: Handler) -> None | NoReturn:
             logger.debug(Messages.DETECTED_PROFILE.format(profile_name))
             profile.parser.configure(profile.parser_config)
             return profile.parser
-    return None
+    raise SkimmingError(Messages.NO_MATCHING_PROFILE)
 
 
 def saca_las_mantecas(url: str, parser: BaseParser) -> dict[str, str]:
@@ -1367,8 +1368,7 @@ def main(*args: str) -> ExitCodes:
             logger.info(url)
             metadata = {}
             try:
-                if (parser := get_parser(url, profiles)) is None:
-                    raise SkimmingError(Messages.NO_MATCHING_PROFILE)
+                parser = get_parser(url, profiles)
                 metadata = saca_las_mantecas(url, parser)
             except SkimmingError as exc:
                 logger.indent()
