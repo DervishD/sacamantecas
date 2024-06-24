@@ -165,7 +165,7 @@ def test_error_details(log_paths: LogPaths, capsys: pytest.CaptureFixture[str]) 
 ])
 # pylint: disable-next=unused-variable
 def test_whitespace_honoring(log_paths: LogPaths, capsys: pytest.CaptureFixture[str], message: str) -> None:
-    "Test whether whitespace is honored where it should."
+    """Test whether whitespace is honored where it should."""
     terminator = '<TERMINATOR>'
 
     logger.config(log_paths.log, log_paths.debug)
