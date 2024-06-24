@@ -917,14 +917,13 @@ def load_profiles(filename: Path) -> dict[str, Profile]:
     return profiles
 
 
-def parse_arguments(*args: str) -> Generator[tuple[str, Handler | None], None, None]:
+def parse_arguments(*args: str) -> Generator[tuple[str, Handler], None, None]:
     """Parse arguments.
 
     Parse each argument in args to check if it is a valid source, identify its
     type and build the corresponding handler.
 
-    Yield tuple containing the source and its corresponding handler, which will
-    be None for unsupported sources.
+    Yield tuple containing the source and its corresponding handler.
     """
     for arg in args:
         logger.debug(Messages.PROCESSING_ARG.format(arg))
@@ -939,7 +938,7 @@ def parse_arguments(*args: str) -> Generator[tuple[str, Handler | None], None, N
             handler = spreadsheet_handler(Path(arg))
         else:
             logger.debug(Messages.ARG_IS_SOURCE_UNSUPPORTED)
-            handler = None
+            handler = unsupported_source_handler()
         yield arg, handler
 
 
@@ -955,8 +954,18 @@ def parse_arguments(*args: str) -> Generator[tuple[str, Handler | None], None, N
 # the second one yields a response to the caller after when the metadata is sent
 # back to the handler.
 #
-# The first 'yield True' expression in the handlers is for signalling successful
-# initialization after priming the generator/coroutine.
+# The first 'yield Constants.HANDLER_BOOTSTRAP_SUCCESS' expression in the
+# handlers is for signalling successful initialization after priming the
+# generator/coroutine.
+
+def unsupported_source_handler() -> Handler:
+    """Handle unsupported sources."""
+    raise SourceError(Messages.UNSUPPORTED_SOURCE)
+    # The 'yield' below is needed, otherwise the return value of the handler
+    # will not be a generator/coroutine and that is needed so this handler is
+    # compatible with all the others. Of course, since the handler just raises
+    # an exception, the yield will never be executed…
+    yield Constants.HANDLER_BOOTSTRAP_SUCCESS  # pylint: disable=unreachable
 
 
 def single_url_handler(url: str) -> Handler:
@@ -1137,7 +1146,7 @@ def store_metadata_in_sheet(
         sheet.cell(row[0].row + 1, static.known_metadata[key], value=value)
 
 
-def bootstrap(handler: Handler) -> None | NoReturn:
+def bootstrap(handler: Handler) -> None:
     """Bootstrap (prime) and handle initialization errors for handler."""
     try:
         handler.send(None)
@@ -1353,8 +1362,6 @@ def main(*args: str) -> ExitCodes:
     for source, handler in parse_arguments(*args):
         logger.info(Messages.SOURCE_LABEL.format(source))
         try:
-            if handler is None:
-                raise SourceError(Messages.UNSUPPORTED_SOURCE)
             bootstrap(handler)
         except SourceError as exc:
             logger.indent()
