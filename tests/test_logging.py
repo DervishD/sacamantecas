@@ -131,7 +131,7 @@ def test_error_details(log_paths: LogPaths, capsys: pytest.CaptureFixture[str]) 
         '\n'.join(f'{PAD}{line}'.rstrip() for line in (
             TEST_MESSAGE.split('\n') +
             ERROR_DETAILS_HEADING.split('\n') +
-            list(f'{ERROR_DETAILS_PREAMBLE}{line}' for line in details.split('\n')) +
+            [f'{ERROR_DETAILS_PREAMBLE}{line}' for line in details.split('\n')] +
             ERROR_DETAILS_TAIL.split('\n')
         )),
         '',
