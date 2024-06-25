@@ -701,9 +701,7 @@ class Profile(NamedTuple):
     parser_config: dict[str, re.Pattern[str]]
 
 
-def error(message: object, details: object='') -> None:
-    """Helper for preprocessing error messages."""
-    message = str(message)
+    """Preprocess and print error messages."""
     details = str(details)
     logger.set_indent(0)
     logger.error(Messages.ERROR_HEADER)
@@ -717,7 +715,7 @@ def error(message: object, details: object='') -> None:
 
 
 def warning(message: object) -> None:
-    """Helper for prepending a header to warning messages."""
+    """Preprocess and print warning messages."""
     message = str(message)
     message = Messages.WARNING_HEADER + message[0].lower() + message[1:]
     logger.warning(message)
