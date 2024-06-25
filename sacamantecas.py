@@ -701,8 +701,8 @@ class Profile(NamedTuple):
     parser_config: dict[str, re.Pattern[str]]
 
 
-    """Preprocess and print error messages."""
-    details = str(details)
+def error(message: str, details: str='') -> None:
+    """Preprocess and log error messages."""
     logger.set_indent(0)
     logger.error(Messages.ERROR_HEADER)
     logger.set_indent(Constants.ERROR_PAYLOAD_INDENT)
@@ -714,11 +714,9 @@ class Profile(NamedTuple):
     logger.set_indent(0)
 
 
-def warning(message: object) -> None:
-    """Preprocess and print warning messages."""
-    message = str(message)
-    message = Messages.WARNING_HEADER + message[0].lower() + message[1:]
-    logger.warning(message)
+def warning(message: str) -> None:
+    """Preprocess and log warning messages."""
+    logger.warning('%s', Messages.WARNING_HEADER + message[0].lower() + message[1:])
 
 
 def is_accepted_url(value: str | None) -> bool:
@@ -1352,7 +1350,7 @@ def main(*args: str) -> ExitCodes:
         profiles = load_profiles(Constants.INIFILE_PATH)
         logger.debug(Messages.FOUND_PROFILES.format(Constants.OUTPUT_SEPARATOR.join(profiles.keys())))
     except ProfilesError as exc:
-        error(exc, exc.details)
+        error(str(exc), str(exc.details))
         return ExitCodes.ERROR
 
     logger.info(Messages.SKIMMING_MARKER)
@@ -1363,7 +1361,7 @@ def main(*args: str) -> ExitCodes:
             bootstrap(handler)
         except SourceError as exc:
             logger.indent()
-            warning(exc)
+            warning(str(exc))
             logger.dedent()
             exitcode = ExitCodes.WARNING
             continue
@@ -1377,7 +1375,7 @@ def main(*args: str) -> ExitCodes:
                 metadata = saca_las_mantecas(url, parser)
             except SkimmingError as exc:
                 logger.indent()
-                warning(exc)
+                warning(str(exc))
                 logger.debug(exc.details)
                 logger.dedent()
                 exitcode = ExitCodes.WARNING
