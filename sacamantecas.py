@@ -335,7 +335,7 @@ class CustomLogger(logging.Logger):
         """
         class MultilineFormatter(logging.Formatter):
             """Simple custom formatter with multiline support."""
-            def format(self, record: logging.LogRecord):
+            def format(self, record: logging.LogRecord) -> str:
                 """Format multiline records so they look like multiple records."""
                 formatted_record = super().format(record)
                 preamble = formatted_record[0:formatted_record.rfind(record.message)]
