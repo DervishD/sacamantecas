@@ -46,7 +46,7 @@ from version import DEVELOPMENT_MODE, SEMVER
 type Handler = Generator[str, dict[str, str] | None, None]
 
 
-class Constants():  # pylint: disable=too-few-public-methods
+class Constants:  # pylint: disable=too-few-public-methods
     """Application configuration values."""
 
     APP_PATH = Path(__file__)
