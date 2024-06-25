@@ -1250,9 +1250,10 @@ def retrieve_url(url: str) -> tuple[bytes, str]:
 
     contents = b''
     charset = ''
+    headers = {Constants.USER_AGENT_HEADER: Constants.USER_AGENT}
     while retrieved_url:
-        logger.debug(Messages.PROCESSING_URL.format(url))
-        with urlopen(Request(url, headers={Constants.USER_AGENT_HEADER: Constants.USER_AGENT})) as response:
+        logger.debug(Messages.PROCESSING_URL.format(retrieved_url))
+        with urlopen(Request(retrieved_url, headers=headers)) as response:
             # First, check if any redirection is needed and get the charset the easy way.
             contents = response.read()
             charset = response.headers.get_content_charset()

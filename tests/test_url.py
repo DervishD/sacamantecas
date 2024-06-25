@@ -68,10 +68,28 @@ def test_charset_detection(contents: str, expected: str) -> None:  # pylint: dis
     assert result == expected
 
 
-def test_url_retrieval() -> None:  # pylint: disable=unused-variable
-    """Test full URL retrieval against a live server returning a UTF-8 encoded body."""
-    contents, charset = retrieve_url('https://httpbin.org/encoding/utf8')
-    contents = contents.decode(charset)
+TEST_CONTENTS1 = 'STARGΛ̊TE SG-1, a = v̇ = r̈, a⃑ ⊥ b⃑'
+TEST_CONTENTS2 = '((V⍳V)=⍳⍴V)/V←,V    ⌷←⍳→⍴∆∇⊃‾⍎⍕⌈'
+def test_url_retrieval(tmp_path: Path) -> None:  # pylint: disable=unused-variable
+    """Test full URL retrieval.
 
-    assert 'STARGΛ̊TE SG-1, a = v̇ = r̈, a⃑ ⊥ b⃑' in contents
-    assert '((V⍳V)=⍳⍴V)/V←,V    ⌷←⍳→⍴∆∇⊃‾⍎⍕⌈' in contents
+    Both https:// and file:// URls are tested.
+
+    The first one, against a live server returning a UTF-8 encoded body.
+    The second, using a temporary file with fake contents.
+    """
+    http_contents, http_encoding = retrieve_url('https://httpbin.org/encoding/utf8')
+    http_contents = http_contents.decode(http_encoding)
+
+    filename = tmp_path / 'temporary.html'
+    filename.write_text(f'<meta charset="{Constants.UTF8}">{http_contents}', encoding=Constants.UTF8)
+
+    file_contents, file_encoding = retrieve_url(f'{Constants.FILE_SCHEME}/{filename}')
+    file_contents = file_contents.decode(file_encoding)
+
+    assert http_encoding == Constants.UTF8
+    assert file_encoding == Constants.UTF8
+    assert TEST_CONTENTS1 in http_contents
+    assert TEST_CONTENTS2 in http_contents
+    assert TEST_CONTENTS1 in file_contents
+    assert TEST_CONTENTS2 in file_contents
