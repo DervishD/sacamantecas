@@ -419,7 +419,7 @@ class BaseApplicationError(Exception):
     """Base class for all custom application exceptions."""
     # cSpell:ignore vararg
     # pylint: disable-next=keyword-arg-before-vararg
-    def __init__ (self, message: str, details: Any = None, *args: object, **kwargs: Any) -> None:
+    def __init__ (self, message: str, details: object = None, *args: object, **kwargs: object) -> None:
         """Initialize exception with message and details."""
         self.details = details
         super().__init__(message, *args, **kwargs)
@@ -443,7 +443,7 @@ class BaseParser(HTMLParser):
     MULTIDATA_SEPARATOR = ' / '
     MULTIVALUE_SEPARATOR = ' === '
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, *args: object, **kwargs: object) -> None:
         """Initialize object."""
         self.within_k: bool
         self.within_v: bool
@@ -542,7 +542,7 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
     PARAMETERS = BaseParser.PARAMETERS | {K_CLASS, V_CLASS}
     CLASS_ATTR = 'class'
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, *args: object, **kwargs: object) -> None:
         """Initialize object."""
         self.current_k_tag = None
         self.current_v_tag = None
@@ -629,7 +629,7 @@ class BaratzParser(BaseParser):   # pylint: disable=unused-variable
     K_TAG = 'dt'
     V_TAG = 'dd'
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, *args: object, **kwargs: object) -> None:
         """Initialize object."""
         self.within_meta: bool
         super().__init__(*args, **kwargs)
@@ -700,7 +700,7 @@ class Profile(NamedTuple):
     parser_config: dict[str, re.Pattern[str]]
 
 
-def error(message: Any, details: Any='') -> None:
+def error(message: object, details: object='') -> None:
     """Helper for preprocessing error messages."""
     message = str(message)
     details = str(details)
@@ -715,7 +715,7 @@ def error(message: Any, details: Any='') -> None:
     logger.set_indent(0)
 
 
-def warning(message: Any) -> None:
+def warning(message: object) -> None:
     """Helper for prepending a header to warning messages."""
     message = str(message)
     message = Messages.WARNING_HEADER + message[0].lower() + message[1:]
@@ -825,17 +825,17 @@ def excepthook(exc_type: type[BaseException], exc_value: BaseException, exc_trac
     error(message, details)
 
 
-def loggerize(function: Callable[..., Any]) -> Callable[..., Any]:
-    """Decorator which enables logging for function."""
+def loggerize(function: Callable[..., ExitCodes]) -> Callable[..., ExitCodes]:
+    """Decorate function so it gets logging enabled."""
     @wraps(function)
-    def loggerize_wrapper(*args: str, **kwargs: Any) -> ExitCodes:
+    def loggerize_wrapper(*args: str) -> ExitCodes:
         logger.config(logfile=Constants.LOGFILE_PATH, debugfile=Constants.DEBUGFILE_PATH)
 
         logger.debug(Messages.DEBUGGING_INIT)
         logger.info(Messages.APP_BANNER)
         logger.debug(Constants.USER_AGENT)
 
-        status = function(*args, **kwargs)
+        status = function(*args)
 
         logger.info(Messages.PROCESS_DONE)
         logger.debug(Messages.DEBUGGING_DONE)
@@ -844,12 +844,12 @@ def loggerize(function: Callable[..., Any]) -> Callable[..., Any]:
     return loggerize_wrapper
 
 
-def keyboard_interrupt_handler(function: Callable[..., Any]) -> Callable[..., Any]:
-    """Decorator which wraps function with a simple KeyboardInterrupt handler."""
+def keyboard_interrupt_handler(function: Callable[..., ExitCodes]) -> Callable[..., ExitCodes]:
+    """Decorate function so it handles KeyboardInterrupt gracefully."""
     @wraps(function)
-    def handle_keyboard_interrupt_wrapper(*args: str, **kwargs: Any) -> ExitCodes:
+    def handle_keyboard_interrupt_wrapper(*args: str) -> ExitCodes:
         try:
-            return function(*args, **kwargs)
+            return function(*args)
         except KeyboardInterrupt:
             warning(Messages.KEYBOARD_INTERRUPT)
             return ExitCodes.KEYBOARD_INTERRUPT

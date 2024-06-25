@@ -6,11 +6,13 @@ from typing import NoReturn
 import pytest
 
 from conftest import LogPaths
-from sacamantecas import Constants, keyboard_interrupt_handler, logger, loggerize, Messages
+from sacamantecas import Constants, ExitCodes, keyboard_interrupt_handler, logger, loggerize, Messages
+
 
 @loggerize
-def loggerized_function() -> None:
+def loggerized_function() -> ExitCodes:
     """Mock function to be decorated."""
+    return ExitCodes.SUCCESS
 
 
 @keyboard_interrupt_handler
