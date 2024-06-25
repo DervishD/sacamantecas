@@ -1110,13 +1110,13 @@ def store_metadata_in_sheet(
     if not metadata:
         return
     for key, value in metadata.items():
-        key = Constants.SPREADSHEET_METADATA_COLUMN_TITLE.format(key)
         if key not in static.known_metadata:
+            column_header = Constants.SPREADSHEET_METADATA_COLUMN_TITLE.format(key)
             logger.debug(Messages.NEW_METADATA_FOUND.format(key))
             column = sheet.max_column + 1
             static.known_metadata[key] = column
             logger.debug(Messages.METADATA_STORED_IN_COLUMN.format(key, get_column_letter(column)))
-            cell = sheet.cell(row=1, column=column, value=key)
+            cell = sheet.cell(row=1, column=column, value=column_header)
             cell.font = Font(name=Constants.SPREADSHEET_CELL_FONT)
             cell.fill = PatternFill(fgColor=Constants.SPREADSHEET_CELL_COLOR, fill_type=Constants.SPREADSHEET_CELL_FILL)
                 # Set column width.
