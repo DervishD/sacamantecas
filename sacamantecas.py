@@ -27,7 +27,7 @@ from shutil import copy2
 import time
 import traceback as tb
 from types import SimpleNamespace, TracebackType
-from typing import Any, LiteralString, NamedTuple, NoReturn, cast
+from typing import Any, ClassVar, LiteralString, NamedTuple, cast
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, unquote, urlparse, urlunparse
 from urllib.request import urlopen, Request
@@ -436,7 +436,7 @@ class SkimmingError(BaseApplicationError):
 
 class BaseParser(HTMLParser):
     """Base class for catalogue parsers."""
-    PARAMETERS: set[str] = set()
+    PARAMETERS: ClassVar[set[str]] = set()
     DEFAULT_K = ''
     DEFAULT_V = ''
     EMPTY_KEY_PLACEHOLDER = '[vacío]'
