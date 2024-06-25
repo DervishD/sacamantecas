@@ -23,6 +23,9 @@ PYINSTALLER = VENV_PATH / 'Scripts' / 'pyinstaller.exe'
 FROZEN_EXE_PATH = (BUILD_PATH / APP_PATH.name).with_suffix('.exe')
 PACKAGE_PATH = APP_PATH.with_stem(f'{APP_PATH.stem}_v{SEMVER.split('+')[0]}').with_suffix('.zip')
 INIFILE_PATH = Constants.INIFILE_PATH
+ERROR_MARKER = '\n*** '
+ERROR_HEADER = 'Error, '
+PROGRESS_MARKER = '  ▶ '
 
 
 # Reconfigure standard output streams so they use UTF-8 encoding, no matter
@@ -33,19 +36,22 @@ if sys.stderr and isinstance(sys.stderr, TextIOWrapper):
     sys.stderr.reconfigure(encoding=Constants.UTF8)
 
 
-def pretty_print(marker: str, header: str, message: str, stream: TextIO) -> None:
+def pretty_print(message: str, *, marker: str = '', header: str = '', stream: TextIO = sys.stdout) -> None:
     """Pretty-print message to stream, with a final newline.
 
-    The first line contains the marker and header, and the rest are indented
-    according to the length of the marker so they are aligned with the header.
-
-    A final newline is added.
+    The first line contains the marker and header, if any, and the rest of lines
+    are indented according to the length of the marker so they are aligned with
+    the header.
 
     The stream is finally flushed to ensure the message is printed.
+
+    By default, marker and header are empty and the stream is sys.stdout.
     """
-    lines = message.splitlines()
+    marker_len = len([char for char in marker if char.isprintable()])
+
+    lines = message.splitlines() if message else ['']
     lines[0] = f'{marker}{header}{lines[0]}'
-    lines[1:] = [f'\n{' ' * len(marker)}{line}' for line in lines[1:]]
+    lines[1:] = [f'\n{' ' * marker_len}{line}' for line in lines[1:]]
     lines[-1] += '\n'
     stream.writelines(lines)
     stream.flush()
@@ -53,17 +59,12 @@ def pretty_print(marker: str, header: str, message: str, stream: TextIO) -> None
 
 def error(message: str) -> None:
     """Pretty-print error message to sys.stderr."""
-    marker = '*** '
-    header = 'Error, '
-    stream = sys.stderr
-    print('', file=stream)
-    pretty_print(marker, header, message, stream)
+    pretty_print(message, marker=ERROR_MARKER, header=ERROR_HEADER, stream=sys.stderr)
 
 
 def progress(message: str) -> None:
     """Pretty-print progress message to sys.stdout."""
-    marker = '  ▶ '
-    pretty_print(marker, '', message, sys.stdout)
+    pretty_print(message, marker=PROGRESS_MARKER)
 
 
 def run_command(command: Sequence[str]) -> CompletedProcess[str]:
@@ -144,7 +145,7 @@ def build_package() -> None:
 
 def main() -> int:
     """."""
-    print(f'Building {APP_PATH.stem} {SEMVER}')
+    pretty_print(f'Building {APP_PATH.stem} {SEMVER}')
 
     if not is_venv_ready():
         return 1
@@ -158,7 +159,7 @@ def main() -> int:
         return 1
     build_package()
 
-    print('\nApplication built successfully!')
+    pretty_print('\nApplication built successfully!')
 
     return 0
 
