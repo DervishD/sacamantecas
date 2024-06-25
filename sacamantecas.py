@@ -316,7 +316,7 @@ class CustomLogger(logging.Logger):
         """Decrement current logging indentation level."""
         self._set_indentlevel(self.DECREASE_INDENT_SYMBOL)
 
-    def config(self, logfile: str|Path|None = None, debugfile: str|Path|None = None, console: bool = True) -> None:
+    def config(self, *, logfile: str | Path | None = None, debugfile: str | Path | None = None) -> None:
         """Configure logger.
 
         With the default configuration ALL logging messages are sent to
@@ -324,11 +324,10 @@ class CustomLogger(logging.Logger):
         messages with severity of logging.INFO or higher are sent to logfile,
         also timestamped.
 
-        In addition to that, and if console is True (the default), messages with
-        a severity of logging.INFO (and only those) are sent to the standard
-        output stream, and messages with a severity of logging.WARNING or higher
-        are sent to the standard error stream, without a timestamp in both
-        cases.
+        In addition to that, messages with a severity of exactly logging.INFO
+        are sent to the standard output stream, and messages with a severity of
+        logging.WARNING or higher are sent to the standard error stream, without
+        a timestamp in both cases.
 
         If debugfile or logfile are None (the default), then the corresponding
         files are not created and no logging message will go there. In this
@@ -389,25 +388,24 @@ class CustomLogger(logging.Logger):
                 'encoding': Constants.UTF8,
             }
 
-        if console:
-            formatters['console_formatter'] = {
-                '()': MultilineFormatter,
-                'style': Constants.LOGGING_FORMAT_STYLE,
-                'format': Constants.LOGGING_CONSOLE_FORMAT,
-            }
-            handlers['stdout_handler'] = {
-                'level': logging.NOTSET,
-                'formatter': 'console_formatter',
-                'filters': [lambda record: (record.levelno == logging.INFO)],  # type: ignore
-                'class': logging.StreamHandler,
-                'stream': sys.stdout,
-            }
-            handlers['stderr_handler'] = {
-                'level': logging.WARNING,
-                'formatter': 'console_formatter',
-                'class': logging.StreamHandler,
-                'stream': sys.stderr,
-            }
+        formatters['console_formatter'] = {
+            '()': MultilineFormatter,
+            'style': Constants.LOGGING_FORMAT_STYLE,
+            'format': Constants.LOGGING_CONSOLE_FORMAT,
+        }
+        handlers['stdout_handler'] = {
+            'level': logging.NOTSET,
+            'formatter': 'console_formatter',
+            'filters': [lambda record: (record.levelno == logging.INFO)],  # type: ignore
+            'class': logging.StreamHandler,
+            'stream': sys.stdout,
+        }
+        handlers['stderr_handler'] = {
+            'level': logging.WARNING,
+            'formatter': 'console_formatter',
+            'class': logging.StreamHandler,
+            'stream': sys.stderr,
+        }
 
         logging_configuration['formatters'] = formatters
         logging_configuration['handlers'] = handlers
@@ -831,7 +829,7 @@ def loggerize(function: Callable[..., Any]) -> Callable[..., Any]:
     """Decorator which enables logging for function."""
     @wraps(function)
     def loggerize_wrapper(*args: str, **kwargs: Any) -> ExitCodes:
-        logger.config(Constants.LOGFILE_PATH, Constants.DEBUGFILE_PATH)
+        logger.config(logfile=Constants.LOGFILE_PATH, debugfile=Constants.DEBUGFILE_PATH)
 
         logger.debug(Messages.DEBUGGING_INIT)
         logger.info(Messages.APP_BANNER)
