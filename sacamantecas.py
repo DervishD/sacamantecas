@@ -1014,22 +1014,22 @@ def textfile_handler(source_filename: Path) -> Handler:
     All files are assumed to have UTF-8 encoding.
     """
     sink_filename = generate_sink_filename(source_filename)
-    with open(source_filename, encoding=Constants.UTF8) as source:
-        with open(sink_filename, 'w', encoding=Constants.UTF8) as sink:
-            logger.debug(Messages.DUMPING_METADATA_TO_SINK.format(sink_filename))
-            yield Constants.HANDLER_BOOTSTRAP_SUCCESS
-            for url in source.readlines():
-                url = url.strip()
-                if not is_accepted_url(url):
-                    continue
-                metadata = yield url
-                yield url
-                if metadata:
-                    sink.write(Constants.TEXTSINK_METADATA_HEADER.format(url))
-                    for key, value in metadata.items():
-                        logger.debug(Messages.DUMPING_METADATA_K_V.format(key, value))
-                        sink.write(Constants.TEXTSINK_METADATA_PAIR.format(key, value))
-                    sink.write(Constants.TEXTSINK_METADATA_FOOTER)
+    with (source_filename.open(encoding=Constants.UTF8) as source,
+          sink_filename.open('w', encoding=Constants.UTF8) as sink):
+        logger.debug(Messages.DUMPING_METADATA_TO_SINK.format(sink_filename))
+        yield Constants.HANDLER_BOOTSTRAP_SUCCESS
+        for line in source.readlines():
+            url = line.strip()
+            if not is_accepted_url(url):
+                continue
+            metadata = yield url
+            yield url
+            if metadata:
+                sink.write(Constants.TEXTSINK_METADATA_HEADER.format(url))
+                for key, value in metadata.items():
+                    logger.debug(Messages.DUMPING_METADATA_K_V.format(key, value))
+                    sink.write(Constants.TEXTSINK_METADATA_PAIR.format(key, value))
+                sink.write(Constants.TEXTSINK_METADATA_FOOTER)
 
 
 def spreadsheet_handler(source_filename: Path) -> Handler:
