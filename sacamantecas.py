@@ -270,6 +270,7 @@ if sys.stderr and isinstance(sys.stderr, TextIOWrapper):
 
 class CustomLogger(logging.Logger):
     """Custom logger with indentation support."""
+
     INCREASE_INDENT_SYMBOL = '+'
     DECREASE_INDENT_SYMBOL = '-'
 
@@ -437,6 +438,7 @@ class SkimmingError(BaseApplicationError):
 
 class BaseParser(HTMLParser):
     """Base class for catalogue parsers."""
+
     PARAMETERS: ClassVar[set[str]] = set()
     DEFAULT_K = ''
     DEFAULT_V = ''
