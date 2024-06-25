@@ -1001,7 +1001,7 @@ def url_to_filename(url: str) -> Path:
     (potentially unsafe in a filename) by a character which is safe to use in a
     filename and that is visually unobtrusive so the filename is still readable.
     """
-    return Path(re.sub(Constants.URL_UNSAFE_CHARS_RE, Constants.URL_UNSAFE_REPLACE_CHAR, url, re.ASCII))
+    return Path(re.sub(Constants.URL_UNSAFE_CHARS_RE, Constants.URL_UNSAFE_REPLACE_CHAR, url, flags=re.ASCII))
 
 
 def textfile_handler(source_filename: Path) -> Handler:
