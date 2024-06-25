@@ -873,7 +873,7 @@ def load_profiles(filename: Path) -> dict[str, Profile]:
     config = configparser.ConfigParser()
     logger.debug(Messages.LOADING_PROFILES.format(filename))
     try:
-        with open(filename, encoding=Constants.UTF8) as inifile:
+        with filename.open(encoding=Constants.UTF8) as inifile:
             config.read_file(inifile)
     except (FileNotFoundError, PermissionError) as exc:
         raise ProfilesError(Messages.MISSING_PROFILES.format(exc.filename)) from exc
@@ -976,7 +976,7 @@ def single_url_handler(url: str) -> Handler:
     The output file has UTF-8 encoding.
     """
     sink_filename = generate_sink_filename(url_to_filename(url).with_suffix(Constants.TEXTFILE_SUFFIX))
-    with open(sink_filename, 'w', encoding=Constants.UTF8) as sink:
+    with sink_filename.open('w', encoding=Constants.UTF8) as sink:
         logger.debug(Messages.DUMPING_METADATA_TO_SINK.format(sink_filename))
         yield Constants.HANDLER_BOOTSTRAP_SUCCESS
         if is_accepted_url(url):
