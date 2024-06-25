@@ -285,6 +285,7 @@ class CustomLogger(logging.Logger):
         record.msg = '\n'.join(f'{self.indentation}{line}'.rstrip() for line in record.msg.split('\n'))
         return record
 
+    def _set_indentlevel(self, level: int | LiteralString) -> None:
         """Set current logging indentation level.
 
         If level is:
