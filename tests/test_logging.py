@@ -35,13 +35,13 @@ def test_logging_files_creation(log_paths: LogPaths) -> None:  # pylint: disable
 #   - The expected debugging file contents.
 #   - The expected stdout output.
 #   - The expected stderr output.
-TEST_MESSAGE = 'Test message'
 class Expected(NamedTuple):
     """."""
     log: str
     debug: str
     out: str
     err: str
+TEST_MESSAGE = 'Test message'
 @pytest.mark.parametrize(('logfunc', 'expected'), [
     (logger.debug, Expected(
         '',
