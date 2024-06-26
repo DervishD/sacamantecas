@@ -803,7 +803,7 @@ def excepthook(exc_type: type[BaseException], exc_value: BaseException, exc_trac
         details = Messages.OSERROR_DETAILS.format(
             exc_type.__name__,
             Messages.OSERROR_DETAIL_NA if exc_value.errno is None else errno.errorcode[exc_value.errno],  # type: ignore
-            Messages.OSERROR_DETAIL_NA if exc_value.winerror is None else exc_value.winerror,  # type: ignore
+            exc_value.winerror or Messages.OSERROR_DETAIL_NA,
             exc_value.strerror,
             Messages.OSERROR_DETAIL_NA if exc_value.filename is None else exc_value.filename,
             Messages.OSERROR_DETAIL_NA if exc_value.filename2 is None else exc_value.filename2,
