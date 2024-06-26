@@ -29,10 +29,10 @@ And yes, while the code is commented in English, `sacamantecas` speaks only
 Spanish, sorry. Feel free to clone the repo and translate the code, because
 short term I don't plan to add `i18n` support.
 
-The application generates two log files, one named `sacamantecas_debug_<timestamp>`
-and another named `sacamantecas_log_<timestamp>`. The first one is a debug log,
-quite verbose by the way. The second one is the same as the console output of
-the application.
+The application generates two log files, one named
+`sacamantecas_debug_<timestamp>` and another named
+`sacamantecas_log_<timestamp>`. The first one is a debug log, quite verbose by
+the way. The second one is the same as the console output of the application.
 
 The following application exit codes are defined:
 
@@ -40,4 +40,5 @@ The following application exit codes are defined:
 - 1 for when no arguments are provided to the application.
 - 2 for when some warning condition happened during normal operation.
 - 3 for when some error condition caused abnormal termination.
-- 127 for when the user requests application termination (keyboard interruption).
+- 127 for when the user requests application termination (keyboard
+  interruption).
