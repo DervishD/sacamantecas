@@ -45,8 +45,7 @@ class UnrefactoredStringsFinderVisitor(ast.NodeVisitor):
             if not isinstance(child, ast.Assign):
                 continue
             if isinstance(child.value, ast.Tuple):
-                for element in child.value.elts:
-                    subnodes.append(element)
+                subnodes.extend(child.value.elts)
             else:
                 subnodes.append(child.value)
 
