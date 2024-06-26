@@ -11,6 +11,8 @@ import pytest
 
 from sacamantecas import BaratzParser, BaseParser, logger, Messages, OldRegimeParser
 
+K = 'key'
+V = 'value'
 
 SPACE = 0x20
 LF = 0x0A
@@ -18,17 +20,18 @@ CR = 0x0D
 NBSP = 0xA0
 ALLOWED_CONTROLS = [chr(cp) for cp in (SPACE, LF, CR, NBSP)]
 
-K = 'key'
-V = 'value'
-
-START_CP = 0x0000
-END_CP = 0x024F
+START_CODEPOINT = 0x0000
+END_CODEPOINT = 0x024F
 LETTERS = 'L'
 NUMBERS = 'N'
 PUNCTUATIONS = 'P'
 SYMBOLS = 'S'
-ALLOWED_CATEGORIES = (LETTERS, NUMBERS, PUNCTUATIONS, SYMBOLS)
-ALLOWED_CHARS = [chr(cp) for cp in range(START_CP, END_CP+1) if category(chr(cp)).startswith(ALLOWED_CATEGORIES)]
+ALLOWED_PRINTABLES = [
+    chr(cp) for cp in range(START_CODEPOINT, END_CODEPOINT+1)
+        if category(chr(cp)).startswith((LETTERS, NUMBERS, PUNCTUATIONS, SYMBOLS))
+]
+
+ALLOWED_CHARS = ALLOWED_CONTROLS + ALLOWED_PRINTABLES
 
 MIN_LENGTH = 1
 MAX_LENGTH = 42
@@ -38,7 +41,7 @@ def generate_random_string() -> str:
     Generate a random string with MIN_LENGTH <= length <= MAX_LENGTH.
     Only characters from the ALLOWED_* sets are used.
     """
-    return escape(''.join(randchoices(ALLOWED_CONTROLS + ALLOWED_CHARS, k=randint(MIN_LENGTH, MAX_LENGTH))))
+    return escape(''.join(randchoices(ALLOWED_CHARS, k=randint(MIN_LENGTH, MAX_LENGTH))))
 
 
 MAX_RANDOM_STRINGS_TO_FEED = 2 ** 10
