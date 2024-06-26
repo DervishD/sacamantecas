@@ -2,7 +2,8 @@
 """See "README.md" for details."""
 import sys
 if sys.platform != 'win32':
-    print('\nThis application is compatible only with the Win32 platform.')
+    sys.stdout.write('\nThis application is compatible only with the Win32 platform.\n')
+    sys.stdout.flush()
     sys.exit(None)
 
 # pylint: disable=wrong-import-position
@@ -789,7 +790,9 @@ def wait_for_keypress() -> WFKStatuses:
     elif Constants.APP_NAME in console_title:
         return WFKStatuses.NO_TRANSIENT_PYTHON
 
-    print(Messages.PRESS_ANY_KEY, end='', flush=True)
+    sys.stdout.flush()
+    sys.stdout.write(Messages.PRESS_ANY_KEY)
+    sys.stdout.flush()
     getch()
     return WFKStatuses.WAIT_FOR_KEYPRESS
 
