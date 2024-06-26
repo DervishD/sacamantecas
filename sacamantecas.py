@@ -1064,7 +1064,7 @@ def spreadsheet_handler(source_filename: Path) -> Handler:
     yield Constants.HANDLER_BOOTSTRAP_SUCCESS
 
     source_sheet = source_workbook.worksheets[0]
-    logging.debug(Messages.WORKING_SHEET.format(source_sheet.title))
+    logger.debug(Messages.WORKING_SHEET.format(source_sheet.title))
 
     sink_sheet = sink_workbook.worksheets[0]
 
