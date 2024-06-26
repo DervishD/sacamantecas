@@ -6,9 +6,9 @@ from sacamantecas import Constants
 
 ALLOWED_STRINGS = (
     # Early platform check.
-    'win32', '\nThis application is compatible only with the Win32 platform.',
+    'win32', '\nThis application is compatible only with the Win32 platform.\n',
     # Python well-known strings.
-    'frozen', '__main__', 'w',
+    'frozen', '__main__', 'w', '%s',
     # Strings used for logging.dictConfig configuration dictionary.
     'version', 'disable_existing_loggers', 'level', 'propagate',
     '()', 'style', 'format', 'datefmt', 'formatter', 'class',
