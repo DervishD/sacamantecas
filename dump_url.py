@@ -17,7 +17,7 @@ def main(*args: str) -> int:
         contents = contents.decode(encoding)
 
         output_filename = url_to_filename(url).with_suffix('.html')
-        with open(output_filename, 'wt', encoding=encoding) as output_file:
+        with output_filename.open('wt', encoding=encoding) as output_file:
             logging.info('Dumping web page to %s', output_filename)
             output_file.write(contents)
     return 0
