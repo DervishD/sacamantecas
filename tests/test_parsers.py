@@ -1,6 +1,5 @@
 #! /usr/bin/env python3
 """Test suite for metadata parsers."""
-# cSpell:ignore Baratz
 from html import escape
 import logging
 from random import choice as randchoice, choices as randchoices, randint
@@ -333,7 +332,7 @@ VE = ELEMENT_E.format(TAG=BaratzParser.V_TAG)
     (f'{MB}{BP_KB}{BP_VB}', ()),
 ])
 def test_baratz_parser(contents: str, expected: tuple[str, str]) -> None:  # pylint: disable=unused-variable
-    """Test Baratz parser."""
+    """Test Baratz parser."""  # cSpell:ignore Baratz
     k_data = generate_random_string()
     v_data = generate_random_string()
 
