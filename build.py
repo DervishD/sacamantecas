@@ -1,3 +1,4 @@
+#! /usr/bin/env python3
 """Building script.
 
 Build application executable for Win32 in a virtual environment
