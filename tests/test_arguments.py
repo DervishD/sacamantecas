@@ -40,7 +40,7 @@ def test_unsupported_source() -> None:  # pylint: disable=unused-variable
 ])
 def test_source_identification(sources: str, expected: Handler) -> None:  # pylint: disable=unused-variable
     """Test identification of different sources."""
-    source, handler = list(parse_arguments(sources))[0]
+    source, handler = next(parse_arguments(sources))
 
     assert source == sources
     assert inspect.isgenerator(handler)
