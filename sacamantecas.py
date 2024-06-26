@@ -1358,7 +1358,7 @@ def main(*args: str) -> ExitCodes:
         profiles = load_profiles(Constants.INIFILE_PATH)
         logger.debug(Messages.FOUND_PROFILES.format(Constants.OUTPUT_SEPARATOR.join(profiles.keys())))
     except ProfilesError as exc:
-        error(str(exc), str(exc.details))
+        error(str(exc), str(exc.details) if exc.details else '')
         return ExitCodes.ERROR
 
     logger.info(Messages.SKIMMING_MARKER)
