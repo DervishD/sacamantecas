@@ -15,8 +15,8 @@ from ctypes.wintypes import MAX_PATH as MAX_PATH_LEN
 from enum import auto, IntEnum, StrEnum
 import errno
 from functools import wraps
-from http.client import HTTPException
 from html.parser import HTMLParser
+from http.client import HTTPException
 from io import TextIOWrapper
 import logging
 from logging.config import dictConfig
@@ -28,10 +28,10 @@ from shutil import copy2
 import time
 import traceback as tb
 from types import SimpleNamespace, TracebackType
-from typing import Any, ClassVar, LiteralString, NamedTuple, cast
+from typing import Any, cast, ClassVar, LiteralString, NamedTuple
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, unquote, urlparse, urlunparse
-from urllib.request import urlopen, Request
+from urllib.request import Request, urlopen
 from zipfile import BadZipFile
 
 from openpyxl import load_workbook
@@ -41,7 +41,6 @@ from openpyxl.utils.cell import get_column_letter
 from openpyxl.worksheet.worksheet import Worksheet
 
 from version import DEVELOPMENT_MODE, SEMVER
-
 
 # Handlers are not implemented as classes, but as generators.
 type Handler = Generator[str, dict[str, str] | None, None]

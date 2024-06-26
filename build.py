@@ -14,7 +14,6 @@ from zipfile import ZIP_DEFLATED, ZipFile
 from sacamantecas import Constants
 from version import SEMVER
 
-
 UTF8 = Constants.UTF8
 APP_PATH = Constants.APP_PATH
 VENV_PATH = APP_PATH.parent / '.venv'

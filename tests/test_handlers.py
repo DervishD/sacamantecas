@@ -7,9 +7,8 @@ from random import choice, randrange
 from uuid import uuid4
 
 from openpyxl import load_workbook, Workbook
-from openpyxl.worksheet.worksheet import Worksheet
 from openpyxl.utils.cell import get_column_letter
-
+from openpyxl.worksheet.worksheet import Worksheet
 import pytest
 
 from sacamantecas import (
@@ -24,7 +23,6 @@ from sacamantecas import (
     textfile_handler,
     url_to_filename,
 )
-
 
 HASHES = [hash_function for hash_function in algorithms_available if not hash_function.startswith('shake')]
 SAMPLE_URLS = [f'{choice(Constants.ACCEPTED_URL_SCHEMES)}://subdomain{i}.domain.tld' for i in range(10)]

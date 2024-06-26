@@ -9,7 +9,6 @@ import pytest
 from conftest import LogPaths
 from sacamantecas import Constants, error, logger, Messages, warning
 
-
 ERROR_HEADER = Messages.ERROR_HEADER
 ERROR_DETAILS_HEADING = Messages.ERROR_DETAILS_HEADING
 ERROR_DETAILS_PREAMBLE = Messages.ERROR_DETAILS_PREAMBLE

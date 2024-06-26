@@ -1,9 +1,8 @@
 #! /usr/bin/env python3
 """Test suite for metadata parsers."""
 # cSpell:ignore Baratz
-
-import logging
 from html import escape
+import logging
 from random import choice as randchoice, choices as randchoices, randint
 from re import compile as re_compile
 from unicodedata import category

@@ -2,6 +2,7 @@
 """Test suite for main() function."""
 from ctypes import wintypes
 from typing import cast
+
 import pytest
 
 from sacamantecas import Constants, wait_for_keypress, WFKStatuses
