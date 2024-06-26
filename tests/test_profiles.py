@@ -173,19 +173,20 @@ PROFILES = {
         },
     ),
 }
+
+
 @pytest.mark.parametrize(('url', 'expected'), [
     ('http://profile1.tld', PROFILES['profile_baratz'].parser),
     ('http://optional.profile1.tld', PROFILES['profile_baratz'].parser),
     ('http://mandatory.profile2.tld', PROFILES['profile_old_regime'].parser),
     ('http://optional.mandatory.profile2.tld', PROFILES['profile_old_regime'].parser),
-    ('http://optional.forbidden.profile1.tld', None),
-    ('http://profile2.tld', None),
 ])
 def test_get_url_parser(url: str, expected: Profile) -> None:  # pylint: disable=unused-variable
     """Test finding parser for URL."""
     result = get_parser(url, PROFILES)
 
     assert type(result) == type(expected)  # pylint: disable=unidiomatic-typecheck
+
 
 @pytest.mark.parametrize('url', ['http://optional.forbidden.profile1.tld','http://profile2.tld'])
 def test_no_matching_profile(url: str) -> None:  # pylint: disable=unused-variable
