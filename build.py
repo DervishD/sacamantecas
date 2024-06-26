@@ -23,6 +23,7 @@ PYINSTALLER = VENV_PATH / 'Scripts' / 'pyinstaller.exe'
 FROZEN_EXE_PATH = (BUILD_PATH / APP_PATH.name).with_suffix('.exe')
 PACKAGE_PATH = APP_PATH.with_stem(f'{APP_PATH.stem}_v{SEMVER.split('+')[0]}').with_suffix('.zip')
 INIFILE_PATH = Constants.INIFILE_PATH
+REQUIREMENTS_FILE = Path('requirements.txt')
 ERROR_MARKER = '\n*** '
 ERROR_HEADER = 'Error, '
 PROGRESS_MARKER = '  ▶ '
@@ -102,7 +103,7 @@ def are_required_packages_installed() -> bool:
     pip_list = ['pip', 'list', '--local', '--format=freeze', '--not-required', '--exclude=pip']
     installed_packages = {package.split('==')[0] for package in run_command(pip_list).stdout.splitlines()}
 
-    with open('requirements.txt', 'rt', encoding='utf-8') as requirements:
+    with REQUIREMENTS_FILE.open(encoding='utf-8') as requirements:
         required_packages = [line for line in requirements.readlines() if not line.startswith('#')]
         required_packages = {package.split('>=')[0] for package in required_packages}
 
