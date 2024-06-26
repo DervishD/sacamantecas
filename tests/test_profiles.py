@@ -4,6 +4,7 @@ from contextlib import AbstractContextManager, nullcontext
 from html.parser import HTMLParser
 from pathlib import Path
 import re
+from typing import ClassVar
 
 import pytest
 
@@ -121,7 +122,7 @@ def test_profile_loading(tmp_path: Path) -> None:   # pylint: disable=unused-var
 
 class MockBaseParser(HTMLParser):
     """Mock base parser."""
-    PARAMETERS: set[str] = set()
+    PARAMETERS: ClassVar[set[str]] = set()
 class AParser(MockBaseParser):  # pylint: disable=unused-variable
     """Mock 'Type A' parser."""
     PARAMETERS = MockBaseParser.PARAMETERS | {'akey_1', 'akey_2', 'akey_3'}
