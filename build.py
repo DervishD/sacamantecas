@@ -6,6 +6,7 @@ and pack it with the INI file in a ZIP file for distribution.
 from collections.abc import Sequence
 from io import TextIOWrapper
 import os
+from pathlib import Path
 from subprocess import CalledProcessError, CompletedProcess, run
 import sys
 from typing import TextIO
@@ -118,7 +119,7 @@ def build_frozen_executable() -> bool:
     progress('Building frozen executable')
 
     if FROZEN_EXE_PATH.exists():
-        os.remove(FROZEN_EXE_PATH)
+        FROZEN_EXE_PATH.unlink()
 
     cmd = [str(PYINSTALLER)]
     cmd.append('--log-level=WARN')
