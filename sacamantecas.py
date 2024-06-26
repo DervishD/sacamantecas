@@ -800,9 +800,13 @@ def excepthook(exc_type: type[BaseException], exc_value: BaseException, exc_trac
     """Handle unhandled exceptions, default exception hook."""
     if isinstance(exc_value, OSError):
         message = Messages.UNEXPECTED_OSERROR
+        try:
+            errno_message = errno.errorcode[exc_value.errno]
+        except (IndexError, KeyError):
+            errno_message = Messages.OSERROR_DETAIL_NA
         details = Messages.OSERROR_DETAILS.format(
             exc_type.__name__,
-            Messages.OSERROR_DETAIL_NA if exc_value.errno is None else errno.errorcode[exc_value.errno],  # type: ignore
+            errno_message,
             exc_value.winerror or Messages.OSERROR_DETAIL_NA,
             exc_value.strerror,
             Messages.OSERROR_DETAIL_NA if exc_value.filename is None else exc_value.filename,
