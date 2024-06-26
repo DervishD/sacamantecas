@@ -1248,21 +1248,21 @@ def retrieve_url(url: str) -> tuple[bytes, str]:
     if not is_accepted_url(url):
         raise URLError(Messages.UNKNOWN_URL_TYPE.format(url))
 
-    retrieved_url: str | None = url
+    current_url: str | None = url
 
     if url.startswith(Constants.FILE_SCHEME):
-        retrieved_url = resolve_file_url(url)
+        current_url = resolve_file_url(url)
 
     contents = b''
     charset = ''
     headers = {Constants.USER_AGENT_HEADER: Constants.USER_AGENT}
-    while retrieved_url:
-        logger.debug(Messages.PROCESSING_URL.format(retrieved_url))
-        with urlopen(Request(retrieved_url, headers=headers)) as response:  # noqa: S310
+    while current_url:
+        logger.debug(Messages.PROCESSING_URL.format(current_url))
+        with urlopen(Request(current_url, headers=headers)) as response:  # noqa: S310
             # First, check if any redirection is needed and get the charset the easy way.
             contents = response.read()
             charset = response.headers.get_content_charset()
-        retrieved_url = get_redirected_url(retrieved_url, contents)
+        current_url = get_redirected_url(current_url, contents)
 
     # In this point, we have the contents as a byte string.
     # If the charset is None, it has to be determined the hard way.
