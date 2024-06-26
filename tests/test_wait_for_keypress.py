@@ -33,7 +33,12 @@ def test_no_console_attached(monkeypatch: pytest.MonkeyPatch) -> None:  # pylint
     (Constants.APP_NAME.upper(), False, WFKStatuses.WAIT_FOR_KEYPRESS),
 ])
 # pylint: disable-next=unused-variable
-def test_wait_for_keypress(monkeypatch: pytest.MonkeyPatch, title: str, frozen: bool, result: WFKStatuses) -> None:
+def test_wait_for_keypress(
+    monkeypatch: pytest.MonkeyPatch,
+    title: str,
+    frozen: bool,  # noqa: FBT001
+    result: WFKStatuses,
+) -> None:
     """Test wait_for_keypress() general scenarios, with attached console."""
     def patched_getconsolemode(handle: wintypes.HANDLE, mode: wintypes.LPDWORD) -> wintypes.BOOL:  # noqa: ARG001
         # pylint: disable=unused-argument

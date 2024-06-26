@@ -40,7 +40,7 @@ def generate_random_string() -> str:
     Generate a random string with MIN_LENGTH <= length <= MAX_LENGTH.
     Only characters from the ALLOWED_* sets are used.
     """
-    return escape(''.join(randchoices(ALLOWED_CHARS, k=randint(MIN_LENGTH, MAX_LENGTH))))
+    return escape(''.join(randchoices(ALLOWED_CHARS, k=randint(MIN_LENGTH, MAX_LENGTH))))  # noqa: S311
 
 
 MAX_RANDOM_STRINGS_TO_FEED = 2 ** 10
@@ -54,8 +54,8 @@ def test_random_feed() -> None:  # pylint: disable=unused-variable
         random_string = generate_random_string()
 
         for _ in range(FEEDS_PER_RANDOM_STRING):
-            parser.within_k = randchoice([True, False])
-            parser.within_v = randchoice([True, False])
+            parser.within_k = randchoice([True, False])  # noqa: S311
+            parser.within_v = randchoice([True, False])  # noqa: S311
             parser.feed(random_string)
             parser.within_k = False
             parser.within_v = False
@@ -186,7 +186,7 @@ MULTIVALUES = [f'value_{n}' for n in range(9)]
     (True, BaseParser.MULTIVALUE_SEPARATOR),
     (False, BaseParser.MULTIDATA_SEPARATOR),
 ])
-def test_parser_multivalues(multikeys: bool, separator: str) -> None:  # pylint: disable=unused-variable
+def test_parser_multivalues(multikeys: bool, separator: str) -> None:  # pylint: disable=unused-variable  # noqa: FBT001
     """Test parsing of multiple values per key."""
     key = 'key'
 

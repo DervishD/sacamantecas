@@ -18,14 +18,14 @@ class UsageTrackerVisitor(ast.NodeVisitor):
         self.within_attributedef = False
         self.unused_attributes: set[str] = set()
 
-    def visit_ClassDef(self, node: ast.ClassDef) -> None:  # pylint: disable=invalid-name
+    def visit_ClassDef(self, node: ast.ClassDef) -> None:  # pylint: disable=invalid-name  # noqa: N802
         """Mark class definition for further processing."""
         if node.name == self.class_name:
             self.within_classdef = True
         self.generic_visit(node)
         self.within_classdef = False
 
-    def visit_Assign(self, node: ast.Assign) -> None:  # pylint: disable=invalid-name
+    def visit_Assign(self, node: ast.Assign) -> None:  # pylint: disable=invalid-name  # noqa: N802
         """Mark class attribute definitions for further processing."""
         if self.within_classdef:
             for target in node.targets:
@@ -38,7 +38,7 @@ class UsageTrackerVisitor(ast.NodeVisitor):
         else:
             self.generic_visit(node)
 
-    def visit_Name(self, node: ast.Name) -> None:  # pylint: disable=invalid-name
+    def visit_Name(self, node: ast.Name) -> None:  # pylint: disable=invalid-name  # noqa: N802
         """Find attribute usage within class definition itself."""
         if not self.within_classdef or not self.within_attributedef or \
             not node.id.isupper() or node.id.startswith('__'):
@@ -46,7 +46,7 @@ class UsageTrackerVisitor(ast.NodeVisitor):
             return
         self.unused_attributes.discard(node.id)
 
-    def visit_Attribute(self, node: ast.Attribute) -> None:  # pylint: disable=invalid-name
+    def visit_Attribute(self, node: ast.Attribute) -> None:  # pylint: disable=invalid-name  # noqa: N802
         """Find attribute usage."""
         if not isinstance(node.value, ast.Name) or node.value.id != self.class_name:
             self.generic_visit(node)

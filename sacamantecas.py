@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 """See "README.md" for details."""
-import sys
+import sys  # noqa: I001
 if sys.platform != 'win32':
     sys.stdout.write('\nThis application is compatible only with the Win32 platform.\n')
     sys.stdout.flush()
@@ -243,7 +243,7 @@ class Messages(StrEnum):
 
 
 class ExitCodes(IntEnum):
-    """Standardized exit codes."""
+    """Standardized exit codes."""  # noqa: D204
     SUCCESS = 0
     NO_ARGUMENTS = 1
     WARNING = 2
@@ -280,7 +280,7 @@ class CustomLogger(logging.Logger):
         self.indentlevel: int = 0
         self.indentation = ''
 
-    def makeRecord(self, *args: Any, **kwargs: Any) -> logging.LogRecord:
+    def makeRecord(self, *args: Any, **kwargs: Any) -> logging.LogRecord:  # noqa: ANN401, N802
         """Create a new logging record with indentation support."""
         record = super().makeRecord(*args, **kwargs)
         record.msg = '\n'.join(f'{self.indentation}{line}'.rstrip() for line in record.msg.split('\n'))
@@ -336,7 +336,7 @@ class CustomLogger(logging.Logger):
         case, if console is False, NO LOGGING OUTPUT WILL BE PRODUCED AT ALL.
         """
         class MultilineFormatter(logging.Formatter):
-            """Simple custom formatter with multiline support."""
+            """Simple custom formatter with multiline support."""  # noqa: D204
             def format(self, record: logging.LogRecord) -> str:
                 """Format multiline records so they look like multiple records."""
                 formatted_record = super().format(record)
@@ -398,7 +398,7 @@ class CustomLogger(logging.Logger):
         handlers['stdout_handler'] = {
             'level': logging.NOTSET,
             'formatter': 'console_formatter',
-            'filters': [lambda record: (record.levelno == logging.INFO)],  # type: ignore
+            'filters': [lambda record: (record.levelno == logging.INFO)],  # type: ignore  # noqa: PGH003
             'class': logging.StreamHandler,
             'stream': sys.stdout,
         }
@@ -418,7 +418,7 @@ logger: CustomLogger = cast(CustomLogger, logging.getLogger(Constants.APP_NAME))
 
 
 class BaseApplicationError(Exception):
-    """Base class for all custom application exceptions."""
+    """Base class for all custom application exceptions."""  # noqa: D204
     # cSpell:ignore vararg
     # pylint: disable-next=keyword-arg-before-vararg
     def __init__ (self, message: str, details: object = None, *args: object, **kwargs: object) -> None:
@@ -642,7 +642,7 @@ class BaratzParser(BaseParser):   # pylint: disable=unused-variable
         super().reset()
         self.within_meta = False
 
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:  # noqa: C901
         """Handle opening tags."""
         super().handle_starttag(tag, attrs)
         if not self.within_meta:
@@ -697,7 +697,7 @@ class BaratzParser(BaseParser):   # pylint: disable=unused-variable
 
 
 class Profile(NamedTuple):
-    """Abstraction for profiles."""
+    """Abstraction for profiles."""  # noqa: D204
     url_pattern: re.Pattern[str]
     parser: BaseParser
     parser_config: dict[str, re.Pattern[str]]
@@ -736,7 +736,7 @@ def generate_sink_filename(base_filename: Path) -> Path:
 
 
 class WFKStatuses(IntEnum):
-    """Return statuses for wait_for_keypress()."""
+    """Return statuses for wait_for_keypress()."""  # noqa: D204
     IMPORTED = auto()
     NO_CONSOLE_ATTACHED = auto()
     NO_CONSOLE_TITLE = auto()
@@ -857,7 +857,7 @@ def keyboard_interrupt_handler(function: Callable[..., ExitCodes]) -> Callable[.
     return handle_keyboard_interrupt_wrapper
 
 
-def load_profiles(filename: Path) -> dict[str, Profile]:
+def load_profiles(filename: Path) -> dict[str, Profile]:  # noqa: C901
     """Load the profiles from filename.
 
     Return the preprocessed list of profiles as a dictionary where the keys are
@@ -1098,7 +1098,7 @@ def store_metadata_in_sheet(
     sheet: Worksheet,
     row: tuple[Cell, ...],
     metadata: dict[str, str],
-    static: SimpleNamespace = SimpleNamespace(known_metadata = {}),
+    static: SimpleNamespace = SimpleNamespace(known_metadata = {}),  # noqa: B008
 ) -> None:
     """Store metadata in provided sheet at given row.
 
@@ -1172,7 +1172,7 @@ def get_parser(url: str, profiles: dict[str, Profile]) -> BaseParser:
     raise SkimmingError(Messages.NO_MATCHING_PROFILE)
 
 
-def saca_las_mantecas(url: str, parser: BaseParser) -> dict[str, str]:
+def saca_las_mantecas(url: str, parser: BaseParser) -> dict[str, str]:  # noqa: C901
     """Saca las mantecas.
 
     Saca las mantecas from the provided url, that is, retrieve its contents,
@@ -1254,7 +1254,7 @@ def retrieve_url(url: str) -> tuple[bytes, str]:
     headers = {Constants.USER_AGENT_HEADER: Constants.USER_AGENT}
     while retrieved_url:
         logger.debug(Messages.PROCESSING_URL.format(retrieved_url))
-        with urlopen(Request(retrieved_url, headers=headers)) as response:
+        with urlopen(Request(retrieved_url, headers=headers)) as response:  # noqa: S310
             # First, check if any redirection is needed and get the charset the easy way.
             contents = response.read()
             charset = response.headers.get_content_charset()

@@ -72,7 +72,7 @@ def progress(message: str) -> None:
 def run_command(command: Sequence[str]) -> CompletedProcess[str]:
     """Run command, capturing the output."""
     try:
-        return run(command, check=True, capture_output=True, encoding=UTF8, text=True)
+        return run(command, check=True, capture_output=True, encoding=UTF8, text=True)  # noqa: S603
     except FileNotFoundError as exc:
         raise CalledProcessError(0, command, None, f"Command '{command[0]}' not found.\n") from exc
 

@@ -36,7 +36,7 @@ def test_logging_files_creation(log_paths: LogPaths) -> None:  # pylint: disable
 #   - The expected stdout output.
 #   - The expected stderr output.
 class Expected(NamedTuple):
-    """."""
+    """Expected output abstraction."""  # noqa: D204
     log: str
     debug: str
     out: str

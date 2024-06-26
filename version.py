@@ -1,8 +1,7 @@
-"""Define sacamantecas version, according to Semantic Versioning 2.0 (https://semver.org/)"""
+"""Define sacamantecas version, according to Semantic Versioning 2.0 (https://semver.org/)."""
 # pylint: disable=unused-variable
 import sys
 from time import strftime
-
 
 V_MAJOR = '5'
 V_MINOR = '0'

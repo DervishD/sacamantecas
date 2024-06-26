@@ -69,7 +69,7 @@ def test_charset_detection(contents: str, expected: str) -> None:  # pylint: dis
 
 
 TEST_CONTENTS1 = 'STARGΛ̊TE SG-1, a = v̇ = r̈, a⃑ ⊥ b⃑'
-TEST_CONTENTS2 = '((V⍳V)=⍳⍴V)/V←,V    ⌷←⍳→⍴∆∇⊃‾⍎⍕⌈'
+TEST_CONTENTS2 = '((V⍳V)=⍳⍴V)/V←,V    ⌷←⍳→⍴∆∇⊃‾⍎⍕⌈'  # noqa: RUF001
 def test_url_retrieval(tmp_path: Path) -> None:  # pylint: disable=unused-variable
     """Test full URL retrieval.
 

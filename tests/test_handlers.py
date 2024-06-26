@@ -25,7 +25,7 @@ from sacamantecas import (
 )
 
 HASHES = [hash_function for hash_function in algorithms_available if not hash_function.startswith('shake')]
-SAMPLE_URLS = [f'{choice(Constants.ACCEPTED_URL_SCHEMES)}://subdomain{i}.domain.tld' for i in range(10)]
+SAMPLE_URLS = [f'{choice(Constants.ACCEPTED_URL_SCHEMES)}://subdomain{i}.domain.tld' for i in range(10)]  # noqa: S311
 EXPECTED_METADATA = {u: {h: new_hash(h, u.encode(Constants.UTF8)).hexdigest() for h in HASHES} for u in SAMPLE_URLS}
 
 
@@ -126,8 +126,8 @@ def test_spreadsheet_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) ->
         sheet.column_dimensions[get_column_letter(column + 1)].width = 33
 
     for url in SAMPLE_URLS:
-        row = [uuid4().hex[:randrange(5, 20)] for _ in range(FAKE_METADATA_COLUMNS)]
-        row.insert(randrange(len(row)), url)
+        row = [uuid4().hex[:randrange(5, 20)] for _ in range(FAKE_METADATA_COLUMNS)]  # noqa: S311
+        row.insert(randrange(len(row)), url)  # noqa: S311
         sheet.append(row)
 
     workbook.save(source_filename)

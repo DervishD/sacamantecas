@@ -117,17 +117,17 @@ def test_profile_loading(tmp_path: Path) -> None:   # pylint: disable=unused-var
         assert result_profile.url_pattern == expected_profile.url_pattern
         assert result_profile.parser_config == expected_profile.parser_config
         # pylint: disable-next=unidiomatic-typecheck
-        assert type(result_profile.parser) == type(expected_profile.parser)  # noqa E721
+        assert type(result_profile.parser) == type(expected_profile.parser)  # noqa: E721
 
 
 class MockBaseParser(HTMLParser):
-    """Mock base parser."""
+    """Mock base parser."""  # noqa: D204
     PARAMETERS: ClassVar[set[str]] = set()
 class AParser(MockBaseParser):  # pylint: disable=unused-variable
-    """Mock 'Type A' parser."""
+    """Mock 'Type A' parser."""  # noqa: D204
     PARAMETERS = MockBaseParser.PARAMETERS | {'akey_1', 'akey_2', 'akey_3'}
 class BParser(MockBaseParser):  # pylint: disable=unused-variable
-    """Mock 'Type B' parser."""
+    """Mock 'Type B' parser."""  # noqa: D204
     PARAMETERS = MockBaseParser.PARAMETERS | {'bkey_1', 'bkey_2', 'bkey_3'}
 @pytest.mark.parametrize(('inifile_contents', 'context_manager'), [
     ('[ok_a]\nurl=v\nakey_1=v\nakey_2=v\nakey_3=v\n', nullcontext()),
