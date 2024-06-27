@@ -1019,8 +1019,8 @@ def textfile_handler(source_filename: Path) -> Handler:
     All files are assumed to have UTF-8 encoding.
     """
     sink_filename = generate_sink_filename(source_filename)
-    with (source_filename.open(encoding=Constants.UTF8) as source,
-          sink_filename.open('w', encoding=Constants.UTF8) as sink):
+    encoding = Constants.UTF8
+    with source_filename.open(encoding=encoding) as source, sink_filename.open('w', encoding=encoding) as sink:
         logger.debug(Messages.DUMPING_METADATA_TO_SINK.format(sink_filename))
         yield Constants.HANDLER_BOOTSTRAP_SUCCESS
         for line in source.readlines():
