@@ -1294,7 +1294,7 @@ def get_redirected_url(base_url: str, contents: bytes) -> str | None:
 
     Return redirected URL, or None if there is no redirection pragma.
     """
-    if match := re.search(Constants.META_REFRESH_RE, contents, re.I):
+    if match := re.search(Constants.META_REFRESH_RE, contents, re.IGNORECASE):
         parsed_url = urlparse(base_url)
         redirected_url = urlparse(match.group(1).decode(Constants.ASCII))
         for field in parsed_url._fields:
@@ -1324,11 +1324,11 @@ def detect_html_charset(contents: bytes) -> str:
     will generally process.
     """
     charset = Constants.FALLBACK_HTML_CHARSET
-    if match := re.search(Constants.META_HTTP_EQUIV_CHARSET_RE, contents, re.I):
+    if match := re.search(Constants.META_HTTP_EQUIV_CHARSET_RE, contents, re.IGNORECASE):
         # Next best thing, from the meta http-equiv="content-type".
         logger.debug(Messages.CHARSET_FROM_HTTP_EQUIV)
         charset = match.group(1).decode(Constants.ASCII)
-    elif match := re.search(Constants.META_CHARSET_RE, contents, re.I):
+    elif match := re.search(Constants.META_CHARSET_RE, contents, re.IGNORECASE):
         # Last resort, from some meta charset, if any…
         logger.debug(Messages.CHARSET_FROM_META_CHARSET)
         charset = match.group(1).decode(Constants.ASCII)
