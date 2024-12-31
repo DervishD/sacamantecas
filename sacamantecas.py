@@ -10,6 +10,7 @@ if sys.platform != 'win32':
 import atexit
 from collections.abc import Callable, Generator
 import configparser
+import contextlib
 from ctypes import byref, c_uint, create_unicode_buffer, windll
 from ctypes.wintypes import MAX_PATH as MAX_PATH_LEN
 from enum import auto, IntEnum, StrEnum
@@ -800,10 +801,10 @@ def excepthook(exc_type: type[BaseException], exc_value: BaseException, exc_trac
     """Handle unhandled exceptions, default exception hook."""
     if isinstance(exc_value, OSError):
         message = Messages.UNEXPECTED_OSERROR
-        try:
-            errno_message = errno.errorcode[exc_value.errno]
-        except (IndexError, KeyError):
-            errno_message = Messages.OSERROR_DETAIL_NA
+        errno_message = Messages.OSERROR_DETAIL_NA
+        if exc_value.errno:
+            with contextlib.suppress(IndexError):
+                errno_message = errno.errorcode[exc_value.errno]
         details = Messages.OSERROR_DETAILS.format(
             exc_type.__name__,
             errno_message,
