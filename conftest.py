@@ -13,7 +13,7 @@ class LogPaths(NamedTuple):
     """Log paths abstraction."""  # noqa: D204
     log: Path
     debug: Path
-@pytest.fixture()
+@pytest.fixture
 def log_paths(tmp_path: Path) -> Generator[LogPaths, None, None]:  # pylint: disable=unused-variable
     """Generate temporary filenames for logging files."""
     logfile_path = tmp_path / 'log.txt'
@@ -25,7 +25,7 @@ def log_paths(tmp_path: Path) -> Generator[LogPaths, None, None]:  # pylint: dis
     debugfile_path.unlink()
 
 
-@pytest.fixture()
+@pytest.fixture
 # pylint: disable-next=unused-variable
 def unreadable_file(tmp_path: Path, request: pytest.FixtureRequest) -> Generator[Path, None, None]:
     """Create a file which is unreadable by the current user."""
@@ -39,7 +39,7 @@ def unreadable_file(tmp_path: Path, request: pytest.FixtureRequest) -> Generator
     filename.unlink()
 
 
-@pytest.fixture()
+@pytest.fixture
 # pylint: disable-next=unused-variable
 def unwritable_file(tmp_path: Path, request: pytest.FixtureRequest) -> Generator[Path, None, None]:
     """Create a file which is not writable by the current user."""
