@@ -1193,13 +1193,13 @@ def saca_las_mantecas(url: str, parser: BaseParser) -> dict[str, str]:  # noqa: 
         # of some OSError derived Exception, etc. So, in order to have useful
         # messages, some discrimination has to be done here.
         if isinstance(exc.reason, OSError):
-            try:
-                error_code = errno.errorcode[exc.reason.errno]
-            except KeyError:
-                error_code = exc.reason.errno
-            except AttributeError:
-                error_code = Messages.UNKNOWN_ERRNO
-            error_reason = exc.reason.strerror
+            error_code = Messages.UNKNOWN_ERRNO
+            if exc.reason.errno:
+                try:
+                    error_code = errno.errorcode[exc.reason.errno]
+                except KeyError:
+                    error_code = exc.reason.errno
+            error_reason = exc.reason.strerror or ''
             details = Messages.OSLIKE_URLERROR
         elif isinstance(exc, HTTPError):
             error_code = exc.code
