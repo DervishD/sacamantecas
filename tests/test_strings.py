@@ -52,7 +52,7 @@ class UnrefactoredStringsFinderVisitor(ast.NodeVisitor):
                 subnodes.append(child.value)
 
         for subnode in subnodes:
-            if isinstance(subnode, ast.Constant) and isinstance(subnode.value, (str, bytes)):
+            if isinstance(subnode, ast.Constant) and isinstance(subnode.value, str | bytes):
                 self.ignored_strings.append(subnode.value)
         self.generic_visit(node)
 
@@ -73,7 +73,7 @@ class UnrefactoredStringsFinderVisitor(ast.NodeVisitor):
             return
         if node.value in ALLOWED_STRINGS:
             return
-        if isinstance(node.value, (str, bytes)) and node.value.strip():
+        if isinstance(node.value, str | bytes) and node.value.strip():
             self.unrefactored_strings.append((node.lineno, repr(node.value)))
 
 
