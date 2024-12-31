@@ -16,6 +16,8 @@ ALLOWED_STRINGS = (
     'debugfile_formatter', 'logfile_formatter', 'console_formatter',
     'debugfile_handler', 'logfile_handler', 'stdout_handler', 'stderr_handler',
     'loggers', 'handlers', 'formatters', 'filters',
+    # Miscellaneous strings.
+    'reconfigure',
 )
 
 class UnrefactoredStringsFinderVisitor(ast.NodeVisitor):
