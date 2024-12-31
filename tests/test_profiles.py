@@ -185,7 +185,7 @@ def test_get_url_parser(url: str, expected: Profile) -> None:  # pylint: disable
     """Test finding parser for URL."""
     result = get_parser(url, PROFILES)
 
-    assert type(result) == type(expected)  # pylint: disable=unidiomatic-typecheck
+    assert type(result) is type(expected)
 
 
 @pytest.mark.parametrize('url', ['http://optional.forbidden.profile1.tld','http://profile2.tld'])
