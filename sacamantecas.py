@@ -1219,11 +1219,13 @@ def saca_las_mantecas(url: str, parser: BaseParser) -> dict[str, str]:  # noqa: 
         details = f'{type(exc).__name__}: {exc}.'
         raise SkimmingError(Messages.HTTP_RETRIEVAL_ERROR, details) from exc
     except ConnectionError as exc:
-        try:
-            error_code = errno.errorcode[exc.errno]
-        except (AttributeError, KeyError):
-            error_code = Messages.UNKNOWN_ERRNO
-        details = f'{exc.strerror.capitalize().rstrip(".")}.'
+        error_code = Messages.UNKNOWN_ERRNO
+        if exc.errno:
+            with contextlib.suppress(IndexError):
+                error_code = errno.errorcode[exc.errno]
+        details = ''
+        if exc.strerror:
+            details = f'{exc.strerror.capitalize().rstrip(".")}.'
         raise SkimmingError(Messages.CONNECTION_ERROR.format(error_code), details) from exc
 
     if not contents:
