@@ -262,10 +262,10 @@ logging.basicConfig(
 
 # Reconfigure standard output streams so they use UTF-8 encoding, even if
 # they are redirected to a file when running the application from a shell.
-if sys.stdout and isinstance(sys.stdout, TextIOWrapper):
-    sys.stdout.reconfigure(encoding=Constants.UTF8)
-if sys.stderr and isinstance(sys.stderr, TextIOWrapper):
-    sys.stderr.reconfigure(encoding=Constants.UTF8)
+if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
+    cast(TextIOWrapper, sys.stdout).reconfigure(encoding=Constants.UTF8)
+if sys.stderr and hasattr(sys.stdout, 'reconfigure'):
+    cast(TextIOWrapper, sys.stderr).reconfigure(encoding=Constants.UTF8)
 
 
 class CustomLogger(logging.Logger):
