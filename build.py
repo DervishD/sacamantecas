@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 from subprocess import CalledProcessError, CompletedProcess, run
 import sys
-from typing import TextIO
+from typing import cast, TextIO
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from sacamantecas import Constants
@@ -29,12 +29,12 @@ ERROR_HEADER = 'Error, '
 PROGRESS_MARKER = '  ▶ '
 
 
-# Reconfigure standard output streams so they use UTF-8 encoding, no matter
-# if they are redirected to a file when running the program from a shell.
-if sys.stdout and isinstance(sys.stdout, TextIOWrapper):
-    sys.stdout.reconfigure(encoding=Constants.UTF8)
-if sys.stderr and isinstance(sys.stderr, TextIOWrapper):
-    sys.stderr.reconfigure(encoding=Constants.UTF8)
+# Reconfigure standard output streams so they use UTF-8 encoding, even if
+# they are redirected to a file when running the application from a shell.
+if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
+    cast(TextIOWrapper, sys.stdout).reconfigure(encoding=Constants.UTF8)
+if sys.stderr and hasattr(sys.stdout, 'reconfigure'):
+    cast(TextIOWrapper, sys.stderr).reconfigure(encoding=Constants.UTF8)
 
 
 def pretty_print(message: str, *, marker: str = '', header: str = '', stream: TextIO = sys.stdout) -> None:
