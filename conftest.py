@@ -32,9 +32,8 @@ def unreadable_file(tmp_path: Path, request: pytest.FixtureRequest) -> Generator
     filename = tmp_path / request.param
     filename.write_text('')
 
-    subprocess.run(['icacls', str(filename), '/deny', f'{os.environ["USERNAME"]}:R'], check=True)  # noqa: S603, S607
+    subprocess.run(['icacls', str(filename), '/inheritance:r'], check=True)  # noqa: S603, S607
     yield filename
-    subprocess.run(['icacls', str(filename), '/grant', f'{os.environ["USERNAME"]}:R'], check=True)  # noqa: S603, S607
 
     filename.unlink()
 
