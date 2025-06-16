@@ -120,8 +120,9 @@ class Constants:  # pylint: disable=too-few-public-methods
 
     URL_UNSAFE_CHARS_RE = r'\W'
     URL_UNSAFE_REPLACE_CHAR = '_'
-    FILE_URL_SAFE_CHARS = ':/'
     FILE_SCHEME = 'file://'
+    FILE_URL_SAFE_CHARS = ':/'
+    FILE_URL_SEPARATOR = '/'
 
     USER_AGENT_HEADER = 'User-Agent'
 
@@ -1285,7 +1286,7 @@ def resolve_file_url(url: str) -> str:
     resolved_path = unquote(parsed_url.path[1:])
     resolved_path = Path(resolved_path).resolve().as_posix()
     resolved_path = quote(resolved_path, safe=Constants.FILE_URL_SAFE_CHARS)
-    return parsed_url._replace(path=resolved_path).geturl()
+    return parsed_url._replace(path=Constants.FILE_URL_SEPARATOR + resolved_path).geturl()
 
 
 def get_redirected_url(base_url: str, contents: bytes) -> str | None:
