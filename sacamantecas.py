@@ -35,7 +35,7 @@ from urllib.request import Request, urlopen
 from zipfile import BadZipFile
 
 from openpyxl import load_workbook
-from openpyxl.cell.cell import Cell, TYPE_STRING as CELLTYPE_STRING
+from openpyxl.cell.cell import Cell, MergedCell, TYPE_STRING as CELLTYPE_STRING
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils.cell import get_column_letter
 from openpyxl.worksheet.worksheet import Worksheet
@@ -1076,19 +1076,20 @@ def spreadsheet_handler(source_filename: Path) -> Handler:
     sink_sheet.insert_rows(1, 1)
 
     for row in source_sheet.rows:
-        logger.debug(Messages.PROCESSING_ROW.format(row[0].row))
+        row_number = row[0].row
+        logger.debug(Messages.PROCESSING_ROW.format(row_number))
         if (url := get_url_from_row(row)) is None:
             continue
         metadata = yield url
         yield url
-        if metadata:
-            store_metadata_in_sheet(sink_sheet, row, metadata)
+        if metadata and row_number:
+            store_metadata_in_sheet(sink_sheet, row_number, metadata)
     sink_workbook.save(sink_filename)
     sink_workbook.close()
     source_workbook.close()
 
 
-def get_url_from_row(row: tuple[Cell, ...]) -> str | None:
+def get_url_from_row(row: tuple[Cell | MergedCell, ...]) -> str | None:
     """Find first URL in row."""
     url = None
     for cell in row:
@@ -1104,11 +1105,11 @@ def get_url_from_row(row: tuple[Cell, ...]) -> str | None:
 
 def store_metadata_in_sheet(
     sheet: Worksheet,
-    row: tuple[Cell, ...],
+    row: int,
     metadata: dict[str, str],
     static: SimpleNamespace = SimpleNamespace(known_metadata = {}),  # noqa: B008
 ) -> None:
-    """Store metadata in provided sheet at given row.
+    """Store metadata in provided sheet at given row number.
 
     For new metadata, a new column is added to the sheet.
     For already existing metadata, the value is added to the existing column.
@@ -1150,7 +1151,7 @@ def store_metadata_in_sheet(
         logger.debug(Messages.DUMPING_METADATA_K_V.format(key, value))
         # Since a heading row is inserted, the rows where metadata has to go
         # have now an +1 offset, as they have been displaced.
-        sheet.cell(row[0].row + 1, static.known_metadata[key], value=value)
+        sheet.cell(row + 1, static.known_metadata[key], value=value)
 
 
 def bootstrap(handler: Handler) -> None:
