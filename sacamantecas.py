@@ -18,7 +18,6 @@ import errno
 from functools import wraps
 from html.parser import HTMLParser
 from http.client import HTTPException
-from io import TextIOWrapper
 import logging
 from logging.config import dictConfig
 from msvcrt import get_osfhandle, getch
@@ -29,7 +28,7 @@ from shutil import copy2
 import time
 import traceback as tb
 from types import SimpleNamespace, TracebackType
-from typing import Any, cast, ClassVar, LiteralString, NamedTuple
+from typing import Any, cast, ClassVar, LiteralString, NamedTuple, TYPE_CHECKING
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, unquote, urlparse, urlunparse
 from urllib.request import Request, urlopen
@@ -42,6 +41,9 @@ from openpyxl.utils.cell import get_column_letter
 from openpyxl.worksheet.worksheet import Worksheet
 
 from version import DEVELOPMENT_MODE, SEMVER
+
+if TYPE_CHECKING:
+    from io import TextIOWrapper
 
 # Handlers are not implemented as classes, but as generators.
 type Handler = Generator[str, dict[str, str] | None, None]
@@ -265,9 +267,9 @@ logging.basicConfig(
 # Reconfigure standard output streams so they use UTF-8 encoding, even if
 # they are redirected to a file when running the application from a shell.
 if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
-    cast(TextIOWrapper, sys.stdout).reconfigure(encoding=Constants.UTF8)
+    cast('TextIOWrapper', sys.stdout).reconfigure(encoding=Constants.UTF8)
 if sys.stderr and hasattr(sys.stdout, 'reconfigure'):
-    cast(TextIOWrapper, sys.stderr).reconfigure(encoding=Constants.UTF8)
+    cast('TextIOWrapper', sys.stderr).reconfigure(encoding=Constants.UTF8)
 
 
 class CustomLogger(logging.Logger):
@@ -416,7 +418,7 @@ class CustomLogger(logging.Logger):
         logging_configuration['loggers'][self.name]['handlers'] = handlers.keys()
         dictConfig(logging_configuration)
 logging.setLoggerClass(CustomLogger)
-logger: CustomLogger = cast(CustomLogger, logging.getLogger(Constants.APP_NAME))
+logger: CustomLogger = cast('CustomLogger', logging.getLogger(Constants.APP_NAME))
 
 
 class BaseApplicationError(Exception):

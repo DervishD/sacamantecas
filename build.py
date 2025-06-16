@@ -4,16 +4,19 @@ Build application executable for Win32 in a virtual environment
 and pack it with the INI file in a ZIP file for distribution.
 """
 from collections.abc import Sequence
-from io import TextIOWrapper
 import os
 from pathlib import Path
 from subprocess import CalledProcessError, CompletedProcess, run
 import sys
-from typing import cast, TextIO
+from typing import cast, TextIO, TYPE_CHECKING
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from sacamantecas import Constants
 from version import SEMVER
+
+if TYPE_CHECKING:
+    from io import TextIOWrapper
+
 
 UTF8 = Constants.UTF8
 APP_PATH = Constants.APP_PATH
@@ -21,7 +24,7 @@ VENV_PATH = APP_PATH.parent / '.venv'
 BUILD_PATH = APP_PATH.parent / 'build'
 PYINSTALLER = VENV_PATH / 'Scripts' / 'pyinstaller.exe'
 FROZEN_EXE_PATH = (BUILD_PATH / APP_PATH.name).with_suffix('.exe')
-PACKAGE_PATH = APP_PATH.with_stem(f'{APP_PATH.stem}_v{SEMVER.split('+')[0]}').with_suffix('.zip')
+PACKAGE_PATH = APP_PATH.with_stem(f'{APP_PATH.stem}_v{SEMVER.split('+', maxsplit=1)[0]}').with_suffix('.zip')
 INIFILE_PATH = Constants.INIFILE_PATH
 REQUIREMENTS_FILE = Path('requirements.txt')
 ERROR_MARKER = '\n*** '
@@ -32,9 +35,9 @@ PROGRESS_MARKER = '  ▶ '
 # Reconfigure standard output streams so they use UTF-8 encoding, even if
 # they are redirected to a file when running the application from a shell.
 if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
-    cast(TextIOWrapper, sys.stdout).reconfigure(encoding=Constants.UTF8)
+    cast('TextIOWrapper', sys.stdout).reconfigure(encoding=Constants.UTF8)
 if sys.stderr and hasattr(sys.stdout, 'reconfigure'):
-    cast(TextIOWrapper, sys.stderr).reconfigure(encoding=Constants.UTF8)
+    cast('TextIOWrapper', sys.stderr).reconfigure(encoding=Constants.UTF8)
 
 
 def pretty_print(message: str, *, marker: str = '', header: str = '', stream: TextIO = sys.stdout) -> None:
