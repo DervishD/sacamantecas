@@ -1126,24 +1126,24 @@ def store_metadata_in_sheet(
             cell = sheet.cell(row=1, column=column, value=column_header)
             cell.font = Font(name=Constants.SPREADSHEET_CELL_FONT)
             cell.fill = PatternFill(fgColor=Constants.SPREADSHEET_CELL_COLOR, fill_type=Constants.SPREADSHEET_CELL_FILL)
-                # Set column width.
-                #
-                # As per Excel specification, the width units are the width of
-                # the zero character of the font used by the Normal style for a
-                # workbook. So a column of width 10 would fit exactly 10 zero
-                # characters in the font specified by the Normal style.
-                #
-                # No, no kidding.
-                #
-                # Since this width units are, IMHO, totally arbitrary, let's
-                # choose an arbitrary column width. To wit, the Answer to the
-                # Ultimate Question of Life, the Universe, and Everything.
+            # Set column width.
+            #
+            # As per Excel specification, the width units are the width of
+            # the zero character of the font used by the Normal style for a
+            # workbook. So a column of width 10 would fit exactly 10 zero
+            # characters in the font specified by the Normal style.
+            #
+            # No, no kidding.
+            #
+            # Since this width units are, IMHO, totally arbitrary, let's
+            # choose an arbitrary column width. To wit, the Answer to the
+            # Ultimate Question of Life, the Universe, and Everything.
             sheet.column_dimensions[get_column_letter(column)].width = 42
-                # This is needed because sometimes Excel files are not properly
-                # generated and the last column has a 'max' field too large, and
-                # that has an unintended consequence: ANY change to the settings
-                # of that column affects ALL the following ones whose index is
-                # less than 'max'… So, it's better to fix that field.
+            # This is needed because sometimes Excel files are not properly
+            # generated and the last column has a 'max' field too large, and
+            # that has an unintended consequence: ANY change to the settings
+            # of that column affects ALL the following ones whose index is
+            # less than 'max'… So, it's better to fix that field.
             sheet.column_dimensions[get_column_letter(column)].max = column
         logger.debug(Messages.DUMPING_METADATA_K_V.format(key, value))
         # Since a heading row is inserted, the rows where metadata has to go
