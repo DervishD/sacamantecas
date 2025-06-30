@@ -4,8 +4,8 @@ import sys
 from time import strftime
 
 V_MAJOR = '5'
-V_MINOR = '1'
-V_PATCH = '1'
+V_MINOR = '2'
+V_PATCH = '0'
 V_PRERELEASE = 'alpha'
 V_BUILD = strftime('%Y%m%d-%H%M%S')
 
