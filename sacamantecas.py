@@ -425,7 +425,7 @@ class BaseApplicationError(Exception):
     """Base class for all custom application exceptions."""  # noqa: D204
     # cSpell:ignore vararg
     # pylint: disable-next=keyword-arg-before-vararg
-    def __init__ (self, message: str, details: object = None, *args: object, **kwargs: object) -> None:
+    def __init__ (self, message: str, details: object = '', *args: object, **kwargs: object) -> None:
         """Initialize exception with message and details."""
         self.details = details
         super().__init__(message, *args, **kwargs)
