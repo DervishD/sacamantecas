@@ -15,11 +15,12 @@ CONNREFUSED_MSG = 'No se puede establecer una conexión ya que el equipo de dest
 GETADDRINFO_ERRNO = 11001
 GETADDRINFO_MSG = 'getaddrinfo failed'
 UNKNOWN_URL_TYPE = (Messages.UNKNOWN_URL_TYPE[0].lower() + Messages.UNKNOWN_URL_TYPE[1:]).rstrip('.')
+MOCK_URL = 'httpcan.org'
 @pytest.mark.parametrize(('url', 'expected'), [
-    ('scheme://example.com', Messages.GENERIC_URLERROR.format('', UNKNOWN_URL_TYPE.format('scheme://example.com'))),
-    ('https://httpbin.org/status/404', Messages.HTTP_PROTOCOL_URLERROR.format('404', 'not found')),
-    ('https://httpbin.org/status/200:', Messages.HTTP_PROTOCOL_URLERROR.format('400', 'bad request')),
-    ('http://127.0.0.1:9999', Messages.OSLIKE_URLERROR.format(errorcode[CONNREFUSED_ERRNO], CONNREFUSED_MSG.lower())),
+    (f'scheme://{MOCK_URL}', Messages.GENERIC_URLERROR.format('', UNKNOWN_URL_TYPE.format(f'scheme://{MOCK_URL}'))),
+    (f'https://{MOCK_URL}/status/404', Messages.HTTP_PROTOCOL_URLERROR.format('404', 'not found')),
+    (f'https://{MOCK_URL}/status/200:', Messages.HTTP_PROTOCOL_URLERROR.format('400', 'bad request')),
+    ('http://localhost:7', Messages.OSLIKE_URLERROR.format(errorcode[CONNREFUSED_ERRNO], CONNREFUSED_MSG.lower())),
     ('http://nonexistent', Messages.OSLIKE_URLERROR.format(GETADDRINFO_ERRNO, GETADDRINFO_MSG)),
 ])
 def test_url_errors(url: str, expected: str) -> None:  # pylint: disable=unused-variable
