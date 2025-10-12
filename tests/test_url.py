@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 """Test suite for all URL handling functions."""
 from pathlib import Path
+from urllib.parse import quote
 
 import pytest
 
@@ -27,7 +28,7 @@ def test_file_url_resolution(request: pytest.FixtureRequest, netloc:str, base:st
     if base.startswith('/./'):
         base = base.lstrip('/')
 
-    expected = f'file://{netloc}/{Path(base).resolve().as_posix()}{extra}'
+    expected = f'file://{netloc}/{quote(Path(base).resolve().as_posix(), safe=Constants.FILE_URL_SAFE_CHARS)}{extra}'
     result = resolve_file_url(f'file://{netloc}/{base}{extra}')
 
     assert result == expected
