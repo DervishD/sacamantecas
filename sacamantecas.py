@@ -38,6 +38,7 @@ from openpyxl import load_workbook
 from openpyxl.cell.cell import Cell, MergedCell, TYPE_STRING as CELLTYPE_STRING
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils.cell import get_column_letter
+
 from version import DEVELOPMENT_MODE, SEMVER
 
 if TYPE_CHECKING:
