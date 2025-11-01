@@ -46,7 +46,7 @@ if TYPE_CHECKING:
     from openpyxl.worksheet.worksheet import Worksheet
 
 # Handlers are not implemented as classes, but as generators.
-type Handler = Generator[str, dict[str, str] | None, None]
+type Handler = Generator[str, dict[str, str] | None]
 
 
 class Constants:  # pylint: disable=too-few-public-methods
@@ -924,7 +924,7 @@ def load_profiles(filename: Path) -> dict[str, Profile]:  # noqa: C901
     return profiles
 
 
-def parse_arguments(*args: str) -> Generator[tuple[str, Handler], None, None]:
+def parse_arguments(*args: str) -> Generator[tuple[str, Handler]]:
     """Parse arguments.
 
     Parse each argument in args to check if it is a valid source, identify its
