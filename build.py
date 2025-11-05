@@ -3,7 +3,6 @@
 Build application executable for Win32 in a virtual environment
 and pack it with the INI file in a ZIP file for distribution.
 """
-from collections.abc import Sequence
 import os
 from pathlib import Path
 from subprocess import CalledProcessError, CompletedProcess, run
@@ -15,6 +14,7 @@ from sacamantecas import Constants
 from version import SEMVER
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from io import TextIOWrapper
 
 
