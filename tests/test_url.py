@@ -69,6 +69,8 @@ def test_charset_detection(contents: str, expected: str) -> None:  # pylint: dis
     assert result == expected
 
 
+# Strings below taken from http://www.cl.cam.ac.uk/~mgk25/ucs/examples/UTF-8-demo.txt
+# The contents used in the test, from https://httpcan.org/encoding/utf8 include them.
 TEST_CONTENTS1 = 'STARGΛ̊TE SG-1, a = v̇ = r̈, a⃑ ⊥ b⃑'
 TEST_CONTENTS2 = '((V⍳V)=⍳⍴V)/V←,V    ⌷←⍳→⍴∆∇⊃‾⍎⍕⌈'  # noqa: RUF001
 def test_url_retrieval(tmp_path: Path) -> None:  # pylint: disable=unused-variable
@@ -79,7 +81,7 @@ def test_url_retrieval(tmp_path: Path) -> None:  # pylint: disable=unused-variab
     The first one, against a live server returning a UTF-8 encoded body.
     The second, using a temporary file with fake contents.
     """
-    http_contents, http_encoding = retrieve_url('https://httpbin.org/encoding/utf8')
+    http_contents, http_encoding = retrieve_url('https://httpcan.org/encoding/utf8')
     http_contents = http_contents.decode(http_encoding)
 
     filename = tmp_path / 'temporary.html'
