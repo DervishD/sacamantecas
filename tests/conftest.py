@@ -2,19 +2,17 @@
 """Configuration file for pytest."""
 import os
 import subprocess
-from typing import NamedTuple, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 import pytest
+
+from .helpers import LogPaths
 
 if TYPE_CHECKING:
     from collections.abc import Generator
     from pathlib import Path
 
 
-class LogPaths(NamedTuple):
-    """Log paths abstraction."""  # noqa: D204
-    log: Path
-    debug: Path
 @pytest.fixture
 def log_paths(tmp_path: Path) -> Generator[LogPaths]:  # pylint: disable=unused-variable
     """Generate temporary filenames for logging files."""

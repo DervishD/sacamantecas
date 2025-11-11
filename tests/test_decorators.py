@@ -1,12 +1,14 @@
 #! /usr/bin/env python3
 """Test suite for decorators."""
 import logging
-from typing import NoReturn
+from typing import NoReturn, TYPE_CHECKING
 
 import pytest
 
-from conftest import LogPaths
 from sacamantecas import Constants, ExitCodes, keyboard_interrupt_handler, logger, loggerize, Messages
+
+if TYPE_CHECKING:
+    from helpers import LogPaths
 
 
 @loggerize

@@ -1,13 +1,16 @@
 #! /usr/bin/env python3
 """Test suite for the logging system."""
-from collections.abc import Callable
 import logging
-from typing import NamedTuple
+from typing import NamedTuple, TYPE_CHECKING
 
 import pytest
 
-from conftest import LogPaths
 from sacamantecas import Constants, error, logger, Messages, warning
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from helpers import LogPaths
 
 ERROR_HEADER = Messages.ERROR_HEADER
 ERROR_DETAILS_HEADING = Messages.ERROR_DETAILS_HEADING

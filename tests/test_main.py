@@ -1,11 +1,15 @@
 #! /usr/bin/env python3
 """Test suite for main() function."""
-from pathlib import Path
 
-import pytest
+from typing import TYPE_CHECKING
 
-from conftest import LogPaths
 from sacamantecas import Constants, ExitCodes, main, Messages
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from helpers import LogPaths
+    import pytest
 
 PAD = ' ' * Constants.ERROR_PAYLOAD_INDENT
 LEVELNAME_SEPARATOR = Constants.LOGGING_LEVELNAME_SEPARATOR
