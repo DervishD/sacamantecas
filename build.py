@@ -7,29 +7,28 @@ import os
 from pathlib import Path
 from subprocess import CalledProcessError, CompletedProcess, run
 import sys
+import tomllib
 from typing import cast, TextIO, TYPE_CHECKING
 from zipfile import ZIP_DEFLATED, ZipFile
 
-from sacamantecas import Constants, SEMVER
+from sacamantecas import Constants
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from io import TextIOWrapper
 
 
-UTF8 = Constants.UTF8
-APP_PATH = Constants.APP_PATH
-VENV_PATH = APP_PATH.parent / '.venv'
-BUILD_PATH = APP_PATH.parent / 'build'
+BASE_PATH = Path(__file__).parent
+VENV_PATH = BASE_PATH / '.venv'
+BUILD_PATH = BASE_PATH / 'build'
 PYINSTALLER = VENV_PATH / 'Scripts' / 'pyinstaller.exe'
-FROZEN_EXE_PATH = (BUILD_PATH / APP_PATH.name).with_suffix('.exe')
-PACKAGE_PATH = APP_PATH.with_stem(f'{APP_PATH.stem}_v{SEMVER.split('+', maxsplit=1)[0]}').with_suffix('.zip')
-INIFILE_PATH = Constants.INIFILE_PATH
-REQUIREMENTS_FILE = Path('requirements.txt')
+FROZEN_EXE_PATH = (BUILD_PATH / Constants.APP_NAME).with_suffix('.exe')
+PACKAGE_SUFFIX = 'zip'
+PACKAGE_PATH = BASE_PATH / f'{Constants.APP_NAME}_v{Constants.APP_VERSION.split('+', maxsplit=1)[0]}.{PACKAGE_SUFFIX}'
+PYPROJECT_FILE = BASE_PATH / 'pyproject.toml'
 ERROR_MARKER = '\n*** '
 ERROR_HEADER = 'Error, '
 PROGRESS_MARKER = '  ▶ '
-
 
 # Reconfigure standard output streams so they use UTF-8 encoding, even if
 # they are redirected to a file when running the application from a shell.
@@ -73,7 +72,7 @@ def progress(message: str) -> None:
 def run_command(command: Sequence[str]) -> CompletedProcess[str]:
     """Run command, capturing the output."""
     try:
-        return run(command, check=True, capture_output=True, encoding=UTF8, text=True)  # noqa: S603
+        return run(command, check=True, capture_output=True, encoding=Constants.UTF8, text=True)  # noqa: S603
     except FileNotFoundError as exc:
         raise CalledProcessError(0, command, None, f"Command '{command[0]}' not found.\n") from exc
 
@@ -102,13 +101,14 @@ def are_required_packages_installed() -> bool:
     """Check installed packages to ensure they fit requirements.txt contents."""
     progress('Checking that required packages are installed')
 
-    pip_list = ['pip', 'list', '--local', '--format=freeze', '--not-required', '--exclude=pip']
+    pip_list = ['pip', 'list', '--local', '--format=freeze', '--not-required', '--exclude=pip', '--exclude-editable']
     installed_packages = {line.strip() for line in run_command(pip_list).stdout.splitlines()}
 
-    with REQUIREMENTS_FILE.open(encoding='utf-8') as requirements:
-        required_packages = {line.strip() for line in requirements.readlines() if not line.startswith('#')}
+    with PYPROJECT_FILE.open('rb') as pyproject:
+        pyproject_contents = tomllib.load(pyproject)
+        dependencies = set(pyproject_contents['project']['dependencies'])
 
-    if diff := required_packages - installed_packages:
+    if diff := dependencies - installed_packages:
         diff = '\n'.join(diff)
         error(f'missing packages:\n{diff}\n')
         return False
@@ -126,7 +126,7 @@ def build_frozen_executable() -> bool:
     cmd = [str(PYINSTALLER)]
     cmd.append('--log-level=WARN')
     cmd.extend([f'--workpath={BUILD_PATH}', f'--specpath={BUILD_PATH}', f'--distpath={BUILD_PATH}'])
-    cmd.extend(['--onefile', str(APP_PATH)])
+    cmd.extend(['--copy-metadata', Constants.APP_NAME, '--onefile', str(Constants.APP_PATH)])
     try:
         run_command(cmd)
     except CalledProcessError as exc:
@@ -142,12 +142,12 @@ def build_package() -> None:
 
     with ZipFile(PACKAGE_PATH, 'w', compression=ZIP_DEFLATED, compresslevel=9) as bundle:
         bundle.write(FROZEN_EXE_PATH, FROZEN_EXE_PATH.name)
-        bundle.write(INIFILE_PATH, INIFILE_PATH.name)
+        bundle.write(Constants.INIFILE_PATH, Constants.INIFILE_PATH.name)
 
 
 def main() -> int:
     """."""
-    pretty_print(f'Building {APP_PATH.stem} {SEMVER}')
+    pretty_print(f'Building {Constants.APP_NAME} {Constants.APP_VERSION}')
 
     if not is_venv_ready():
         return 1
