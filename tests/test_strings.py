@@ -19,7 +19,7 @@ ALLOWED_STRINGS = (
     'debugfile_handler', 'logfile_handler', 'stdout_handler', 'stderr_handler',
     'loggers', 'handlers', 'formatters', 'filters',
     # Miscellaneous strings.
-    'reconfigure',
+    'reconfigure', 'dev',
 )
 
 class UnrefactoredStringsFinderVisitor(ast.NodeVisitor):

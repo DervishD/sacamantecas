@@ -18,6 +18,7 @@ import errno
 from functools import wraps
 from html.parser import HTMLParser
 from http.client import HTTPException
+from importlib.metadata import version
 import logging
 from logging.config import dictConfig
 from msvcrt import get_osfhandle, getch
@@ -39,8 +40,6 @@ from openpyxl.cell.cell import Cell, MergedCell, TYPE_STRING as CELLTYPE_STRING
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils.cell import get_column_letter
 
-from .version import DEVELOPMENT_MODE, SEMVER
-
 if TYPE_CHECKING:
     from io import TextIOWrapper
 
@@ -55,8 +54,11 @@ class Constants:  # pylint: disable=too-few-public-methods
 
     APP_PATH = Path(__file__)
     APP_NAME = APP_PATH.stem
+    APP_VERSION = version(APP_NAME)
     APP_REPOSITORY = 'https://github.com/DervishD/sacamantecas'
     APP_PLATFORM = f'Windows {platform.version()};{platform.architecture()[0]};{platform.machine()}'
+
+    DEVELOPMENT_MODE = 'dev' in APP_VERSION
 
     UTF8 = 'utf-8'
     ASCII = 'ascii'
@@ -70,7 +72,7 @@ class Constants:  # pylint: disable=too-few-public-methods
 
     TIMESTAMP_FORMAT = '%Y%m%d_%H%M%S'
 
-    USER_AGENT = f'{APP_NAME}/{SEMVER} +{APP_REPOSITORY} ({APP_PLATFORM})'
+    USER_AGENT = f'{APP_NAME}/{APP_VERSION} +{APP_REPOSITORY} ({APP_PLATFORM})'
 
     ACCEPTED_URL_SCHEMES = ('https', 'http', 'file')
 
@@ -148,7 +150,7 @@ class Messages(StrEnum):
     )
 
     DEBUGGING_INIT = 'Registro de depuración iniciado.'
-    APP_BANNER = f'{Constants.APP_NAME} versión {SEMVER}'
+    APP_BANNER = f'{Constants.APP_NAME} versión {Constants.APP_VERSION}'
     PROCESS_DONE = '\nProceso finalizado.'
     DEBUGGING_DONE = 'Registro de depuración finalizado.'
 

@@ -2,19 +2,33 @@
 """Test suite for validating application version string."""
 import re
 
-from sacamantecas import SEMVER
+from sacamantecas import Constants
 
-# Regular expression obtained directly from https://semver.org/
-# from the 'official' sample at https://regex101.com/r/Ly7O1x/3/
-# but without the named capturing groups, as they are not needed.
-SEMVER_REGEX = r"""^
-    # MAJOR.MINOR.PATCH:
-    (?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)
-    # Dot separated prerelease identifiers:
-    (?:-(?:(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?
-    # Dot separated build identifiers:
-    (?:\+(?:[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?
+# This project uses a PyPA compliant versioning scheme, as defined in
+# https://packaging.python.org/en/latest/specifications/version-specifiers/
+#
+# This scheme is partially compliant, too, with Semantic Versioning 2.0, (as
+# defined in https://semver.org/) for released versions, since they will use a
+# version string in the form of MAJOR.MINOR.PATCH.
+#
+# But for development versions, the scheme diverges from Semantic Versioning 2.0
+# because the dev release segment uses a dot and not a hyphen as separator. The
+# local version identifier, however, is actually compliant!
+#
+# The scheme does not make use of all defined segments. To wit, it uses# ONLY
+# the release segment, but during development both a dev release segment and a
+# and a local version identifier are added. The dev release segment includes the
+# number of commits since the latest tagged commit latest tagged commit, and the
+# local local version identifier contains the abbreviated hash of the current
+# commit, and an optional marker if the working copy is dirty, that is, current
+# working copy has uncommitted changes. As such, the regex used to validate the
+# version string has been adapted from the one provided in PyPA documentation.
+VERSION_REGEX = r"""^
+    (0|[1-9][0-9]*)(\.(0|[1-9][0-9]*)){2}  # Release segment
+    (\.dev(0|[1-9][0-9]*))?                # Optional dev release segment
+    (\+[0-9a-f]{7}(?:\.dirty)?)?           # Optional local version identifier
 $"""
+
 def test_validate_version_string() -> None:  # pylint: disable=unused-variable
     """Test application version string."""
-    assert re.fullmatch(SEMVER_REGEX, SEMVER, re.ASCII|re.VERBOSE) is not None
+    assert re.fullmatch(VERSION_REGEX, Constants.APP_VERSION, re.ASCII|re.VERBOSE) is not None
