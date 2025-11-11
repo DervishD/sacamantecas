@@ -1,11 +1,13 @@
 #! /usr/bin/env python3
 """Test suite for main() function."""
-from ctypes import wintypes
-from typing import cast
+from typing import cast, TYPE_CHECKING
 
 import pytest
 
 from sacamantecas import Constants, wait_for_keypress, WFKStatuses
+
+if TYPE_CHECKING:
+    from ctypes import wintypes
 
 
 def test_imported() -> None:  # pylint: disable=unused-variable
@@ -18,9 +20,9 @@ def test_no_console_attached(monkeypatch: pytest.MonkeyPatch) -> None:  # pylint
     def patched_getconsolemode(handle: wintypes.HANDLE, mode: wintypes.LPDWORD) -> wintypes.BOOL:  # noqa: ARG001
         # pylint: disable=unused-argument
         """Mock version of GetConsoleMode."""
-        return cast(wintypes.BOOL, 0)
+        return cast('wintypes.BOOL', 0)
 
-    monkeypatch.setattr('sacamantecas.__name__', '__main__')
+    monkeypatch.setitem(wait_for_keypress.__globals__, '__name__', '__main__')
     monkeypatch.setattr('ctypes.windll.kernel32.GetConsoleMode', patched_getconsolemode)
 
     assert wait_for_keypress() == WFKStatuses.NO_CONSOLE_ATTACHED
@@ -43,7 +45,7 @@ def test_wait_for_keypress(
     def patched_getconsolemode(handle: wintypes.HANDLE, mode: wintypes.LPDWORD) -> wintypes.BOOL:  # noqa: ARG001
         # pylint: disable=unused-argument
         """Mock version of GetConsoleMode."""
-        return cast(wintypes.BOOL, 1)
+        return cast('wintypes.BOOL', 1)
 
     def patched_getconsoletitle(buffer: wintypes.LPWSTR, buffer_size: wintypes.DWORD) -> int:  # noqa: ARG001
         # pylint: disable=unused-argument
@@ -53,11 +55,11 @@ def test_wait_for_keypress(
     def patched_getch() -> bytes:
         return b''
 
-    monkeypatch.setattr('sacamantecas.__name__', '__main__')
+    monkeypatch.setitem(wait_for_keypress.__globals__, '__name__', '__main__')
     monkeypatch.setattr('ctypes.windll.kernel32.GetConsoleMode', patched_getconsolemode)
     monkeypatch.setattr('sys.frozen', frozen, raising=False)
     monkeypatch.setattr('ctypes.windll.kernel32.GetConsoleMode', patched_getconsolemode)
     monkeypatch.setattr('ctypes.windll.kernel32.GetConsoleTitleW', patched_getconsoletitle)
-    monkeypatch.setattr('sacamantecas.getch', patched_getch)
+    monkeypatch.setitem(wait_for_keypress.__globals__, 'getch', patched_getch)
 
     assert wait_for_keypress() == result

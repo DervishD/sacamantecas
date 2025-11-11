@@ -10,8 +10,7 @@ import sys
 from typing import cast, TextIO, TYPE_CHECKING
 from zipfile import ZIP_DEFLATED, ZipFile
 
-from sacamantecas import Constants
-from version import SEMVER
+from sacamantecas import Constants, SEMVER
 
 if TYPE_CHECKING:
     from collections.abc import Sequence

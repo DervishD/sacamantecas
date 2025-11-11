@@ -1,9 +1,9 @@
 #! /usr/bin/env python3
 """Test suite for the different handlers of URL sources / metadata sinks."""
-from collections.abc import Callable
 from hashlib import algorithms_available, new as new_hash
 from pathlib import Path
 from random import choice, randrange
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 from openpyxl import load_workbook, Workbook
@@ -24,6 +24,9 @@ from sacamantecas import (
     url_to_filename,
 )
 
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
 HASHES = [hash_function for hash_function in algorithms_available if not hash_function.startswith('shake')]
 SAMPLE_URLS = [f'{choice(Constants.ACCEPTED_URL_SCHEMES)}://subdomain{i}.domain.tld' for i in range(10)]  # noqa: S311
 EXPECTED_METADATA = {u: {h: new_hash(h, u.encode(Constants.UTF8)).hexdigest() for h in HASHES} for u in SAMPLE_URLS}
@@ -40,7 +43,7 @@ def test_single_url_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> 
     def patched_generate_sink_filename(_: Path) -> Path:
         return sink_filename
 
-    monkeypatch.setattr('sacamantecas.generate_sink_filename', patched_generate_sink_filename)
+    monkeypatch.setitem(single_url_handler.__globals__, 'generate_sink_filename', patched_generate_sink_filename)
 
     handler = single_url_handler(SAMPLE_URLS[0])
     bootstrap(handler)
@@ -75,7 +78,8 @@ def test_textfile_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> No
     sink_filename = tmp_path / f'testsink{Constants.SINKFILE_STEM}.txt'
     def patched_generate_sink_filename(_: Path) -> Path:
         return sink_filename
-    monkeypatch.setattr('sacamantecas.generate_sink_filename', patched_generate_sink_filename)
+
+    monkeypatch.setitem(textfile_handler.__globals__, 'generate_sink_filename', patched_generate_sink_filename)
 
     handler = textfile_handler(source_filename)
     bootstrap(handler)
@@ -137,7 +141,7 @@ def test_spreadsheet_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) ->
     def patched_generate_sink_filename(_: Path) -> Path:
         return sink_filename
 
-    monkeypatch.setattr('sacamantecas.generate_sink_filename', patched_generate_sink_filename)
+    monkeypatch.setitem(spreadsheet_handler.__globals__, 'generate_sink_filename', patched_generate_sink_filename)
 
     handler = spreadsheet_handler(source_filename)
     bootstrap(handler)
@@ -166,11 +170,13 @@ def test_spreadsheet_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) ->
         if not value or not value.startswith(Constants.SPREADSHEET_METADATA_COLUMN_MARKER):
             continue
         value = value.removeprefix(Constants.SPREADSHEET_METADATA_COLUMN_MARKER)
+        assert cell.column is not None
         headers[cell.column] = value
 
     for row in sheet.rows:
         if (url := get_url_from_row(row)) is None:
             continue
+        assert row[0].row is not None
         result[url] = {k: sheet.cell(row[0].row, column).value for column, k in headers.items()}
     workbook.close()
 
@@ -224,7 +230,7 @@ def test_output_no_permission(
     def patched_generate_sink_filename(_: Path) -> Path:
         return unwritable_file
 
-    monkeypatch.setattr('sacamantecas.generate_sink_filename', patched_generate_sink_filename)
+    monkeypatch.setitem(handler_factory.__globals__, 'generate_sink_filename', patched_generate_sink_filename)
 
     if not source_stem.startswith('http://'):
         source = tmp_path / source_stem

@@ -1,5 +1,6 @@
 .pytest_cache
 build
+*.egg-info
 sacamantecas_v*.zip
 sacamantecas_log_*
 sacamantecas_log.txt

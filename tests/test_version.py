@@ -2,7 +2,7 @@
 """Test suite for validating application version string."""
 import re
 
-from version import SEMVER
+from sacamantecas import SEMVER
 
 # Regular expression obtained directly from https://semver.org/
 # from the 'official' sample at https://regex101.com/r/Ly7O1x/3/

@@ -145,7 +145,7 @@ def test_profile_validation(
     context_manager: AbstractContextManager[None | Exception],
 ) -> None:
     """Test profile validation using declared parsers."""
-    monkeypatch.setattr('sacamantecas.BaseParser', MockBaseParser)
+    monkeypatch.setitem(load_profiles.__globals__, 'BaseParser', MockBaseParser)
 
     with context_manager:
         inifile = tmp_path / Constants.INIFILE_PATH.name

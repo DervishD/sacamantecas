@@ -41,7 +41,7 @@ def test_http_errors(monkeypatch: pytest.MonkeyPatch) -> None:  # pylint: disabl
     def patched_retrieve_url(_: str) -> HTTPConnection:
         return HTTPConnection(f'{host}:{port}')
 
-    monkeypatch.setattr('sacamantecas.retrieve_url', patched_retrieve_url)
+    monkeypatch.setitem(saca_las_mantecas.__globals__, 'retrieve_url', patched_retrieve_url)
 
     with pytest.raises(SkimmingError) as excinfo:
         saca_las_mantecas(url, MOCK_PARSER)
@@ -60,7 +60,7 @@ def test_connection_errors(monkeypatch: pytest.MonkeyPatch) -> None:  # pylint: 
     def patched_retrieve_url(_: str) -> None:
         return socket().connect((host, port))
 
-    monkeypatch.setattr('sacamantecas.retrieve_url', patched_retrieve_url)
+    monkeypatch.setitem(saca_las_mantecas.__globals__, 'retrieve_url', patched_retrieve_url)
 
     with pytest.raises(SkimmingError) as excinfo:
         saca_las_mantecas(url, MOCK_PARSER)
