@@ -1,6 +1,9 @@
 #! /usr/bin/env python3
 """Test suite for all URL handling functions."""
+from http.server import HTTPServer, SimpleHTTPRequestHandler
+from os import chdir
 from pathlib import Path
+import threading
 from urllib.parse import quote
 
 import pytest
@@ -69,30 +72,39 @@ def test_charset_detection(contents: str, expected: str) -> None:  # pylint: dis
     assert result == expected
 
 
-# Strings below taken from http://www.cl.cam.ac.uk/~mgk25/ucs/examples/UTF-8-demo.txt
-# The contents used in the test, from https://httpcan.org/encoding/utf8 include them.
-TEST_CONTENTS1 = 'STARGΛ̊TE SG-1, a = v̇ = r̈, a⃑ ⊥ b⃑'
-TEST_CONTENTS2 = '((V⍳V)=⍳⍴V)/V←,V    ⌷←⍳→⍴∆∇⊃‾⍎⍕⌈'  # noqa: RUF001
-def test_url_retrieval(tmp_path: Path) -> None:  # pylint: disable=unused-variable
-    """Test full URL retrieval.
+MOCK_HOST = 'localhost'
+SERVER_ROOT = Path(__file__).resolve().parent
+SAMPLE_FILE_PATH = SERVER_ROOT / 'utf-8.html'
+def test_utf8_url_retrieval() -> None:  # pylint: disable=unused-variable
+    """Test full URL retrieval of UTF-8 encoded data.
 
     Both https:// and file:// URls are tested.
 
     The first one, against a live server returning a UTF-8 encoded body.
     The second, using a temporary file with fake contents.
     """
-    http_contents, http_encoding = retrieve_url('https://httpcan.org/encoding/utf8')
-    http_contents = http_contents.decode(http_encoding)
+    expected_contents = SAMPLE_FILE_PATH.read_text(encoding=Constants.UTF8)
 
-    filename = tmp_path / 'temporary.html'
-    filename.write_text(f'<meta charset="{Constants.UTF8}">{http_contents}', encoding=Constants.UTF8)
+    previous_cwd = Path.cwd()
+    chdir(SERVER_ROOT)
 
-    file_contents, file_encoding = retrieve_url(f'{Constants.FILE_SCHEME}/{filename}')
-    file_contents = file_contents.decode(file_encoding)
+    http_server = HTTPServer((MOCK_HOST, 0), SimpleHTTPRequestHandler)
+    thread = threading.Thread(target=http_server.serve_forever, daemon=True)
 
-    assert http_encoding == Constants.UTF8
-    assert file_encoding == Constants.UTF8
-    assert TEST_CONTENTS1 in http_contents
-    assert TEST_CONTENTS2 in http_contents
-    assert TEST_CONTENTS1 in file_contents
-    assert TEST_CONTENTS2 in file_contents
+    try:
+        thread.start()
+
+        url = f'http://{MOCK_HOST}:{http_server.server_port}/{SAMPLE_FILE_PATH.name}'
+        contents, encoding = retrieve_url(url)
+        assert encoding.lower() == Constants.UTF8.lower()
+        assert contents.decode(encoding) == expected_contents
+
+        url = f'{Constants.FILE_SCHEME}/{SAMPLE_FILE_PATH}'
+        contents, encoding = retrieve_url(url)
+        assert encoding.lower() == Constants.UTF8.lower()
+        assert contents.decode(encoding) == expected_contents
+
+    finally:
+        http_server.shutdown()
+        thread.join()
+        chdir(previous_cwd)
