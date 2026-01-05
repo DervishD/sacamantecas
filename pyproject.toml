@@ -1,6 +1,6 @@
 [build-system]
 build-backend = "setuptools.build_meta"
-requires = [  # cspell: ignore versioningit
+requires = [
     "setuptools==80.9.0",
     "versioningit==3.3.0"
 ]
@@ -15,7 +15,7 @@ license = "MIT"
 license-files = ["LICENSE"]
 authors = [{name="Raúl Núñez de Arenas Coronado", email="raulnac@gmail.com"}]
 maintainers = [{name="Raúl Núñez de Arenas Coronado", email="raulnac@gmail.com"}]
-dependencies = [  # cspell: ignore openpyxl, pyinstaller, pytest
+dependencies = [
     "openpyxl==3.1.3",
     "pyinstaller==6.16.0",
     "pytest==8.4.2",

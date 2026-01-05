@@ -426,7 +426,6 @@ logger: CustomLogger = cast('CustomLogger', logging.getLogger(Constants.APP_NAME
 
 class BaseApplicationError(Exception):
     """Base class for all custom application exceptions."""  # noqa: D204
-    # cSpell:ignore vararg
     # pylint: disable-next=keyword-arg-before-vararg
     def __init__ (self, message: str, details: object = '', *args: object, **kwargs: object) -> None:
         """Initialize exception with message and details."""
@@ -615,7 +614,6 @@ class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
             return
 
 
-# cSpell:ignore Baratz
 class BaratzParser(BaseParser):   # pylint: disable=unused-variable
     """Parser for Baratz catalogues.
 

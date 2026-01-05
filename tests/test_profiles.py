@@ -69,7 +69,6 @@ def test_syntax_errors(tmp_path: Path, text: str, error: str) -> None:  # pylint
     filename.unlink()
 
 
-# cspell: ignore baratz
 INIFILE_CONTENTS = """
 [profile_baratz]
 url = profile1.domain.tld

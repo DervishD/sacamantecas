@@ -25,7 +25,7 @@ def interrupted_function() -> NoReturn:
 
 # pylint: disable-next=unused-variable
 def test_loggerize(log_paths: LogPaths, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Test the loggerize() decorator."""  # cSpell:ignore loggerize
+    """Test the loggerize() decorator."""
     monkeypatch.setattr(Constants, 'LOGFILE_PATH', log_paths.log)
     monkeypatch.setattr(Constants, 'DEBUGFILE_PATH', log_paths.debug)
 
