@@ -17,9 +17,9 @@ def main(*args: str) -> int:
         logger.info('Detected encoding: %s', encoding)
         contents = contents.decode(encoding)
 
-        output_filename = url_to_path(url).with_suffix('.html')
-        with output_filename.open('wt', encoding=encoding) as output_file:
-            logger.info('Dumping web page to %s', output_filename)
+        output_path = url_to_path(url).with_suffix('.html')
+        with output_path.open('wt', encoding=encoding) as output_file:
+            logger.info('Dumping web page to %s', output_path)
             output_file.write(contents)
     return 0
 
