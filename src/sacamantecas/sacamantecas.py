@@ -2,7 +2,7 @@
 """See "README.md" for details."""
 import sys  # noqa: I001
 if sys.platform != 'win32':
-    sys.stdout.write('\nThis application is compatible only with the Win32 platform.\n')
+    sys.stdout.write('\nThis program is compatible only with the Win32 platform.\n')
     sys.stdout.flush()
     sys.exit(None)
 
@@ -50,7 +50,7 @@ type Handler = Generator[str, dict[str, str] | None]
 
 
 class Constants:  # pylint: disable=too-few-public-methods
-    """Application configuration values."""
+    """Program configuration values."""
 
     APP_PATH = Path(__file__)
     APP_NAME = APP_PATH.stem
@@ -268,7 +268,7 @@ logging.basicConfig(
 
 
 # Reconfigure standard output streams so they use UTF-8 encoding, even if
-# they are redirected to a file when running the application from a shell.
+# they are redirected to a file when running the program from a shell.
 if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
     cast('TextIOWrapper', sys.stdout).reconfigure(encoding=Constants.UTF8)
 if sys.stderr and hasattr(sys.stdout, 'reconfigure'):
@@ -424,21 +424,21 @@ logging.setLoggerClass(CustomLogger)
 logger: CustomLogger = cast('CustomLogger', logging.getLogger(Constants.APP_NAME))
 
 
-class BaseApplicationError(Exception):
-    """Base class for all custom application exceptions."""  # noqa: D204
+class BaseCustomError(Exception):
+    """Base class for all program custom exceptions."""  # noqa: D204
     # pylint: disable-next=keyword-arg-before-vararg
     def __init__ (self, message: str, details: object = '', *args: object, **kwargs: object) -> None:
         """Initialize exception with message and details."""
         self.details = details
         super().__init__(message, *args, **kwargs)
 
-class ProfilesError(BaseApplicationError):
+class ProfilesError(BaseCustomError):
     """Raise for profile-related errors."""
 
-class SourceError(BaseApplicationError):
+class SourceError(BaseCustomError):
     """Raise for source-related errors."""
 
-class SkimmingError(BaseApplicationError):
+class SkimmingError(BaseCustomError):
     """Raise for skimming-related errors."""
 
 
@@ -730,6 +730,8 @@ def is_accepted_url(value: str | None) -> bool:
     """Check if value is an accepted URL or not."""
     # The check is quite crude but works for the application's needs.
     try:
+        # The check is quite crude but it is simple and works perfectly
+        # for the program's needs, which are simple, too.
         return urlparse(value).scheme in Constants.ACCEPTED_URL_SCHEMES
     except ValueError:
         return False
@@ -750,13 +752,14 @@ class WFKStatuses(IntEnum):
     WAIT_FOR_KEYPRESS = auto()
 
 def wait_for_keypress() -> WFKStatuses:
-    """Wait for a keypress to continue if sys.stdout is a real console AND the console is transient."""
-    # First of all, if this script is being imported rather than run,
-    # then the application must NOT pause. Absolutely NOT.
+    the program is paused until any key is pressed.
+    """
+    # First of all, if the script is being imported rather than run then
+    # the program must NOT pause. Absolutely NOT.
     if __name__ != '__main__':
         return WFKStatuses.IMPORTED
 
-    # If no console is attached, then the application must NOT pause.
+    # If no console is attached, the program must NOT pause.
     #
     # Since sys.stdout.isatty() returns True under Windows when sys.stdout
     # is redirected to NUL, another (more complex) method, is needed here.
@@ -764,10 +767,9 @@ def wait_for_keypress() -> WFKStatuses:
     if not windll.kernel32.GetConsoleMode(get_osfhandle(sys.stdout.fileno()), byref(c_uint())):
         return WFKStatuses.NO_CONSOLE_ATTACHED
 
-    # If there is a console attached, the application must pause ONLY if that
-    # console will automatically close when the application finishes, hiding
-    # any messages printed by the application. In other words, pause only if
-    # the console is transient.
+    # If there is an attached console, then the program must pause ONLY
+    # if that console will automatically close when the program exists.
+    # In other words, pause only if the console is transient.
     #
     # Determining if a console is transient is not easy as there is no
     # bulletproof method available for every possible circumstance.
@@ -1329,7 +1331,7 @@ def detect_html_charset(contents: bytes) -> str:
 
     So, the sane default is another, set in the global configuration, and it is
     based on the encoding most frequently used by the web pages this application
-    will generally process.
+    this program will generally process.
     """
     charset = Constants.FALLBACK_HTML_CHARSET
     if match := re.search(Constants.META_HTTP_EQUIV_CHARSET_RE, contents, re.IGNORECASE):
@@ -1352,13 +1354,14 @@ def main(*args: str) -> ExitCodes:
     exitcode = ExitCodes.SUCCESS
 
     if not args:
-        # Input arguments should be provided automatically to the application if
-        # it is used as a drag'n'drop target which is actually the intended way
-        # of operation, generally speaking.
+        # Input arguments should be provided automatically when program
+        # is used as a drag'n'drop target which is actually the intended
+        # way of operation, generally speaking.
         #
-        # But the application can be also run by hand from a command prompt, so
-        # it is better to signal the end user with an error and explanation if
-        # no input arguments are provided, as soon as possible.
+        # But the program can be also run by hand from a command prompt,
+        # so it is better to signal the end user with an error and give
+        # an explanation if no input arguments are provided, as soon as
+        # possible.
         error(Messages.NO_ARGUMENTS)
         return ExitCodes.NO_ARGUMENTS
 
