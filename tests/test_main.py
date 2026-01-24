@@ -16,22 +16,22 @@ LEVELNAME_SEPARATOR = Constants.LOGGING_LEVELNAME_SEPARATOR
 
 def test_logging_setup(log_paths: LogPaths, monkeypatch: pytest.MonkeyPatch) -> None:  # pylint: disable=unused-variable
     """Test for proper logging setup."""
-    monkeypatch.setattr(Constants, 'LOGFILE_PATH', log_paths.log)
-    monkeypatch.setattr(Constants, 'DEBUGFILE_PATH', log_paths.debug)
+    monkeypatch.setattr(Constants, 'MAIN_OUTPUT_PATH', log_paths.log)
+    monkeypatch.setattr(Constants, 'FULL_OUTPUT_PATH', log_paths.trace)
 
     assert not log_paths.log.is_file()
-    assert not log_paths.debug.is_file()
+    assert not log_paths.trace.is_file()
 
     assert main() == ExitCodes.NO_ARGUMENTS
 
     assert log_paths.log.is_file()
-    assert log_paths.debug.is_file()
+    assert log_paths.trace.is_file()
 
 
 def test_no_arguments(log_paths: LogPaths, monkeypatch: pytest.MonkeyPatch) -> None:  # pylint: disable=unused-variable
     """Test handling of missing command line arguments."""
-    monkeypatch.setattr(Constants, 'LOGFILE_PATH', log_paths.log)
-    monkeypatch.setattr(Constants, 'DEBUGFILE_PATH', log_paths.debug)
+    monkeypatch.setattr(Constants, 'MAIN_OUTPUT_PATH', log_paths.log)
+    monkeypatch.setattr(Constants, 'FULL_OUTPUT_PATH', log_paths.trace)
 
     assert main() == ExitCodes.NO_ARGUMENTS
 
@@ -46,7 +46,7 @@ def test_no_arguments(log_paths: LogPaths, monkeypatch: pytest.MonkeyPatch) -> N
 
     assert result == expected
 
-    result = log_paths.debug.read_text(encoding='utf-8').splitlines()
+    result = log_paths.trace.read_text(encoding='utf-8').splitlines()
     result = '\n'.join([' '.join(line.split(' ')[1:]) for line in result])
     expected = '\n'.join((
         f'DEBUG   {LEVELNAME_SEPARATOR}{Messages.DEBUGGING_INIT}',
@@ -69,16 +69,16 @@ def test_missing_ini(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     """Test for missing main INI file."""
-    monkeypatch.setattr(Constants, 'LOGFILE_PATH', log_paths.log)
-    monkeypatch.setattr(Constants, 'DEBUGFILE_PATH', log_paths.debug)
+    monkeypatch.setattr(Constants, 'MAIN_OUTPUT_PATH', log_paths.log)
+    monkeypatch.setattr(Constants, 'FULL_OUTPUT_PATH', log_paths.trace)
 
-    filename = tmp_path / 'non_existent.ini'
-    monkeypatch.setattr(Constants, 'INIFILE_PATH', filename)
+    path = tmp_path / 'non_existent.ini'
+    monkeypatch.setattr(Constants, 'INIFILE_PATH', path)
 
     assert main('') == ExitCodes.ERROR
 
     result = capsys.readouterr().err.splitlines()[3].strip()
-    expected = f'No se encontró o no se pudo leer el fichero de perfiles «{filename}».'
+    expected = f'No se encontró o no se pudo leer el fichero de perfiles «{path}».'
 
     assert result == expected
 
@@ -91,12 +91,12 @@ def test_ini_syntax_error(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     """Test for syntax errors in INI file."""
-    monkeypatch.setattr(Constants, 'LOGFILE_PATH', log_paths.log)
-    monkeypatch.setattr(Constants, 'DEBUGFILE_PATH', log_paths.debug)
+    monkeypatch.setattr(Constants, 'MAIN_OUTPUT_PATH', log_paths.log)
+    monkeypatch.setattr(Constants, 'FULL_OUTPUT_PATH', log_paths.trace)
 
-    filename = tmp_path / 'profiles_syntax_error.ini'
-    filename.write_text('o')
-    monkeypatch.setattr(Constants, 'INIFILE_PATH', filename)
+    path = tmp_path / 'profiles_syntax_error.ini'
+    path.write_text('o')
+    monkeypatch.setattr(Constants, 'INIFILE_PATH', path)
 
     assert main('') == ExitCodes.ERROR
 
@@ -105,4 +105,4 @@ def test_ini_syntax_error(
 
     assert result == expected
 
-    filename.unlink()
+    path.unlink()

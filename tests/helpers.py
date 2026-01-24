@@ -7,4 +7,4 @@ if TYPE_CHECKING:
 class LogPaths(NamedTuple):  # pylint: disable=unused-variable
     """Log paths abstraction."""  # noqa: D204
     log: Path
-    debug: Path
+    trace: Path

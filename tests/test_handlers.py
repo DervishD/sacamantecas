@@ -39,11 +39,11 @@ def test_single_url_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> 
 
     assert single_url == expected
 
-    sink_filename = tmp_path / f'testsink{Constants.SINKFILE_STEM}.txt'
-    def patched_generate_sink_filename(_: Path) -> Path:
-        return sink_filename
+    sinkfile_path = tmp_path / f'testsink{Constants.SINKFILE_STEM}.txt'
+    def patched_generate_sinkfile_path(_: Path) -> Path:
+        return sinkfile_path
 
-    monkeypatch.setitem(single_url_handler.__globals__, 'generate_sink_filename', patched_generate_sink_filename)
+    monkeypatch.setitem(single_url_handler.__globals__, 'generate_sinkfile_path', patched_generate_sinkfile_path)
 
     handler = single_url_handler(SAMPLE_URLS[0])
     bootstrap(handler)
@@ -58,11 +58,11 @@ def test_single_url_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> 
         urls.append(url)
 
 
-    assert sink_filename.is_file()
+    assert sinkfile_path.is_file()
     assert len(urls) == 1
     assert urls[0] == SAMPLE_URLS[0]
 
-    result = sink_filename.read_text().rstrip(Constants.TEXTSINK_METADATA_FOOTER).splitlines()
+    result = sinkfile_path.read_text().rstrip(Constants.TEXTSINK_METADATA_FOOTER).splitlines()
 
     assert result[0] == SAMPLE_URLS[0]
 
@@ -73,15 +73,15 @@ def test_single_url_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> 
 
 def test_textfile_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:  # pylint: disable=unused-variable
     """Test textfile handler."""
-    source_filename = tmp_path / 'urls.txt'
-    source_filename.write_text('\n'.join(SAMPLE_URLS), encoding='utf-8')
-    sink_filename = tmp_path / f'testsink{Constants.SINKFILE_STEM}.txt'
-    def patched_generate_sink_filename(_: Path) -> Path:
-        return sink_filename
+    sourcefile_path = tmp_path / 'urls.txt'
+    sourcefile_path.write_text('\n'.join(SAMPLE_URLS), encoding='utf-8')
+    sinkfile_path = tmp_path / f'testsink{Constants.SINKFILE_STEM}.txt'
+    def patched_generate_sinkfile_path(_: Path) -> Path:
+        return sinkfile_path
 
-    monkeypatch.setitem(textfile_handler.__globals__, 'generate_sink_filename', patched_generate_sink_filename)
+    monkeypatch.setitem(textfile_handler.__globals__, 'generate_sinkfile_path', patched_generate_sinkfile_path)
 
-    handler = textfile_handler(source_filename)
+    handler = textfile_handler(sourcefile_path)
     bootstrap(handler)
 
     urls: list[str] = []
@@ -93,13 +93,13 @@ def test_textfile_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> No
 
         urls.append(url)
 
-    assert sink_filename.is_file()
+    assert sinkfile_path.is_file()
     assert len(urls) == len(SAMPLE_URLS)
     assert urls == SAMPLE_URLS
 
     result: dict[str, dict[str, str]] = {}
     current_k = None
-    for line in sink_filename.read_text().rstrip(Constants.TEXTSINK_METADATA_FOOTER).splitlines():
+    for line in sinkfile_path.read_text().rstrip(Constants.TEXTSINK_METADATA_FOOTER).splitlines():
         if not line.rstrip():
             continue
         if line.startswith(Constants.TEXTSINK_METADATA_INDENT) and current_k is not None:
@@ -115,7 +115,7 @@ FAKE_METADATA_COLUMNS = 10
 # pylint: disable-next=unused-variable,too-many-locals
 def test_spreadsheet_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """Test spreadsheet handler."""
-    source_filename = tmp_path / 'urls.xlsx'
+    sourcefile_path = tmp_path / 'urls.xlsx'
     headings = [f'Heading_{i}' for i in range(FAKE_METADATA_COLUMNS)]
 
     workbook = Workbook()
@@ -134,16 +134,16 @@ def test_spreadsheet_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) ->
         row.insert(randrange(len(row)), url)  # noqa: S311
         sheet.append(row)
 
-    workbook.save(source_filename)
+    workbook.save(sourcefile_path)
     workbook.close()
 
-    sink_filename = tmp_path / f'testsink{Constants.SINKFILE_STEM}.xlsx'
-    def patched_generate_sink_filename(_: Path) -> Path:
-        return sink_filename
+    sinkfile_path = tmp_path / f'testsink{Constants.SINKFILE_STEM}.xlsx'
+    def patched_generate_sinkfile_path(_: Path) -> Path:
+        return sinkfile_path
 
-    monkeypatch.setitem(spreadsheet_handler.__globals__, 'generate_sink_filename', patched_generate_sink_filename)
+    monkeypatch.setitem(spreadsheet_handler.__globals__, 'generate_sinkfile_path', patched_generate_sinkfile_path)
 
-    handler = spreadsheet_handler(source_filename)
+    handler = spreadsheet_handler(sourcefile_path)
     bootstrap(handler)
 
     urls: list[str] = []
@@ -154,12 +154,12 @@ def test_spreadsheet_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) ->
 
         urls.append(url)
 
-    assert sink_filename.is_file()
+    assert sinkfile_path.is_file()
     assert len(urls) == len(SAMPLE_URLS)
     assert urls == SAMPLE_URLS
 
     result = {}
-    workbook = load_workbook(sink_filename)
+    workbook = load_workbook(sinkfile_path)
     sheet = workbook.worksheets[0]
 
     assert isinstance(sheet, Worksheet)
@@ -198,14 +198,14 @@ def test_missing_source(tmp_path: Path, suffix: str, handler_factory: Callable[[
     assert str(excinfo.value).startswith(Messages.INPUT_FILE_NOT_FOUND)
 
 
-@pytest.mark.parametrize(('unreadable_file', 'handler_factory'), [
+@pytest.mark.parametrize(('unreadable_path', 'handler_factory'), [
     ('unreadable_textfile.txt', textfile_handler),
     ('unreadable_spreadsheet.xlsx', spreadsheet_handler),
-], indirect=['unreadable_file'])
+], indirect=['unreadable_path'])
 # pylint: disable-next=unused-variable
-def test_input_no_permission(unreadable_file: Path, handler_factory: Callable[[Path], Handler]) -> None:
+def test_input_no_permission(unreadable_path: Path, handler_factory: Callable[[Path], Handler]) -> None:
     """Test handling of unreadable files."""
-    handler = handler_factory(Path(unreadable_file))
+    handler = handler_factory(Path(unreadable_path))
 
     with pytest.raises(SourceError) as excinfo:
         bootstrap(handler)
@@ -213,24 +213,24 @@ def test_input_no_permission(unreadable_file: Path, handler_factory: Callable[[P
     assert str(excinfo.value).startswith(Messages.INPUT_FILE_NO_PERMISSION)
 
 
-@pytest.mark.parametrize(('source_stem', 'unwritable_file', 'handler_factory'), [
+@pytest.mark.parametrize(('source_stem', 'unwritable_path', 'handler_factory'), [
     ('http://s.url', f'unwritable_single_url{Constants.SINKFILE_STEM}.txt', single_url_handler),
     ('s.txt', f'unwritable_textfile{Constants.SINKFILE_STEM}.txt', textfile_handler),
     ('s.xlsx', f'unwritable_spreadsheet{Constants.SINKFILE_STEM}.xlsx', spreadsheet_handler),
-], indirect=['unwritable_file'])
+], indirect=['unwritable_path'])
 # pylint: disable-next=unused-variable
 def test_output_no_permission(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     source_stem: str,
-    unwritable_file: Path,
+    unwritable_path: Path,
     handler_factory: Callable[[str | Path], Handler],
 ) -> None:
-    """Test handling of unwritable files."""
-    def patched_generate_sink_filename(_: Path) -> Path:
-        return unwritable_file
+    """Test handling of non-writable files."""
+    def patched_generate_sinkfile_path(_: Path) -> Path:
+        return unwritable_path
 
-    monkeypatch.setitem(handler_factory.__globals__, 'generate_sink_filename', patched_generate_sink_filename)
+    monkeypatch.setitem(handler_factory.__globals__, 'generate_sinkfile_path', patched_generate_sinkfile_path)
 
     if not source_stem.startswith('http://'):
         source = tmp_path / source_stem

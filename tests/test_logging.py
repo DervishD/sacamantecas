@@ -21,21 +21,21 @@ WARNING_HEADER = Messages.WARNING_HEADER
 LEVELNAME_SEPARATOR = Constants.LOGGING_LEVELNAME_SEPARATOR
 
 
-def test_logging_files_creation(log_paths: LogPaths) -> None:  # pylint: disable=unused-variable
-    """Test that the logging files are created propertly."""
+def test_logging_paths_creation(log_paths: LogPaths) -> None:  # pylint: disable=unused-variable
+    """Test that the logging paths are created propertly."""
     assert not log_paths.log.is_file()
-    assert not log_paths.debug.is_file()
+    assert not log_paths.trace.is_file()
 
-    logger.config(main_log_output=log_paths.log, full_log_output=log_paths.debug)
+    logger.config(main_log_output=log_paths.log, full_log_output=log_paths.trace)
 
     logging.shutdown()
 
     assert log_paths.log.is_file()
-    assert log_paths.debug.is_file()
+    assert log_paths.trace.is_file()
 
 # The 'expected' argument is a tuple containing four items:
-#   - The expected logging file contents.
-#   - The expected debugging file contents.
+#   - The expected main log file contents.
+#   - The expected full log file contents.
 #   - The expected stdout output.
 #   - The expected stderr output.
 class Expected(NamedTuple):
@@ -94,23 +94,23 @@ def test_logging_functions(
     expected: Expected,
 ) -> None:
     """Test all logging functions."""
-    logger.config(main_log_output=log_paths.log, full_log_output=log_paths.debug)
+    logger.config(main_log_output=log_paths.log, full_log_output=log_paths.trace)
 
     logfunc(TEST_MESSAGE)
 
     logging.shutdown()
 
-    log_file_contents = log_paths.log.read_text(encoding='utf-8').splitlines()
-    log_file_contents = [' '.join(line.split(' ')[1:]) for line in log_file_contents]
-    log_file_contents = '\n'.join(log_file_contents)
+    main_log_file_contents = log_paths.log.read_text(encoding='utf-8').splitlines()
+    main_log_file_contents = [' '.join(line.split(' ')[1:]) for line in main_log_file_contents]
+    main_log_file_contents = '\n'.join(main_log_file_contents)
 
-    assert log_file_contents == expected.log
+    assert main_log_file_contents == expected.log
 
-    debug_file_contents = log_paths.debug.read_text(encoding='utf-8').splitlines()
-    debug_file_contents = [' '.join(line.split(' ')[1:]) for line in debug_file_contents]
-    debug_file_contents = '\n'.join(debug_file_contents)
+    full_log_file_contents = log_paths.trace.read_text(encoding='utf-8').splitlines()
+    full_log_file_contents = [' '.join(line.split(' ')[1:]) for line in full_log_file_contents]
+    full_log_file_contents = '\n'.join(full_log_file_contents)
 
-    assert debug_file_contents == expected.debug
+    assert full_log_file_contents == expected.debug
 
     captured_output = capsys.readouterr()
 
@@ -121,7 +121,7 @@ def test_logging_functions(
 # pylint: disable-next=unused-variable
 def test_error_details(log_paths: LogPaths, capsys: pytest.CaptureFixture[str]) -> None:
     """Test handling of details by the `error()` function."""
-    logger.config(main_log_output=log_paths.log, full_log_output=log_paths.debug)
+    logger.config(main_log_output=log_paths.log, full_log_output=log_paths.trace)
 
     details = 'Additional details in multiple lines.'.replace(' ', '\n')
     error(TEST_MESSAGE, details)
@@ -139,18 +139,18 @@ def test_error_details(log_paths: LogPaths, capsys: pytest.CaptureFixture[str]) 
         '',
     ))
 
-    log_file_contents = log_paths.log.read_text(encoding='utf-8').split('\n')
-    log_file_contents = [' '.join(line.split(' ')[1:]) for line in log_file_contents]
-    log_file_contents = '\n'.join(log_file_contents)
+    main_log_file_contents = log_paths.log.read_text(encoding='utf-8').split('\n')
+    main_log_file_contents = [' '.join(line.split(' ')[1:]) for line in main_log_file_contents]
+    main_log_file_contents = '\n'.join(main_log_file_contents)
 
-    assert log_file_contents == expected
+    assert main_log_file_contents == expected
 
-    debug_file_contents = log_paths.debug.read_text(encoding='utf-8').split('\n')
-    debug_file_contents = [line.split(LEVELNAME_SEPARATOR, maxsplit=1)[1:] for line in debug_file_contents]
-    debug_file_contents = [''.join(line) for line in debug_file_contents]
-    debug_file_contents = '\n'.join(debug_file_contents)
+    full_log_file_contents = log_paths.trace.read_text(encoding='utf-8').split('\n')
+    full_log_file_contents = [line.split(LEVELNAME_SEPARATOR, maxsplit=1)[1:] for line in full_log_file_contents]
+    full_log_file_contents = [''.join(line) for line in full_log_file_contents]
+    full_log_file_contents = '\n'.join(full_log_file_contents)
 
-    assert debug_file_contents == expected
+    assert full_log_file_contents == expected
 
     captured_output = capsys.readouterr()
 
@@ -170,7 +170,7 @@ def test_whitespace_honoring(log_paths: LogPaths, capsys: pytest.CaptureFixture[
     """Test whether whitespace is honored where it should."""
     terminator = '<TERMINATOR>'
 
-    logger.config(main_log_output=log_paths.log, full_log_output=log_paths.debug)
+    logger.config(main_log_output=log_paths.log, full_log_output=log_paths.trace)
 
     logging.StreamHandler.terminator, saved_terminator = terminator, logging.StreamHandler.terminator
     logger.info(message)

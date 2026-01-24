@@ -23,32 +23,32 @@ from sacamantecas import (
 
 def test_missing(tmp_path: Path) -> None: # pylint: disable=unused-variable
     """Test for missing profiles configuration file."""
-    filename = tmp_path / 'non_existent.ini'
+    path = tmp_path / 'non_existent.ini'
     with pytest.raises(ProfilesError) as excinfo:
-        load_profiles(filename)
+        load_profiles(path)
 
-    assert str(excinfo.value) == Messages.MISSING_PROFILES.format(filename)
+    assert str(excinfo.value) == Messages.MISSING_PROFILES.format(path)
 
 
-@pytest.mark.parametrize('unreadable_file', [Path('unreadable_profiles.ini')])
-def test_unreadable(unreadable_file: Path) -> None:  # pylint: disable=unused-variable
+@pytest.mark.parametrize('unreadable_path', [Path('unreadable_profiles.ini')])
+def test_unreadable(unreadable_path: Path) -> None:  # pylint: disable=unused-variable
     """Test for unreadable profiles configuration file."""
     with pytest.raises(ProfilesError) as excinfo:
-        load_profiles(unreadable_file)
+        load_profiles(unreadable_path)
 
-    assert str(excinfo.value) == Messages.MISSING_PROFILES.format(unreadable_file)
+    assert str(excinfo.value) == Messages.MISSING_PROFILES.format(unreadable_path)
 
 
 @pytest.mark.parametrize('text', ['', '[s]'])
 def test_empty(tmp_path: Path, text: str) -> None:  # pylint: disable=unused-variable
     """Test for empty profiles configuration file."""
-    filename = tmp_path / 'profiles_empty.ini'
-    filename.write_text(text)
+    path = tmp_path / 'profiles_empty.ini'
+    path.write_text(text)
 
     with pytest.raises(ProfilesError) as excinfo:
-        load_profiles(filename)
+        load_profiles(path)
 
-    assert str(excinfo.value) == Messages.EMPTY_PROFILES.format(filename)
+    assert str(excinfo.value) == Messages.EMPTY_PROFILES.format(path)
 
 
 @pytest.mark.parametrize(('text', 'error'), [
@@ -59,14 +59,14 @@ def test_empty(tmp_path: Path, text: str) -> None:  # pylint: disable=unused-var
 ])
 def test_syntax_errors(tmp_path: Path, text: str, error: str) -> None:  # pylint: disable=unused-variable
     """Test for syntax errors in profiles configuration file."""
-    filename = tmp_path / 'profiles_syntax_error.ini'
-    filename.write_text(text)
+    path = tmp_path / 'profiles_syntax_error.ini'
+    path.write_text(text)
     with pytest.raises(ProfilesError) as excinfo:
-        load_profiles(filename)
+        load_profiles(path)
 
     assert str(excinfo.value).startswith(Messages.PROFILES_WRONG_SYNTAX.format(error))
 
-    filename.unlink()
+    path.unlink()
 
 
 INIFILE_CONTENTS = """
@@ -102,12 +102,12 @@ EXPECTED_PROFILES = {
 }
 def test_profile_loading(tmp_path: Path) -> None:   # pylint: disable=unused-variable
     """Test full profile loading."""
-    filename = tmp_path / Constants.INIFILE_PATH.name
-    filename.write_text(INIFILE_CONTENTS)
+    path = tmp_path / Constants.INIFILE_PATH.name
+    path.write_text(INIFILE_CONTENTS)
 
-    profiles = load_profiles(filename)
+    profiles = load_profiles(path)
 
-    filename.unlink()
+    path.unlink()
 
     assert profiles.keys() == EXPECTED_PROFILES.keys()
 
@@ -147,10 +147,10 @@ def test_profile_validation(
     monkeypatch.setitem(load_profiles.__globals__, 'BaseParser', MockBaseParser)
 
     with context_manager:
-        inifile = tmp_path / Constants.INIFILE_PATH.name
-        inifile.write_text(inifile_contents)
-        load_profiles(inifile)
-        inifile.unlink()
+        inifile_path = tmp_path / Constants.INIFILE_PATH.name
+        inifile_path.write_text(inifile_contents)
+        load_profiles(inifile_path)
+        inifile_path.unlink()
 
 
 PROFILES = {
