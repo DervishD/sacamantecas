@@ -6,7 +6,7 @@ from sacamantecas import Constants
 
 ALLOWED_STRINGS = (
     # Early platform check.
-    'win32', '\nThis application is compatible only with the Win32 platform.\n',
+    'win32', '\nThis program is compatible only with the Win32 platform.\n',
     # Python well-known strings.
     'frozen', '__main__', 'w', '%s',
     # For typing hints.
@@ -15,8 +15,8 @@ ALLOWED_STRINGS = (
     'version', 'disable_existing_loggers', 'level', 'propagate',
     '()', 'style', 'format', 'datefmt', 'formatter', 'class',
     'filename', 'mode', 'encoding', 'stream',
-    'debugfile_formatter', 'logfile_formatter', 'console_formatter',
-    'debugfile_handler', 'logfile_handler', 'stdout_handler', 'stderr_handler',
+    'full_log_formatter', 'main_log_formatter', 'console_formatter',
+    'full_log_handler', 'main_log_handler', 'stdout_handler', 'stderr_handler',
     'loggers', 'handlers', 'formatters', 'filters',
     # Miscellaneous strings.
     'reconfigure', 'dev',
