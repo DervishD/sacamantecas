@@ -26,7 +26,7 @@ def test_logging_files_creation(log_paths: LogPaths) -> None:  # pylint: disable
     assert not log_paths.log.is_file()
     assert not log_paths.debug.is_file()
 
-    logger.config(logfile=log_paths.log, debugfile=log_paths.debug)
+    logger.config(main_log_output=log_paths.log, full_log_output=log_paths.debug)
 
     logging.shutdown()
 
@@ -94,7 +94,7 @@ def test_logging_functions(
     expected: Expected,
 ) -> None:
     """Test all logging functions."""
-    logger.config(logfile=log_paths.log, debugfile=log_paths.debug)
+    logger.config(main_log_output=log_paths.log, full_log_output=log_paths.debug)
 
     logfunc(TEST_MESSAGE)
 
@@ -121,7 +121,7 @@ def test_logging_functions(
 # pylint: disable-next=unused-variable
 def test_error_details(log_paths: LogPaths, capsys: pytest.CaptureFixture[str]) -> None:
     """Test handling of details by the error() function."""
-    logger.config(logfile=log_paths.log, debugfile=log_paths.debug)
+    logger.config(main_log_output=log_paths.log, full_log_output=log_paths.debug)
 
     details = 'Additional details in multiple lines.'.replace(' ', '\n')
     error(TEST_MESSAGE, details)
@@ -170,7 +170,7 @@ def test_whitespace_honoring(log_paths: LogPaths, capsys: pytest.CaptureFixture[
     """Test whether whitespace is honored where it should."""
     terminator = '<TERMINATOR>'
 
-    logger.config(logfile=log_paths.log, debugfile=log_paths.debug)
+    logger.config(main_log_output=log_paths.log, full_log_output=log_paths.debug)
 
     logging.StreamHandler.terminator, saved_terminator = terminator, logging.StreamHandler.terminator
     logger.info(message)

@@ -55,7 +55,7 @@ BASE_URL = f'{SCHEME}{NETLOC}{PATH}{EXTRA}'
 def test_url_redirection(delay: str, url: str, extra: str, expected: str) -> None:  # pylint: disable=unused-variable
     """Test URL redirections."""
     contents = fr'<meta http-equiv="refresh" content="{delay}url={url}{extra}"'.encode()
-    result = get_redirected_url(BASE_URL, contents)
+    result = get_redirected_url(contents, BASE_URL)
 
     assert result == expected + extra
 

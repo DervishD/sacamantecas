@@ -3,7 +3,7 @@
 import logging
 import sys
 
-from sacamantecas import retrieve_url, url_to_filename
+from sacamantecas import retrieve_url, url_to_path
 
 
 def main(*args: str) -> int:
@@ -17,7 +17,7 @@ def main(*args: str) -> int:
         logger.info('Detected encoding: %s', encoding)
         contents = contents.decode(encoding)
 
-        output_filename = url_to_filename(url).with_suffix('.html')
+        output_filename = url_to_path(url).with_suffix('.html')
         with output_filename.open('wt', encoding=encoding) as output_file:
             logger.info('Dumping web page to %s', output_filename)
             output_file.write(contents)

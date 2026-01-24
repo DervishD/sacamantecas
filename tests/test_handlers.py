@@ -21,7 +21,7 @@ from sacamantecas import (
     SourceError,
     spreadsheet_handler,
     textfile_handler,
-    url_to_filename,
+    url_to_path,
 )
 
 if TYPE_CHECKING:
@@ -34,7 +34,7 @@ EXPECTED_METADATA = {u: {h: new_hash(h, u.encode(Constants.UTF8)).hexdigest() fo
 
 def test_single_url_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:  # pylint: disable=unused-variable
     """Test single URLs."""
-    single_url = url_to_filename('url://subdomain.domain.toplevel/path?param1=value1&param2=value2')
+    single_url = url_to_path('url://subdomain.domain.toplevel/path?param1=value1&param2=value2')
     expected = Path('url___subdomain_domain_toplevel_path_param1_value1_param2_value2')
 
     assert single_url == expected

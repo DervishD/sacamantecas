@@ -89,22 +89,22 @@ class Constants:  # pylint: disable=too-few-public-methods
 
     ROOT_PATH = Path(sys.executable if getattr(sys, 'frozen', False) else __file__).resolve().parent
 
-    LOGFILE_PATH = ROOT_PATH / f'{APP_NAME}_log{"" if DEVELOPMENT_MODE else TIMESTAMP_STEM}{TEXTFILE_SUFFIX}'
-    DEBUGFILE_PATH = ROOT_PATH / f'{APP_NAME}_debug{"" if DEVELOPMENT_MODE else TIMESTAMP_STEM}{TEXTFILE_SUFFIX}'
+    MAIN_OUTPUT_PATH = ROOT_PATH / f'{APP_NAME}_log{"" if DEVELOPMENT_MODE else TIMESTAMP_STEM}{TEXTFILE_SUFFIX}'
+    FULL_OUTPUT_PATH = ROOT_PATH / f'{APP_NAME}_trace{"" if DEVELOPMENT_MODE else TIMESTAMP_STEM}{TEXTFILE_SUFFIX}'
     INIFILE_PATH = ROOT_PATH / f'{APP_NAME}.ini'
 
     LOGGING_INDENTCHAR = ' '
     LOGGING_FORMAT_STYLE = '{'
     LOGGING_LEVELNAME_MAX_LEN = len(max(logging.getLevelNamesMapping(), key=len))
     LOGGING_LEVELNAME_SEPARATOR = '| '
-    LOGGING_DEBUGFILE_FORMAT = (
+    LOGGING_LONG_FORMAT = (
         '{asctime}.{msecs:04.0f} '
         f'{{levelname:{LOGGING_LEVELNAME_MAX_LEN}}}'
         f'{LOGGING_LEVELNAME_SEPARATOR}'
         '{message}'
     )
     LOGGING_FALLBACK_FORMAT = '{message}'
-    LOGGING_LOGFILE_FORMAT = '{asctime} {message}'
+    LOGGING_SHORT_FORMAT = '{asctime} {message}'
     LOGGING_CONSOLE_FORMAT = '{message}'
 
     HANDLER_BOOTSTRAP_SUCCESS = 'Handler bootstrap successful.'
@@ -325,22 +325,14 @@ class CustomLogger(logging.Logger):
         """Decrement current logging indentation level."""
         self._set_indentlevel(self.DECREASE_INDENT_SYMBOL)
 
-    def config(self, *, logfile: str | Path | None = None, debugfile: str | Path | None = None) -> None:
+    def config(self, *, main_log_output: Path, full_log_output: Path) -> None:
         """Configure logger.
 
-        With the default configuration ALL logging messages are sent to
-        debugfile with a timestamp and some debugging information; those
-        messages with severity of logging.INFO or higher are sent to logfile,
-        also timestamped.
-
-        In addition to that, messages with a severity of exactly logging.INFO
-        are sent to the standard output stream, and messages with a severity of
-        logging.WARNING or higher are sent to the standard error stream, without
-        a timestamp in both cases.
-
-        If debugfile or logfile are None (the default), then the corresponding
-        files are not created and no logging message will go there. In this
-        case, if console is False, NO LOGGING OUTPUT WILL BE PRODUCED AT ALL.
+        With the default configuration **ALL** logging messages are sent
+        to *full_log_output* using a detailed format which includes the
+        current timestamp and some debugging information; messages with
+        severity of `logging.INFO` or higher, intended to be the typical
+        program output, are sent to *main_log_output*, also timestamped.
         """
         class MultilineFormatter(logging.Formatter):
             """Simple custom formatter with multiline support."""  # noqa: D204
@@ -365,34 +357,34 @@ class CustomLogger(logging.Logger):
         formatters = {}
         handlers = {}
 
-        if debugfile:
-            formatters['debugfile_formatter'] = {
+        if full_log_output:
+            formatters['full_log_formatter'] = {
                 '()': MultilineFormatter,
                 'style': Constants.LOGGING_FORMAT_STYLE,
-                'format': Constants.LOGGING_DEBUGFILE_FORMAT,
+                'format': Constants.LOGGING_LONG_FORMAT,
                 'datefmt': Constants.TIMESTAMP_FORMAT,
             }
-            handlers['debugfile_handler'] = {
+            handlers['full_log_handler'] = {
                 'level': logging.NOTSET,
-                'formatter': 'debugfile_formatter',
+                'formatter': 'full_log_formatter',
                 'class': logging.FileHandler,
-                'filename': debugfile,
+                'filename': full_log_output,
                 'mode': 'w',
                 'encoding': Constants.UTF8,
             }
 
-        if logfile:
-            formatters['logfile_formatter'] = {
+        if main_log_output:
+            formatters['main_logformatter'] = {
                 '()': MultilineFormatter,
                 'style': Constants.LOGGING_FORMAT_STYLE,
-                'format': Constants.LOGGING_LOGFILE_FORMAT,
+                'format': Constants.LOGGING_SHORT_FORMAT,
                 'datefmt': Constants.TIMESTAMP_FORMAT,
             }
-            handlers['logfile_handler'] = {
+            handlers['main_loghandler'] = {
                 'level': logging.INFO,
-                'formatter': 'logfile_formatter',
+                'formatter': 'main_logformatter',
                 'class': logging.FileHandler,
-                'filename': logfile,
+                'filename': main_log_output,
                 'mode': 'w',
                 'encoding': Constants.UTF8,
             }
@@ -737,9 +729,9 @@ def is_accepted_url(value: str | None) -> bool:
         return False
 
 
-def generate_sink_filename(base_filename: Path) -> Path:
-    """Generate a filename usable as data sink, based upon base_filename."""
-    return base_filename.with_stem(base_filename.stem + Constants.SINKFILE_STEM)
+def generate_sinkfile_path(base_path: Path) -> Path:
+    """Generate a path usable for a data sink, from *base_path*."""
+    return base_path.with_stem(base_path.stem + Constants.SINKFILE_STEM)
 
 
 class WFKStatuses(IntEnum):
@@ -825,12 +817,12 @@ def excepthook(exc_type: type[BaseException], exc_value: BaseException, exc_trac
         for arg in exc_value.args:
             args += Messages.EXCEPTION_DETAILS_ARG.format(type(arg).__name__, arg)
         details = Messages.EXCEPTION_DETAILS.format(exc_type.__name__, str(exc_value), args)
-    current_filename = None
+    current_frame_source_path = None
     traceback = ''
     for frame in tb.extract_tb(exc_traceback):
-        if current_filename != frame.filename:
+        if current_frame_source_path != frame.filename:
             traceback += Messages.TRACEBACK_FRAME_HEADER.format(frame.filename)
-            current_filename = frame.filename
+            current_frame_source_path = frame.filename
         frame.name = Constants.APP_NAME if frame.name == Messages.TRACEBACK_TOPLEVEL_FRAME else frame.name
         traceback += Messages.TRACEBACK_FRAME_LINE.format(frame.lineno, frame.name, frame.line)
     details += Messages.TRACEBACK_HEADER.format(traceback) if traceback else ''
@@ -841,7 +833,7 @@ def loggerize(function: Callable[..., ExitCodes]) -> Callable[..., ExitCodes]:
     """Decorate function so it gets logging enabled."""
     @wraps(function)
     def loggerize_wrapper(*args: str) -> ExitCodes:
-        logger.config(logfile=Constants.LOGFILE_PATH, debugfile=Constants.DEBUGFILE_PATH)
+        logger.config(main_log_output=Constants.MAIN_OUTPUT_PATH, full_log_output=Constants.FULL_OUTPUT_PATH)
 
         logger.debug(Messages.DEBUGGING_INIT)
         logger.info(Messages.APP_BANNER)
@@ -868,24 +860,28 @@ def keyboard_interrupt_handler(function: Callable[..., ExitCodes]) -> Callable[.
     return handle_keyboard_interrupt_wrapper
 
 
-def load_profiles(filename: Path) -> dict[str, Profile]:  # noqa: C901
-    """Load the profiles from filename.
+def load_profiles(profiles_path: Path) -> dict[str, Profile]:  # noqa: C901
+    """Load the profiles from *profiles_path*.
 
-    Return the preprocessed list of profiles as a dictionary where the keys are
-    the profiles which were found in filename and the values are dictionaries
-    containing the corresponding profile configuration items as key-value pairs.
+    Read *profiles_path*, which contains profile definitions, and return
+    a processed list of the obtained profiles as a dictionary.
 
-    Raise MissingProfilesError if filename cannot be opened or read.
+    Dictionary keys are the obtained profile names, while the values are
+    the corresponding profile definitions as `Profile` named tuples.
 
-    Raise ProfilesSyntaxError if there is any syntax error in filename.
+    Raise `MissingProfilesError` if *profiles_path* cannot be opened or
+    read.
 
-    The returned dictionary will be empty if no profiles or only empty profiles
-    are present in filename.
+    Raise `ProfilesSyntaxError` if there are any syntax errors in the
+    contents of *profiles_path*.
+
+    The returned dictionary will be empty if no profiles or only empty
+    profiles are present in *profiles_path*.
     """
     config = configparser.ConfigParser()
-    logger.debug(Messages.LOADING_PROFILES.format(filename))
+    logger.debug(Messages.LOADING_PROFILES.format(profiles_path))
     try:
-        with filename.open(encoding=Constants.UTF8) as inifile:
+        with profiles_path.open(encoding=Constants.UTF8) as inifile:
             config.read_file(inifile)
     except (FileNotFoundError, PermissionError) as exc:
         raise ProfilesError(Messages.MISSING_PROFILES.format(exc.filename)) from exc
@@ -923,7 +919,7 @@ def load_profiles(filename: Path) -> dict[str, Profile]:  # noqa: C901
             raise ProfilesError(Messages.INVALID_PROFILE.format(section))
         profiles[section] = Profile(url_pattern, parser, parser_config)
     if not profiles:
-        raise ProfilesError(Messages.EMPTY_PROFILES.format(filename))
+        raise ProfilesError(Messages.EMPTY_PROFILES.format(profiles_path))
     return profiles
 
 
@@ -1006,29 +1002,30 @@ def single_url_handler(url: str) -> Handler:
                 sink.write(Constants.TEXTSINK_METADATA_FOOTER)
 
 
-def url_to_filename(url: str) -> Path:
-    """Convert the given URL to a valid filename.
+def url_to_path(url: str) -> Path:
+    """Convert the given *url* to a valid path.
 
-    The method is quite crude but it works: replace all ASCII non-word character
-    (potentially unsafe in a filename) by a character which is safe to use in a
-    filename and that is visually unobtrusive so the filename is still readable.
+    The method is quite crude but it works: replace all ASCII non-word
+    characters (potentially unsafe if they are present in a path) by a
+    visually unobtrusive character which is safe to use in a path, so
+    the path is still readable.
     """
     return Path(re.sub(Constants.URL_UNSAFE_CHARS_RE, Constants.URL_UNSAFE_REPLACE_CHAR, url, flags=re.ASCII))
 
 
-def textfile_handler(source_filename: Path) -> Handler:
-    """Handle text files containing URLs, one per line.
+def textfile_handler(source_file: Path) -> Handler:
+    """Handle URLs from *source_file* text file, one per line.
 
-    The metadata for each URL is dumped into another text file, named after the
-    source file: first the URL is written, then the metadata as key-value pairs.
-    Barely pretty-printed, but it is more than enough for a dump.
+    The metadata for each URL is dumped into another text file, named
+    after *source_file*. In that output file, first the URL is written,
+    then the metadata as key-value pairs.
 
     All files are assumed to have UTF-8 encoding.
     """
-    sink_filename = generate_sink_filename(source_filename)
+    sinkfile_path = generate_sinkfile_path(source_file)
     encoding = Constants.UTF8
-    with source_filename.open(encoding=encoding) as source, sink_filename.open('w', encoding=encoding) as sink:
-        logger.debug(Messages.DUMPING_METADATA_TO_SINK.format(sink_filename))
+    with source_file.open(encoding=encoding) as source, sinkfile_path.open('w', encoding=encoding) as sink:
+        logger.debug(Messages.DUMPING_METADATA_TO_SINK.format(sinkfile_path))
         yield Constants.HANDLER_BOOTSTRAP_SUCCESS
         for line in source.readlines():
             url = line.strip()
@@ -1044,30 +1041,31 @@ def textfile_handler(source_filename: Path) -> Handler:
                 sink.write(Constants.TEXTSINK_METADATA_FOOTER)
 
 
-def spreadsheet_handler(source_filename: Path) -> Handler:
-    """Handle spreadsheets containing URLs, one per row. Ish.
+def spreadsheet_handler(source_file: Path) -> Handler:
+    """Handle URLs from spreadsheet *source_file*, one per row. Ish.
 
-    The metadata obtained for each URL is dumped into another spreadsheet, named
-    after the source file, which is not created anew, it is just a copy of the
-    source spreadsheet.
+    The metadata obtained is dumped into another spreadsheet, whose name
+    is based upon *source_file*. It is not created anew, it is a copy of
+    the *source_file* spreadsheet and later modified.
 
-    The metadata is added to the spreadsheet in new columns, one per key. These
-    columns are marked with a prefix as being added by the application.
+    The metadata is added to the destination spreadsheet in new columns,
+    one per metadata. These columns are marked with a prefix so they are
+    easier to recognize.
 
-    NOTE: not all sheets are processed, only the first one because it is the one
-    where the URLs for the items are. Allegedly…
+    NOTE: not all sheets are processed, only the first one because it is
+    the one where the URLs for the items are. Allegedly…s
     """
-    sink_filename = generate_sink_filename(source_filename)
-    logger.debug(Messages.COPYING_WORKBOOK.format(sink_filename))
+    sinkfile_path = generate_sinkfile_path(source_file)
+    logger.debug(Messages.COPYING_WORKBOOK.format(sinkfile_path))
 
-    copy2(source_filename, sink_filename)
+    copy2(source_file, sinkfile_path)
     try:
-        source_workbook = load_workbook(source_filename)
+        source_workbook = load_workbook(source_file)
     except (KeyError, BadZipFile) as exc:
         details = str(exc).strip(Constants.DOUBLE_QUOTE_CHAR)
         details = details[0].lower() + details[1:]
         raise SourceError(Messages.SOURCE_SHEET_IS_INVALID, details) from exc
-    sink_workbook = load_workbook(sink_filename)
+    sink_workbook = load_workbook(sinkfile_path)
     yield Constants.HANDLER_BOOTSTRAP_SUCCESS
 
     source_sheet = source_workbook.worksheets[0]
@@ -1087,7 +1085,7 @@ def spreadsheet_handler(source_filename: Path) -> Handler:
         yield url
         if metadata and row_number:
             store_metadata_in_sheet(sink_sheet, row_number, metadata)
-    sink_workbook.save(sink_filename)
+    sink_workbook.save(sinkfile_path)
     sink_workbook.close()
     source_workbook.close()
 
@@ -1287,7 +1285,7 @@ def retrieve_url(url: str) -> tuple[bytes, str]:
 
 
 def resolve_file_url(url: str) -> str:
-    """Resolve relative paths in file: url."""
+    """Resolve relative paths in `file:` *url*."""
     parsed_url = urlparse(url)
     resolved_path = unquote(parsed_url.path[1:])
     resolved_path = Path(resolved_path).resolve().as_posix()
