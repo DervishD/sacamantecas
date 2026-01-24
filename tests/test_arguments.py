@@ -39,7 +39,7 @@ def test_unsupported_source() -> None:  # pylint: disable=unused-variable
     ('source.xlsx', spreadsheet_handler),
 ])
 def test_source_identification(sources: str, expected: Handler) -> None:  # pylint: disable=unused-variable
-    """Test identification of different sources."""
+    """Test identification of different *sources*."""
     source, handler = next(parse_arguments(sources))
 
     assert source == sources

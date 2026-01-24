@@ -25,7 +25,7 @@ def interrupted_function() -> NoReturn:
 
 # pylint: disable-next=unused-variable
 def test_loggerize(log_paths: LogPaths, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Test the loggerize() decorator."""
+    """Test the `loggerize()` decorator."""
     monkeypatch.setattr(Constants, 'LOGFILE_PATH', log_paths.log)
     monkeypatch.setattr(Constants, 'DEBUGFILE_PATH', log_paths.debug)
 
@@ -42,7 +42,7 @@ def test_loggerize(log_paths: LogPaths, monkeypatch: pytest.MonkeyPatch) -> None
 
 # pylint: disable-next=unused-variable
 def test_keyboard_interrupt_handler(log_paths: LogPaths, capsys: pytest.CaptureFixture[str]) -> None:
-    """Test the keyboard_interrupt_handler() decorator."""
+    """Test the `keyboard_interrupt_handler()` decorator."""
     logger.config(main_log_output=log_paths.log, full_log_output=log_paths.debug)
 
     try:

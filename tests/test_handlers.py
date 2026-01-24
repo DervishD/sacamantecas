@@ -1,5 +1,5 @@
 #! /usr/bin/env python3
-"""Test suite for the different handlers of URL sources / metadata sinks."""
+"""Test suite for the different handlers of sources and sinks."""
 from hashlib import algorithms_available, new as new_hash
 from pathlib import Path
 from random import choice, randrange
@@ -189,7 +189,7 @@ def test_spreadsheet_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) ->
 ])
 # pylint: disable-next=unused-variable
 def test_missing_source(tmp_path: Path, suffix: str, handler_factory: Callable[[Path], Handler]) -> None:
-    """Test for missing source handling."""
+    """Test handling of missing sources."""
     handler = handler_factory(tmp_path / f'non_existent{suffix}')
 
     with pytest.raises(SourceError) as excinfo:
@@ -204,7 +204,7 @@ def test_missing_source(tmp_path: Path, suffix: str, handler_factory: Callable[[
 ], indirect=['unreadable_file'])
 # pylint: disable-next=unused-variable
 def test_input_no_permission(unreadable_file: Path, handler_factory: Callable[[Path], Handler]) -> None:
-    """."""
+    """Test handling of unreadable files."""
     handler = handler_factory(Path(unreadable_file))
 
     with pytest.raises(SourceError) as excinfo:
@@ -226,7 +226,7 @@ def test_output_no_permission(
     unwritable_file: Path,
     handler_factory: Callable[[str | Path], Handler],
 ) -> None:
-    """."""
+    """Test handling of unwritable files."""
     def patched_generate_sink_filename(_: Path) -> Path:
         return unwritable_file
 

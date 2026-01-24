@@ -120,7 +120,7 @@ def test_logging_functions(
 
 # pylint: disable-next=unused-variable
 def test_error_details(log_paths: LogPaths, capsys: pytest.CaptureFixture[str]) -> None:
-    """Test handling of details by the error() function."""
+    """Test handling of details by the `error()` function."""
     logger.config(main_log_output=log_paths.log, full_log_output=log_paths.debug)
 
     details = 'Additional details in multiple lines.'.replace(' ', '\n')

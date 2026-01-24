@@ -9,7 +9,7 @@ import sacamantecas
 
 
 class UsageTrackerVisitor(ast.NodeVisitor):
-    """Simple visitor for check if all attributes of a given class are used."""
+    """Simple visitor for checking if all class attributes are used."""
 
     def __init__(self, class_name: str) -> None:
         """Initialize visitor with class name."""

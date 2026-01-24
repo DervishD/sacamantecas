@@ -1,5 +1,5 @@
 #! /usr/bin/env python3
-"""Test suite for main() function."""
+"""Test suite for `main()` function."""
 from typing import cast, TYPE_CHECKING
 
 import pytest
@@ -11,12 +11,12 @@ if TYPE_CHECKING:
 
 
 def test_imported() -> None:  # pylint: disable=unused-variable
-    """Test wait_for_keypress() when the application script is imported."""
+    """Test `wait_for_keypress()` when the script is imported."""
     assert wait_for_keypress() == WFKStatuses.IMPORTED
 
 
 def test_no_console_attached(monkeypatch: pytest.MonkeyPatch) -> None:  # pylint: disable=unused-variable
-    """Test wait_for_keypress() when there is no console attached."""
+    """Test `wait_for_keypress()` when there is no console attached."""
     def patched_getconsolemode(handle: wintypes.HANDLE, mode: wintypes.LPDWORD) -> wintypes.BOOL:  # noqa: ARG001
         # pylint: disable=unused-argument
         """Mock version of GetConsoleMode."""
@@ -41,10 +41,10 @@ def test_wait_for_keypress(
     frozen: bool,  # noqa: FBT001
     result: WFKStatuses,
 ) -> None:
-    """Test wait_for_keypress() general scenarios, with attached console."""
+    """Test `wait_for_keypress()` with attached console."""
     def patched_getconsolemode(handle: wintypes.HANDLE, mode: wintypes.LPDWORD) -> wintypes.BOOL:  # noqa: ARG001
         # pylint: disable=unused-argument
-        """Mock version of GetConsoleMode."""
+        """Mock version of `GetConsoleMode()`."""
         return cast('wintypes.BOOL', 1)
 
     def patched_getconsoletitle(buffer: wintypes.LPWSTR, buffer_size: wintypes.DWORD) -> int:  # noqa: ARG001

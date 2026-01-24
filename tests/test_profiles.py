@@ -123,10 +123,10 @@ class MockBaseParser(HTMLParser):
     """Mock base parser."""  # noqa: D204
     PARAMETERS: ClassVar[set[str]] = set()
 class AParser(MockBaseParser):  # pylint: disable=unused-variable
-    """Mock 'Type A' parser."""  # noqa: D204
+    """Mock `Type A` parser."""  # noqa: D204
     PARAMETERS = MockBaseParser.PARAMETERS | {'akey_1', 'akey_2', 'akey_3'}
 class BParser(MockBaseParser):  # pylint: disable=unused-variable
-    """Mock 'Type B' parser."""  # noqa: D204
+    """Mock `Type B` parser."""  # noqa: D204
     PARAMETERS = MockBaseParser.PARAMETERS | {'bkey_1', 'bkey_2', 'bkey_3'}
 @pytest.mark.parametrize(('inifile_contents', 'context_manager'), [
     ('[ok_a]\nurl=v\nakey_1=v\nakey_2=v\nakey_3=v\n', nullcontext()),
@@ -181,7 +181,7 @@ PROFILES = {
     ('http://optional.mandatory.profile2.tld', PROFILES['profile_old_regime'].parser),
 ])
 def test_get_url_parser(url: str, expected: Profile) -> None:  # pylint: disable=unused-variable
-    """Test finding parser for URL."""
+    """Test finding parser for *url*."""
     result = get_parser(url, PROFILES)
 
     assert type(result) is type(expected)
@@ -189,7 +189,7 @@ def test_get_url_parser(url: str, expected: Profile) -> None:  # pylint: disable
 
 @pytest.mark.parametrize('url', ['http://optional.forbidden.profile1.tld','http://profile2.tld'])
 def test_no_matching_profile(url: str) -> None:  # pylint: disable=unused-variable
-    """Test URLs with no matching profile (no parser)."""
+    """Test *url* with no matching profile (no parser)."""
     with pytest.raises(SkimmingError) as excinfo:
         get_parser(url, PROFILES)
 

@@ -49,7 +49,7 @@ def test_url_errors(  # pylint: disable=unused-variable
     url: str,
     side_effect: Exception,
     expected: str) -> None:
-    """Test URL retrieval errors."""
+    """Test *url* retrieval errors."""
     def mock_urlopen(_: str) -> None:
         raise side_effect
 

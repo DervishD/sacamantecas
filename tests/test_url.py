@@ -23,7 +23,7 @@ from sacamantecas import Constants, detect_html_charset, get_redirected_url, res
 ])
 # pylint: disable-next=unused-variable
 def test_file_url_resolution(request: pytest.FixtureRequest, netloc:str, base:str, extra:str) -> None:
-    """Test resolution of file:// URLs."""
+    """Test resolution of `file:` URLs."""
     rootpath = Path(request.config.rootpath).as_posix()
     rootpath = f'{rootpath[0].upper()}{rootpath[1:]}'
 
@@ -53,7 +53,7 @@ BASE_URL = f'{SCHEME}{NETLOC}{PATH}{EXTRA}'
     (f'{RPATH}', f'{SCHEME}{NETLOC}{RPATH}'),
 ])
 def test_url_redirection(delay: str, url: str, extra: str, expected: str) -> None:  # pylint: disable=unused-variable
-    """Test URL redirections."""
+    """Test *url* redirections using *delay* and *extra* fields."""
     contents = fr'<meta http-equiv="refresh" content="{delay}url={url}{extra}"'.encode()
     result = get_redirected_url(contents, BASE_URL)
 
@@ -66,7 +66,7 @@ def test_url_redirection(delay: str, url: str, extra: str, expected: str) -> Non
     ('{}', Constants.FALLBACK_HTML_CHARSET),
 ])
 def test_charset_detection(contents: str, expected: str) -> None:  # pylint: disable=unused-variable
-    """Test different ways of detecting the contents charset."""
+    """Test different ways of detecting the *contents* charset."""
     result = detect_html_charset(contents.format(expected).encode('ascii'))
 
     assert result == expected
@@ -78,7 +78,7 @@ SAMPLE_FILE_PATH = SERVER_ROOT / 'utf-8.html'
 def test_utf8_url_retrieval() -> None:  # pylint: disable=unused-variable
     """Test full URL retrieval of UTF-8 encoded data.
 
-    Both https:// and file:// URls are tested.
+    Both `https:` and `file:` URL schemes are tested.
 
     The first one, against a live server returning a UTF-8 encoded body.
     The second, using a temporary file with fake contents.

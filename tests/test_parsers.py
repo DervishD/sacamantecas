@@ -37,8 +37,8 @@ MAX_LENGTH = 42
 def generate_random_string() -> str:
     """Generate a random string.
 
-    Generate a random string with MIN_LENGTH <= length <= MAX_LENGTH.
-    Only characters from the ALLOWED_* sets are used.
+    Generate a random string with `MIN_LENGTH <= length <= MAX_LENGTH`.
+    Only characters from the `ALLOWED_*` sets are used.
     """
     return escape(''.join(randchoices(ALLOWED_CHARS, k=randint(MIN_LENGTH, MAX_LENGTH))))  # noqa: S311
 
@@ -101,7 +101,7 @@ def test_parser_reset() -> None:  # pylint: disable=unused-variable
 ])
 # pylint: disable-next=unused-variable
 def test_medatata_storage(caplog: pytest.LogCaptureFixture, k: str, v: str, expected: str) -> None:
-    """Test store_metadata() branches."""
+    """Test `store_metadata()` branches."""
     logger.propagate = True
     caplog.set_level(logging.DEBUG)
 
@@ -127,7 +127,7 @@ MULTIPLE_V = ['multiple_value1', 'multiple_value2', 'multiple_value3']
 ])
 # pylint: disable-next=unused-variable
 def test_metadata_retrieval(metadata: dict[str, list[str]], expected: dict[str, str]) -> None:
-    """Test get_metadata()."""
+    """Test `get_metadata()`."""
     parser = BaseParser()
 
     parser.retrieved_metadata = metadata
@@ -258,7 +258,7 @@ EE = ELEMENT_E.format(TAG=TAG)
     (f'{OP_KB}{OP_VB}', ()),
 ])
 def test_old_regime_parser(contents: str, expected: tuple[str, str]) -> None:  # pylint: disable=unused-variable
-    """Test Old Regime parser."""
+    """Test *Old Regime* parser."""
     k_data = generate_random_string()
     v_data = generate_random_string()
 
@@ -332,7 +332,7 @@ VE = ELEMENT_E.format(TAG=BaratzParser.V_TAG)
     (f'{MB}{BP_KB}{BP_VB}', ()),
 ])
 def test_baratz_parser(contents: str, expected: tuple[str, str]) -> None:  # pylint: disable=unused-variable
-    """Test Baratz parser."""
+    """Test *Baratz* parser."""
     k_data = generate_random_string()
     v_data = generate_random_string()
 

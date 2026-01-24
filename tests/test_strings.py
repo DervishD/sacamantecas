@@ -36,12 +36,12 @@ class UnrefactoredStringsFinderVisitor(ast.NodeVisitor):
             self.ignored_strings.append(docstring)
 
     def visit_Module(self, node: ast.Module) -> None:  # pylint: disable=invalid-name
-        """."""
+        """Visit Module node."""
         self.ignore_docstring(node)
         self.generic_visit(node)
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:  # pylint: disable=invalid-name
-        """."""
+        """Visit ClassDef node."""
         self.ignore_docstring(node)
 
         subnodes: list[ast.AST] = []
@@ -59,17 +59,17 @@ class UnrefactoredStringsFinderVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:   # pylint: disable=invalid-name
-        """."""
+        """Visit FunctionDef node."""
         self.ignore_docstring(node)
         self.generic_visit(node)
 
     def visit_JoinedStr(self, node: ast.JoinedStr) -> None:  # pylint: disable=invalid-name  # noqa: ARG002
-        """."""
+        """Visit JoinedStr node."""
         # pylint: disable=unused-argument
         return
 
     def visit_Constant(self, node: ast.Constant) -> None:   # pylint: disable=invalid-name
-        """."""
+        """Visit Constant node."""
         if node.value in self.ignored_strings:
             self.ignored_strings.remove(node.value)
             return
