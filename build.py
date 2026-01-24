@@ -1,7 +1,8 @@
 """Building script.
 
-Build application executable for Win32 in a virtual environment
-and pack it with the INI file in a ZIP file for distribution.
+Build application executable for `Win32` in a virtual environment and
+pack it together with the corresponding `.ini` file in a `.zip` file for
+distribution.
 """
 import os
 from pathlib import Path
@@ -30,8 +31,8 @@ ERROR_MARKER = '\n*** '
 ERROR_HEADER = 'Error, '
 PROGRESS_MARKER = '  ▶ '
 
-# Reconfigure standard output streams so they use UTF-8 encoding, even if
-# they are redirected to a file when running the application from a shell.
+# Reconfigure standard output streams so they use UTF-8 encoding even if
+# they are redirected to a file when running the program from a shell.
 if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
     cast('TextIOWrapper', sys.stdout).reconfigure(encoding=Constants.UTF8)
 if sys.stderr and hasattr(sys.stdout, 'reconfigure'):
@@ -39,15 +40,15 @@ if sys.stderr and hasattr(sys.stdout, 'reconfigure'):
 
 
 def pretty_print(message: str, *, marker: str = '', header: str = '', stream: TextIO = sys.stdout) -> None:
-    """Pretty-print message to stream, with a final newline.
+    """Pretty-print *message* to *stream*, with a final newline.
 
-    The first line contains the marker and header, if any, and the rest of lines
-    are indented according to the length of the marker so they are aligned with
-    the header.
+    The first line of the output will contain the *marker* and *header*,
+    which are empty strings by default. All the subsequent lines will be
+    indented with the length of the *marker* so they appear aligned with
+    the *header*.
 
-    The stream is finally flushed to ensure the message is printed.
-
-    By default, marker and header are empty and the stream is sys.stdout.
+    The *stream* (`sys.stdout` by default) is finally flushed to ensure
+    the message is printed.
     """
     marker_len = len([char for char in marker if char.isprintable()])
 
@@ -60,17 +61,17 @@ def pretty_print(message: str, *, marker: str = '', header: str = '', stream: Te
 
 
 def error(message: str) -> None:
-    """Pretty-print error message to sys.stderr."""
+    """Pretty-print error message to `sys.stderr`."""
     pretty_print(message, marker=ERROR_MARKER, header=ERROR_HEADER, stream=sys.stderr)
 
 
 def progress(message: str) -> None:
-    """Pretty-print progress message to sys.stdout."""
+    """Pretty-print progress message to `sys.stdout`."""
     pretty_print(message, marker=PROGRESS_MARKER)
 
 
 def run_command(command: Sequence[str]) -> CompletedProcess[str]:
-    """Run command, capturing the output."""
+    """Run *command*, capturing its output."""
     try:
         return run(command, check=True, capture_output=True, encoding=Constants.UTF8, text=True)  # noqa: S603
     except FileNotFoundError as exc:
@@ -78,7 +79,7 @@ def run_command(command: Sequence[str]) -> CompletedProcess[str]:
 
 
 def is_venv_ready() -> bool:
-    """Check if virtual environment is active and functional."""
+    """Check if the virtual environment is active and functional."""
     progress(f'Checking virtual environment at {VENV_PATH}')
 
     # If no virtual environment exists, try to use global packages.
@@ -98,7 +99,7 @@ def is_venv_ready() -> bool:
 
 
 def are_required_packages_installed() -> bool:
-    """Check installed packages to ensure they fit requirements.txt contents."""
+    """Check application dependencies."""
     progress('Checking that required packages are installed')
 
     pip_list = ['pip', 'list', '--local', '--format=freeze', '--not-required', '--exclude=pip', '--exclude-editable']
