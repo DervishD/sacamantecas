@@ -380,15 +380,15 @@ class CustomLogger(logging.Logger):
             }
 
         if main_log_output:
-            formatters['main_logformatter'] = {
+            formatters['main_log_formatter'] = {
                 '()': MultilineFormatter,
                 'style': Constants.LOGGING_FORMAT_STYLE,
                 'format': Constants.LOGGING_SHORT_FORMAT,
                 'datefmt': Constants.TIMESTAMP_FORMAT,
             }
-            handlers['main_loghandler'] = {
+            handlers['main_log_handler'] = {
                 'level': logging.INFO,
-                'formatter': 'main_logformatter',
+                'formatter': 'main_log_formatter',
                 'class': logging.FileHandler,
                 'filename': main_log_output,
                 'mode': 'w',
