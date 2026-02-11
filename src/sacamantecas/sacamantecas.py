@@ -18,7 +18,7 @@ import errno
 from functools import wraps
 from html.parser import HTMLParser
 from http.client import HTTPException
-from importlib.metadata import version
+from importlib.metadata import metadata as get_app_metadata
 import logging
 from logging.config import dictConfig
 from msvcrt import get_osfhandle, getch
@@ -52,9 +52,14 @@ type Handler = Generator[str, dict[str, str] | None]
 class Constants:  # pylint: disable=too-few-public-methods
     """Program configuration values."""
 
-    APP_NAME = Path(__file__).stem
-    APP_VERSION = version(APP_NAME)
-    APP_REPOSITORY = 'https://github.com/DervishD/sacamantecas'
+    METADATA = get_app_metadata(Path(sys.executable if getattr(sys, 'frozen', False) else __file__).stem)
+
+    APP_NAME = METADATA['Name']
+    APP_VERSION = METADATA['Version']
+    APP_REPOSITORY = next(
+        (url for url in METADATA.get_all('Project-URL', []) if url.startswith('source')),
+        '',
+    ).split(',')[1].strip()
     APP_PLATFORM = f'Windows {platform.version()};{platform.architecture()[0]};{platform.machine()}'
 
     DEVELOPMENT_MODE = 'dev' in APP_VERSION
@@ -149,7 +154,7 @@ class Messages(StrEnum):
     )
 
     DEBUGGING_INIT = 'Registro de depuración iniciado.'
-    APP_BANNER = f'{Constants.APP_NAME} versión {Constants.APP_VERSION}'
+    APP_BANNER = f'{Constants.APP_NAME} versión {Constants.APP_VERSION} ({Constants.APP_REPOSITORY})'
     PROCESS_DONE = '\nProceso finalizado.'
     DEBUGGING_DONE = 'Registro de depuración finalizado.'
 

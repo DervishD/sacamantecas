@@ -8,7 +8,6 @@ import os
 from pathlib import Path
 from subprocess import CalledProcessError, CompletedProcess, run
 import sys
-import tomllib
 from typing import cast, TextIO, TYPE_CHECKING
 from zipfile import ZIP_DEFLATED, ZipFile
 
@@ -27,7 +26,6 @@ PYINSTALLER = VENV_PATH / 'Scripts' / 'pyinstaller.exe'
 FROZEN_EXE_PATH = (BUILD_PATH / Constants.APP_NAME).with_suffix('.exe')
 PACKAGE_SUFFIX = 'zip'
 PACKAGE_PATH = BASE_PATH / f'{Constants.APP_NAME}_v{Constants.APP_VERSION.split('+', maxsplit=1)[0]}.{PACKAGE_SUFFIX}'
-PYPROJECT_FILE = BASE_PATH / 'pyproject.toml'
 ERROR_MARKER = '\n*** '
 ERROR_HEADER = 'Error, '
 PROGRESS_MARKER = '  ▶ '
@@ -106,10 +104,7 @@ def are_required_packages_installed() -> bool:
     pip_list = ['pip', 'list', '--local', '--format=freeze', '--not-required', '--exclude=pip', '--exclude-editable']
     installed_packages = {line.strip() for line in run_command(pip_list).stdout.splitlines()}
 
-    with PYPROJECT_FILE.open('rb') as pyproject:
-        pyproject_contents = tomllib.load(pyproject)
-        dependencies = set(pyproject_contents['project']['dependencies'])
-
+    dependencies = set(Constants.METADATA.get_all('Requires-Dist', {}))
     if diff := dependencies - installed_packages:
         diff = '\n'.join(diff)
         error(f'missing packages:\n{diff}\n')
