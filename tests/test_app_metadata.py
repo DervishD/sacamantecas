@@ -1,5 +1,6 @@
 #! /usr/bin/env python3
-"""Test suite for validating application version string."""
+"""Test suite for validating application metadata."""
+from importlib.metadata import metadata
 import re
 
 from sacamantecas import Constants
@@ -33,3 +34,8 @@ $"""
 def test_validate_version_string() -> None:  # pylint: disable=unused-variable
     """Test application version string."""
     assert re.fullmatch(VERSION_REGEX, Constants.APP_VERSION, re.ASCII|re.VERBOSE) is not None
+
+
+def test_app_name() -> None:  # pylint: disable=unused-variable
+    """Test the hardcorded app name is what it should be."""
+    assert metadata(Constants.APP_NAME)['Name'] ==  Constants.APP_NAME

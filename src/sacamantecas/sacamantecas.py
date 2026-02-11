@@ -18,7 +18,7 @@ import errno
 from functools import wraps
 from html.parser import HTMLParser
 from http.client import HTTPException
-from importlib.metadata import metadata as get_app_metadata
+from importlib.metadata import metadata as get_app_metadata, version
 import logging
 from logging.config import dictConfig
 from msvcrt import get_osfhandle, getch
@@ -52,12 +52,10 @@ type Handler = Generator[str, dict[str, str] | None]
 class Constants:  # pylint: disable=too-few-public-methods
     """Program configuration values."""
 
-    METADATA = get_app_metadata(Path(sys.executable if getattr(sys, 'frozen', False) else __file__).stem)
-
-    APP_NAME = METADATA['Name']
-    APP_VERSION = METADATA['Version']
+    APP_NAME = 'sacamantecas'
+    APP_VERSION = version(APP_NAME)
     APP_REPOSITORY = next(
-        (url for url in METADATA.get_all('Project-URL', []) if url.startswith('source')),
+        (url for url in get_app_metadata(APP_NAME).get_all('Project-URL', []) if url.startswith('source')),
         '',
     ).split(',')[1].strip()
     APP_PLATFORM = f'Windows {platform.version()};{platform.architecture()[0]};{platform.machine()}'

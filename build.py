@@ -4,6 +4,7 @@ Build application executable for `Win32` in a virtual environment and
 pack it together with the corresponding `.ini` file in a `.zip` file for
 distribution.
 """
+from importlib.metadata import metadata
 import os
 from pathlib import Path
 from subprocess import CalledProcessError, CompletedProcess, run
@@ -104,7 +105,7 @@ def are_required_packages_installed() -> bool:
     pip_list = ['pip', 'list', '--local', '--format=freeze', '--not-required', '--exclude=pip', '--exclude-editable']
     installed_packages = {line.strip() for line in run_command(pip_list).stdout.splitlines()}
 
-    dependencies = set(Constants.METADATA.get_all('Requires-Dist', {}))
+    dependencies = set(metadata(Constants.APP_NAME).get_all('Requires-Dist', {}))
     if diff := dependencies - installed_packages:
         diff = '\n'.join(diff)
         error(f'missing packages:\n{diff}\n')
