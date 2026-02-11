@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 """Test suite for non-refactored code strings."""
 import ast
+from contextlib import suppress
 from inspect import getsource
 import sys
 
@@ -29,6 +30,7 @@ class UnrefactoredStringsFinderVisitor(ast.NodeVisitor):
 
     def __init__(self) -> None:
         """Initialize."""
+        self.dangling_strings: list[str] = list(ALLOWED_STRINGS)
         self.ignored_strings: list[str | bytes] = []
         self.unrefactored_strings: list[tuple[int, str]] = []
 
@@ -76,6 +78,8 @@ class UnrefactoredStringsFinderVisitor(ast.NodeVisitor):
             self.ignored_strings.remove(node.value)
             return
         if node.value in ALLOWED_STRINGS:
+            with suppress(ValueError):
+                self.dangling_strings.remove(node.value)
             return
         if isinstance(node.value, str | bytes) and node.value.strip():
             self.unrefactored_strings.append((node.lineno, repr(node.value)))
@@ -86,5 +90,6 @@ def test_strings() -> None:  # pylint: disable=unused-variable
     visitor = UnrefactoredStringsFinderVisitor()
     visitor.visit(ast.parse(getsource(sys.modules[Constants.__module__])))
 
+    assert not visitor.dangling_strings
     assert not visitor.ignored_strings
     assert not visitor.unrefactored_strings
