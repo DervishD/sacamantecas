@@ -4,5 +4,5 @@ build
 sacamantecas_v*.zip
 sacamantecas_log_*
 sacamantecas_log.txt
-sacamantecas_debug_*
-sacamantecas_debug.txt
+sacamantecas_trace_*
+sacamantecas_trace.txt
