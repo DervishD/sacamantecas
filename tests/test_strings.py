@@ -1,6 +1,8 @@
 #! /usr/bin/env python3
 """Test suite for non-refactored code strings."""
 import ast
+from inspect import getsource
+import sys
 
 from sacamantecas import Constants
 
@@ -82,7 +84,7 @@ class UnrefactoredStringsFinderVisitor(ast.NodeVisitor):
 def test_strings() -> None:  # pylint: disable=unused-variable
     """Test for non-refactored strings."""
     visitor = UnrefactoredStringsFinderVisitor()
-    visitor.visit(ast.parse(Constants.APP_PATH.read_text(encoding=Constants.UTF8)))
+    visitor.visit(ast.parse(getsource(sys.modules[Constants.__module__])))
 
     assert not visitor.ignored_strings
     assert not visitor.unrefactored_strings

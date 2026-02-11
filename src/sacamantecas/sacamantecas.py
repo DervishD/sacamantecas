@@ -52,8 +52,7 @@ type Handler = Generator[str, dict[str, str] | None]
 class Constants:  # pylint: disable=too-few-public-methods
     """Program configuration values."""
 
-    APP_PATH = Path(__file__)
-    APP_NAME = APP_PATH.stem
+    APP_NAME = Path(__file__).stem
     APP_VERSION = version(APP_NAME)
     APP_REPOSITORY = 'https://github.com/DervishD/sacamantecas'
     APP_PLATFORM = f'Windows {platform.version()};{platform.architecture()[0]};{platform.machine()}'

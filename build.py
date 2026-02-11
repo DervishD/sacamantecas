@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from io import TextIOWrapper
 
 
+SCRIPT_PATH = sys.modules[Constants.__module__].__file__ or ''
 BASE_PATH = Path(__file__).parent
 VENV_PATH = BASE_PATH / '.venv'
 BUILD_PATH = BASE_PATH / 'build'
@@ -127,7 +128,8 @@ def build_frozen_executable() -> bool:
     cmd = [str(PYINSTALLER)]
     cmd.append('--log-level=WARN')
     cmd.extend([f'--workpath={BUILD_PATH}', f'--specpath={BUILD_PATH}', f'--distpath={BUILD_PATH}'])
-    cmd.extend(['--copy-metadata', Constants.APP_NAME, '--onefile', str(Constants.APP_PATH)])
+    cmd.extend(['--copy-metadata', Constants.APP_NAME, '--onefile', '--name', Constants.APP_NAME])
+    cmd.append(SCRIPT_PATH)
     try:
         run_command(cmd)
     except CalledProcessError as exc:
