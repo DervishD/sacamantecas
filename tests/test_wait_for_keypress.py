@@ -1,65 +1,44 @@
 #! /usr/bin/env python3
 """Test suite for `main()` function."""
-from typing import cast, TYPE_CHECKING
-
 import pytest
 
-from sacamantecas import Constants, wait_for_keypress, WFKStatuses
+from sacamantecas import (
+    is_console_attached,  # pyright: ignore[reportPrivateUsage]
+    is_console_transient,  # pyright: ignore[reportPrivateUsage]
+    is_running_as_script,  # pyright: ignore[reportPrivateUsage]
+    wait_for_keypress,
+)
 
-if TYPE_CHECKING:
-    from ctypes import wintypes
-
-
-def test_imported() -> None:  # pylint: disable=unused-variable
-    """Test `wait_for_keypress()` when the script is imported."""
-    assert wait_for_keypress() == WFKStatuses.IMPORTED
-
-
-def test_no_console_attached(monkeypatch: pytest.MonkeyPatch) -> None:  # pylint: disable=unused-variable
-    """Test `wait_for_keypress()` when there is no console attached."""
-    def patched_getconsolemode(handle: wintypes.HANDLE, mode: wintypes.LPDWORD) -> wintypes.BOOL:  # noqa: ARG001
-        # pylint: disable=unused-argument
-        """Mock version of GetConsoleMode."""
-        return cast('wintypes.BOOL', 0)
-
-    monkeypatch.setitem(wait_for_keypress.__globals__, '__name__', '__main__')
-    monkeypatch.setattr('ctypes.windll.kernel32.GetConsoleMode', patched_getconsolemode)
-
-    assert wait_for_keypress() == WFKStatuses.NO_CONSOLE_ATTACHED
+from .helpers import CallableSpy
 
 
-@pytest.mark.parametrize(('title', 'frozen', 'result'), [
-    ('', False, WFKStatuses.NO_CONSOLE_TITLE),
-    (Constants.APP_NAME, True, WFKStatuses.NO_TRANSIENT_FROZEN),
-    (Constants.APP_NAME, False, WFKStatuses.NO_TRANSIENT_PYTHON),
-    (Constants.APP_NAME.upper(), False, WFKStatuses.WAIT_FOR_KEYPRESS),
-])
-# pylint: disable-next=unused-variable
+@pytest.mark.parametrize(('is_running_as_script', 'is_console_attached', 'is_console_transient', 'expected'),
+    [
+        (True, True, True, True),
+        (False, True, True, False),
+        (False, False, True, False),
+        (False, False, False, False),
+    ],
+    ids=[
+        'wait for keypress',
+        'do not wait, script imported',
+        'do not wait, no console attached',
+        'do not wait, no transient console',
+    ],
+)
+# pylint: disable=unused-variable
 def test_wait_for_keypress(
-    monkeypatch: pytest.MonkeyPatch,
-    title: str,
-    frozen: bool,  # noqa: FBT001
-    result: WFKStatuses,
-) -> None:
-    """Test `wait_for_keypress()` with attached console."""
-    def patched_getconsolemode(handle: wintypes.HANDLE, mode: wintypes.LPDWORD) -> wintypes.BOOL:  # noqa: ARG001
-        # pylint: disable=unused-argument
-        """Mock version of `GetConsoleMode()`."""
-        return cast('wintypes.BOOL', 1)
+    monkeypatch: pytest.MonkeyPatch, *,
+    running_as_script: bool, console_attached: bool, console_transient: bool,
+    expected: bool) -> None:
+    """Test `wait_for_keypress()` waits only when it should."""
+    getch_spy = CallableSpy(lambda: b'')
 
-    def patched_getconsoletitle(buffer: wintypes.LPWSTR, buffer_size: wintypes.DWORD) -> int:  # noqa: ARG001
-        # pylint: disable=unused-argument
-        buffer.value = title
-        return len(title)
+    monkeypatch.setitem(wait_for_keypress.__globals__, 'getch', getch_spy)
+    monkeypatch.setitem(wait_for_keypress.__globals__, is_running_as_script.__name__, lambda: running_as_script)
+    monkeypatch.setitem(wait_for_keypress.__globals__, is_console_attached.__name__, lambda: console_attached)
+    monkeypatch.setitem(wait_for_keypress.__globals__, is_console_transient.__name__, lambda: console_transient)
 
-    def patched_getch() -> bytes:
-        return b''
+    wait_for_keypress()
 
-    monkeypatch.setitem(wait_for_keypress.__globals__, '__name__', '__main__')
-    monkeypatch.setattr('ctypes.windll.kernel32.GetConsoleMode', patched_getconsolemode)
-    monkeypatch.setattr('sys.frozen', frozen, raising=False)
-    monkeypatch.setattr('ctypes.windll.kernel32.GetConsoleMode', patched_getconsolemode)
-    monkeypatch.setattr('ctypes.windll.kernel32.GetConsoleTitleW', patched_getconsoletitle)
-    monkeypatch.setitem(wait_for_keypress.__globals__, 'getch', patched_getch)
-
-    assert wait_for_keypress() == result
+    assert getch_spy.called is expected

@@ -13,7 +13,7 @@ import configparser
 import contextlib
 from ctypes import byref, c_uint, create_unicode_buffer, windll
 from ctypes.wintypes import MAX_PATH as MAX_PATH_LEN
-from enum import auto, IntEnum, StrEnum
+from enum import IntEnum, StrEnum
 import errno
 from functools import wraps
 from html.parser import HTMLParser
@@ -742,70 +742,73 @@ def warning(message: str) -> None:
     logger.warning('%s', Messages.WARNING_HEADER + message[0].lower() + message[1:])
 
 
-class WFKStatuses(IntEnum):
-    """Return statuses for `wait_for_keypress()`."""  # noqa: D204
-    IMPORTED = auto()
-    NO_CONSOLE_ATTACHED = auto()
-    NO_CONSOLE_TITLE = auto()
-    NO_TRANSIENT_FROZEN = auto()
-    NO_TRANSIENT_PYTHON = auto()
-    WAIT_FOR_KEYPRESS = auto()
+def is_running_as_script() -> bool:
+    """Predicate for `wait_for_keypress()`.
 
-def wait_for_keypress() -> WFKStatuses:
-    """Wait for a keypress to continue in particular circumstances.
-
-    If `sys.stdout` has an actual console attached **AND** is transient,
-    this function will print a simple message telling the end user that
-    the program is paused until any key is pressed.
+    Return `True` if module is running as a script rather than imported.
     """
-    # First of all, if the script is being imported rather than run then
-    # the program must NOT pause. Absolutely NOT.
-    if __name__ != '__main__':
-        return WFKStatuses.IMPORTED
+    return __name__ == '__main__'
 
-    # If no console is attached, the program must NOT pause.
-    #
+
+def is_console_attached() -> bool:
+    """Predicate for `wait_for_keypress()`.
+
+    Return `True` if there is a real console attached to `sys.stdout`.
+    """
     # Since 'sys.stdout.isatty()' returns 'True' under Windows when the
     # 'sys.stdout' stream is redirected to 'NUL', another check, a bit
-    # more compicated, is needed here. The test below has been adapted
+    # more complicated, is needed here. The test below has been adapted
     # from https://stackoverflow.com/a/33168697
-    if not windll.kernel32.GetConsoleMode(get_osfhandle(sys.stdout.fileno()), byref(c_uint())):
-        return WFKStatuses.NO_CONSOLE_ATTACHED
+    return windll.kernel32.GetConsoleMode(get_osfhandle(sys.stdout.fileno()), byref(c_uint()))
 
-    # If there is an attached console, then the program must pause ONLY
-    # if that console will automatically close when the program exists.
-    # In other words, pause only if the console is transient.
-    #
+
+def is_console_transient() -> bool:
+    """Predicate for `wait_for_keypress()`.
+
+    Return `True` if the console attached to `sys.stdout` is transient.
+    """
     # Determining if a console is transient is not easy as there is no
     # bulletproof method available for every possible situation.
     #
-    # There are TWO main scenarios, though: a frozen executable and a
-    # '.py' file. In both cases, the console title has to be obtained.
+    # There are TWO main runtime scenarios to consider, though: one is a
+    # frozen executable and the other is a `.py` file. In both cases the
+    # console title has to be obtained first.
+    #
+    # If the console title cannot be determined, then consider that the
+    # console is NOT transient.
     buffer_size = MAX_PATH_LEN + 1
     console_title = create_unicode_buffer(buffer_size)
     if not windll.kernel32.GetConsoleTitleW(console_title, buffer_size):
-        return WFKStatuses.NO_CONSOLE_TITLE
-    console_title = console_title.value
+        return False
 
-    # If the console is not transient, return, do not pause.
+    # For a frozen executable, it is easy: if the console title is not
+    # equal to `sys.executable`, then the console is NOT transient.
     #
-    # For a frozen executable, it is easier: if the console title is not
-    # equal to 'sys.executable', then the console is NOT transient.
-    #
-    # For a '.py' file, this is more complicated, but in most cases if
-    # the console title contains the name of the '.py' file, the console
-    # is NOT a transient console.
+    # For a `.py` file, this is more complicated, but in most cases if
+    # the console title contains the name of the `.py` file, the console
+    # is NOT transient.
     if getattr(sys, 'frozen', False):
-        if console_title != sys.executable:
-            return WFKStatuses.NO_TRANSIENT_FROZEN
-    elif Constants.APP_NAME in console_title:
-        return WFKStatuses.NO_TRANSIENT_PYTHON
+        if console_title.value != sys.executable:
+            return False
+    elif Constants.APP_NAME in console_title.value:
+        return False
+    return True
 
-    sys.stdout.flush()
-    sys.stdout.write(Messages.PRESS_ANY_KEY)
-    sys.stdout.flush()
-    getch()
-    return WFKStatuses.WAIT_FOR_KEYPRESS
+
+def wait_for_keypress() -> None:
+    """Wait for a keypress to continue in particular circumstances.
+
+    If the module is running as a script instead of being imported, an
+    actual console is attached to `sys.stdout` and that attached console
+    is transient (that is, the console window will automatically close
+    when the program exits), this function will print a simple message
+    telling the end user that the program will be paused until any key
+    is pressed.
+    """
+    if is_running_as_script() and is_console_attached() and is_console_transient():
+        sys.stdout.write(Messages.PRESS_ANY_KEY)
+        sys.stdout.flush()
+        getch()
 
 
 def excepthook(exc_type: type[BaseException], exc_value: BaseException, exc_traceback: TracebackType | None) -> None:
