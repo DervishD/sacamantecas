@@ -742,21 +742,6 @@ def warning(message: str) -> None:
     logger.warning('%s', Messages.WARNING_HEADER + message[0].lower() + message[1:])
 
 
-def is_accepted_url(value: str | None) -> bool:
-    """Check whether value is an accepted URL or not."""
-    try:
-        # The check is quite crude but it is simple and works perfectly
-        # for the program's needs, which are simple, too.
-        return urlparse(value).scheme in Constants.ACCEPTED_URL_SCHEMES
-    except ValueError:
-        return False
-
-
-def generate_sinkfile_path(base_path: Path) -> Path:
-    """Generate a path usable for a data sink, from *base_path*."""
-    return base_path.with_stem(base_path.stem + Constants.SINKFILE_STEM)
-
-
 class WFKStatuses(IntEnum):
     """Return statuses for `wait_for_keypress()`."""  # noqa: D204
     IMPORTED = auto()
@@ -962,6 +947,16 @@ def load_profiles(profiles_path: Path) -> dict[str, Profile]:  # noqa: C901
     return profiles
 
 
+def is_accepted_url(value: str | None) -> bool:
+    """Check whether value is an accepted URL or not."""
+    try:
+        # The check is quite crude but it is simple and works perfectly
+        # for the program's needs, which are simple, too.
+        return urlparse(value).scheme in Constants.ACCEPTED_URL_SCHEMES
+    except ValueError:
+        return False
+
+
 def parse_arguments(*args: str) -> Generator[tuple[str, Handler]]:
     """Parse **args*.
 
@@ -985,6 +980,11 @@ def parse_arguments(*args: str) -> Generator[tuple[str, Handler]]:
             logger.debug(Messages.ARG_IS_SOURCE_UNSUPPORTED)
             handler = unsupported_source_handler()
         yield arg, handler
+
+
+def generate_sinkfile_path(base_path: Path) -> Path:
+    """Generate a path usable for a data sink, from *base_path*."""
+    return base_path.with_stem(base_path.stem + Constants.SINKFILE_STEM)
 
 
 # NOTE: the handlers below have to be generators for two reasons.
