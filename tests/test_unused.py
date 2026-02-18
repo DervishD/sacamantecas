@@ -61,6 +61,10 @@ CODETREE = ast.parse(inspect.getsource(sacamantecas))
     sacamantecas.Constants.__name__,
     sacamantecas.Messages.__name__,
     sacamantecas.ExitCodes.__name__,
+], ids=[
+    'test_no_unused_Constants',
+    'test_no_unused_Messages',
+    'test_no_unused_Exitcodes',
 ])
 def test_no_unused_attributes(classname: str) -> None:   # pylint: disable=unused-variable
     """Test that all attributes in classname are used."""

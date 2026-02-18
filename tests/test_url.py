@@ -20,6 +20,15 @@ from sacamantecas import Constants, detect_html_charset, get_redirected_url, res
     ('netloc.url', '/./relpath', ''),
     ('', '/./relpath', '?query#fragment'),
     ('netloc.url', '/./relpath', '?query#fragment'),
+], ids=[
+    'test_abspath_file_url_resolution',
+    'test_netloc_abspath_file_url_resolution',
+    'test_abspath_query_file_url_resolution',
+    'test_netloc_abspath_query_file_url_resolution',
+    'test_relpath_file_url_resolution',
+    'test_netloc_relpath_file_url_resolution',
+    'test_relpath_query_file_url_resolution',
+    'test_netloc_relpath_query_file_url_resolution',
 ])
 # pylint: disable-next=unused-variable
 def test_file_url_resolution(request: pytest.FixtureRequest, netloc:str, base:str, extra:str) -> None:
@@ -46,11 +55,14 @@ RPATH = '/rroot/rsub/rp.html'
 EXTRA = ';pr?k1=v1&k2=v2#fr'
 REXTRA = ';rpr?rk1=rv1&rk2=rv2#rfr'
 BASE_URL = f'{SCHEME}{NETLOC}{PATH}{EXTRA}'
-@pytest.mark.parametrize('delay', ['0; ', '1234; ', ''])
-@pytest.mark.parametrize('extra', [REXTRA, ''])
+@pytest.mark.parametrize('delay', ['0; ', '1234; ', ''], ids=['0_delay', '1234_delay', 'no_delay'])
+@pytest.mark.parametrize('extra', [REXTRA, ''], ids=['extra', 'no_extra'])
 @pytest.mark.parametrize(('url', 'expected'), [
     (f'{RSCHEME}{RNETLOC}{RPATH}', f'{RSCHEME}{RNETLOC}{RPATH}'),
     (f'{RPATH}', f'{SCHEME}{NETLOC}{RPATH}'),
+], ids=[
+    'test_full_url_redirection',
+    'test_partial_url_redirection',
 ])
 def test_url_redirection(delay: str, url: str, extra: str, expected: str) -> None:  # pylint: disable=unused-variable
     """Test *url* redirections using *delay* and *extra* fields."""
@@ -64,6 +76,10 @@ def test_url_redirection(delay: str, url: str, extra: str, expected: str) -> Non
     ('<meta http-equiv="content-type" charset="{}">', 'cp1252'),
     ('<meta charset="{}">', 'cp850'),
     ('{}', Constants.FALLBACK_HTML_CHARSET),
+], ids=[
+    'test_cp1252_charset_detection',
+    'test_cp850_charset_detection',
+    f'test_{Constants.FALLBACK_HTML_CHARSET}_charset_detection',
 ])
 def test_charset_detection(contents: str, expected: str) -> None:  # pylint: disable=unused-variable
     """Test different ways of detecting the *contents* charset."""

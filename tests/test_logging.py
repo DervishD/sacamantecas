@@ -85,6 +85,13 @@ TEST_MESSAGE = 'Test message'
         '',
         '\n'.join((ERROR_HEADER, f'{PAD}{TEST_MESSAGE}', '')),
     )),
+], ids=[
+    'test_logger_debug',
+    'test_logger_info',
+    'test_logger_warning',
+    'test_logger_error',
+    'test_helper_warning',
+    'test_helper_error',
 ])
 # pylint: disable-next=unused-variable
 def test_logging_functions(
@@ -164,6 +171,12 @@ def test_error_details(log_paths: LogPaths, capsys: pytest.CaptureFixture[str]) 
     '\nLeading newline.',
     'Trailing newline.\n',
     '\bLeading and trailing newline.\n',
+], ids=[
+    'test_no_whitespace',
+    'test_leading_whitespace',
+    'test_leading_newline',
+    'test_trailing_newline',
+    'test_both_newlines',
 ])
 # pylint: disable-next=unused-variable
 def test_whitespace_honoring(log_paths: LogPaths, capsys: pytest.CaptureFixture[str], message: str) -> None:

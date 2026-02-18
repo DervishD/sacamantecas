@@ -43,6 +43,12 @@ UNKNOWN_URL_TYPE_MESSAGE = (Messages.UNKNOWN_URL_TYPE[0].lower() + Messages.UNKN
         URLError(OSError(GETADDRINFO_ERRNO, GETADDRINFO_MSG)),
         Messages.OSLIKE_URLERROR.format(GETADDRINFO_ERRNO, GETADDRINFO_MSG),
     ),
+], ids=[
+    'test_bad_scheme_url_error',
+    'test_404_status_url_error',
+    'test_200_status_url_error',
+    'test_connection_refused_url_error',
+    'test_nonexistent_url_error',
 ])
 def test_url_errors(  # pylint: disable=unused-variable
     monkeypatch: pytest.MonkeyPatch,

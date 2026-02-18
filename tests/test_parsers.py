@@ -98,6 +98,11 @@ def test_parser_reset() -> None:  # pylint: disable=unused-variable
     (K, None, Messages.METADATA_MISSING_VALUE.format(K)),
     (None, V, Messages.METADATA_MISSING_KEY.format(BaseParser.EMPTY_KEY_PLACEHOLDER)),
     (K, V, Messages.METADATA_OK.format(K, V)),
+], ids=[
+    'test_metadata_emtpy',
+    'test_metadata_missing_value',
+    'test_metadata_missing_key',
+    'test_metadata_ok',
 ])
 # pylint: disable-next=unused-variable
 def test_medatata_storage(caplog: pytest.LogCaptureFixture, k: str, v: str, expected: str) -> None:
@@ -124,6 +129,9 @@ MULTIPLE_V = ['multiple_value1', 'multiple_value2', 'multiple_value3']
 @pytest.mark.parametrize(('metadata', 'expected'), [
     ({SINGLE_K: SINGLE_V}, {SINGLE_K: SINGLE_V[0]}),
     ({MULTIPLE_K: MULTIPLE_V}, {MULTIPLE_K: BaseParser.MULTIVALUE_SEPARATOR.join(MULTIPLE_V)}),
+], ids=[
+    'test_metadata_single_value',
+    'test_metadata_multiple_value',
 ])
 # pylint: disable-next=unused-variable
 def test_metadata_retrieval(metadata: dict[str, list[str]], expected: dict[str, str]) -> None:
@@ -155,6 +163,15 @@ WS_NL = '  {}\n   whitespaced     \n       and\t\n    newlined   '
 
     # Empty metadata.
     ((EMPTY, EMPTY), {}),
+], ids=[
+    'test_parser_baseline_k_v',
+    'test_parser_baseline_k_v_with_sep',
+    'test_parser_baseline_k_v_whitespaced',
+    'test_parser_baseline_missing_value_empty',
+    'test_parser_baseline_missing_value_none',
+    'test_parser_baseline_missing_key_empty',
+    'test_parser_baseline_missing_key_none',
+    'test_parser_baseline_missing_metadata',
 ])
 # pylint: disable-next=unused-variable
 def test_parser_baseline(contents: tuple[str | None, str | None], expected: dict[str, str]) -> None:
@@ -185,6 +202,9 @@ MULTIVALUES = [f'value_{n}' for n in range(9)]
 @pytest.mark.parametrize(('multikeys', 'separator'), [
     (True, BaseParser.MULTIVALUE_SEPARATOR),
     (False, BaseParser.MULTIDATA_SEPARATOR),
+], ids=[
+    'test_metadata_multivalues_multikeys',
+    'test_metadata_multivalues',
 ])
 def test_parser_multivalues(multikeys: bool, separator: str) -> None:  # pylint: disable=unused-variable  # noqa: FBT001
     """Test parsing of multiple values per key."""
@@ -224,38 +244,58 @@ V_CLASS_RE =  re_compile(f'{V_CLASS}.*')
 TAG = 'div'
 OP_KB = ELEMENT_B.format(TAG=TAG, MARKER=K_CLASS)
 OP_VB = ELEMENT_B.format(TAG=TAG, MARKER=V_CLASS)
-EE = ELEMENT_E.format(TAG=TAG)
+OP_EE = ELEMENT_E.format(TAG=TAG)
 @pytest.mark.parametrize(('contents', 'expected'), [
     # Normal metadata.
-    (f'{OP_KB}{{K}}{EE}{OP_VB}{{V}}{EE}', ('{K}', '{V}')),
+    (f'{OP_KB}{{K}}{OP_EE}{OP_VB}{{V}}{OP_EE}', ('{K}', '{V}')),
 
     # Incomplete metadata, missing value.
-    (f'{OP_KB}{{K}}{EE}{OP_VB}{{V}}', ()),
-    (f'{OP_KB}{{K}}{EE}{OP_VB}{EE}', ()),
+    (f'{OP_KB}{{K}}{OP_EE}{OP_VB}{{V}}', ()),
+    (f'{OP_KB}{{K}}{OP_EE}{OP_VB}{OP_EE}', ()),
     (f'{OP_VB}{{V}}', ()),
-    (f'{OP_VB}{EE}', ()),
+    (f'{OP_VB}{OP_EE}', ()),
 
     # Incomplete metadata, missing key.
-    (f'{OP_KB}{EE}{OP_VB}{{V}}{EE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
-    (f'{OP_VB}{{V}}{EE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
+    (f'{OP_KB}{OP_EE}{OP_VB}{{V}}{OP_EE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
+    (f'{OP_VB}{{V}}{OP_EE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
 
     # Nesting, value inside key.
-    (f'{OP_KB}{{K}}{OP_VB}{{V}}{EE}', ('{K}', '{V}')),
-    (f'{OP_KB}{{K}}{OP_VB}{EE}', ()),
+    (f'{OP_KB}{{K}}{OP_VB}{{V}}{OP_EE}', ('{K}', '{V}')),
+    (f'{OP_KB}{{K}}{OP_VB}{OP_EE}', ()),
 
     # Nesting, key inside value.
-    (f'{OP_VB}_{{V}}_{OP_KB}{{K}}{EE}{OP_VB}{{V}}{EE}', ('{K}', '{V}')),
-    (f'{OP_VB}{OP_KB}{{K}}{EE}{OP_VB}{{V}}{EE}', ('{K}', '{V}')),
-    (f'{OP_VB}_{{V}}_{OP_KB}{EE}{OP_VB}{{V}}{EE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
-    (f'{OP_VB}{OP_KB}{EE}{OP_VB}{{V}}{EE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
-    (f'{OP_VB}_{{V}}_{OP_KB}{{K}}{EE}{OP_VB}{{V}}', ()),
-    (f'{OP_VB}{OP_KB}{{K}}{EE}{OP_VB}{{V}}', ()),
+    (f'{OP_VB}_{{V}}_{OP_KB}{{K}}{OP_EE}{OP_VB}{{V}}{OP_EE}', ('{K}', '{V}')),
+    (f'{OP_VB}{OP_KB}{{K}}{OP_EE}{OP_VB}{{V}}{OP_EE}', ('{K}', '{V}')),
+    (f'{OP_VB}_{{V}}_{OP_KB}{OP_EE}{OP_VB}{{V}}{OP_EE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
+    (f'{OP_VB}{OP_KB}{OP_EE}{OP_VB}{{V}}{OP_EE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
+    (f'{OP_VB}_{{V}}_{OP_KB}{{K}}{OP_EE}{OP_VB}{{V}}', ()),
+    (f'{OP_VB}{OP_KB}{{K}}{OP_EE}{OP_VB}{{V}}', ()),
 
     # Ill-formed, no closing tags.
     (f'{OP_KB}{{K}}{OP_VB}{{V}}', ()),
     (f'{OP_KB}{{K}}{OP_VB}', ()),
     (f'{OP_KB}{OP_VB}{{V}}', ()),
     (f'{OP_KB}{OP_VB}', ()),
+], ids=[
+    'test_old_regime_parser_ok',
+    'test_old_regime_parser_missing_value_1',
+    'test_old_regime_parser_missing_value_2',
+    'test_old_regime_parser_missing_value_3',
+    'test_old_regime_parser_missing_value_4',
+    'test_old_regime_parser_missing_key_1',
+    'test_old_regime_parser_missing_key_2',
+    'test_old_regime_parser_nesting_v_in_k_1',
+    'test_old_regime_parser_nesting_v_in_k_2',
+    'test_old_regime_parser_nesting_k_in_v_1',
+    'test_old_regime_parser_nesting_k_in_v_2',
+    'test_old_regime_parser_nesting_k_in_v_3',
+    'test_old_regime_parser_nesting_k_in_v_4',
+    'test_old_regime_parser_nesting_k_in_v_5',
+    'test_old_regime_parser_nesting_k_in_v_6',
+    'test_old_regime_parser_no_closing_tags_1',
+    'test_old_regime_parser_no_closing_tags_2',
+    'test_old_regime_parser_no_closing_tags_3',
+    'test_old_regime_parser_no_closing_tags_4',
 ])
 def test_old_regime_parser(contents: str, expected: tuple[str, str]) -> None:  # pylint: disable=unused-variable
     """Test *Old Regime* parser."""
@@ -288,48 +328,71 @@ M_ATTR = 'class'
 M_ATTR_RE = re_compile(f'{M_ATTR}.*')
 M_VALUE = 'meta_marker'
 M_VALUE_RE = re_compile(f'{M_VALUE}.*')
-MB = ELEMENT_B.format(TAG=M_TAG, MARKER=M_VALUE)
-ME = ELEMENT_E.format(TAG=M_TAG)
+BP_MB = ELEMENT_B.format(TAG=M_TAG, MARKER=M_VALUE)
+BP_ME = ELEMENT_E.format(TAG=M_TAG)
 BP_KB = ELEMENT_B.format(TAG=BaratzParser.K_TAG, MARKER='')
-KE = ELEMENT_E.format(TAG=BaratzParser.K_TAG)
+BP_KE = ELEMENT_E.format(TAG=BaratzParser.K_TAG)
 BP_VB = ELEMENT_B.format(TAG=BaratzParser.V_TAG, MARKER='')
-VE = ELEMENT_E.format(TAG=BaratzParser.V_TAG)
+BP_VE = ELEMENT_E.format(TAG=BaratzParser.V_TAG)
 @pytest.mark.parametrize(('contents', 'expected'), [
     # Normal metadata.
-    (f'{MB}{BP_KB}{{K}}{KE}{BP_VB}{{V}}{VE}{ME}', ('{K}', '{V}')),
-    (f'{MB}{BP_KB}{{K}}{KE}{BP_VB}{{V}}{VE}', ('{K}', '{V}')),
+    (f'{BP_MB}{BP_KB}{{K}}{BP_KE}{BP_VB}{{V}}{BP_VE}{BP_ME}', ('{K}', '{V}')),
+    (f'{BP_MB}{BP_KB}{{K}}{BP_KE}{BP_VB}{{V}}{BP_VE}', ('{K}', '{V}')),
 
     # No metadata marker.
-    (f'{BP_KB}{{K}}{KE}{BP_VB}{{V}}{VE}{ME}', ()),
-    (f'{BP_KB}{{K}}{KE}{BP_VB}{{V}}{VE}', ()),
+    (f'{BP_KB}{{K}}{BP_KE}{BP_VB}{{V}}{BP_VE}{BP_ME}', ()),
+    (f'{BP_KB}{{K}}{BP_KE}{BP_VB}{{V}}{BP_VE}', ()),
 
     # Incomplete metadata, missing value.
-    (f'{MB}{BP_KB}{{K}}{KE}{BP_VB}{{V}}', ()),
-    (f'{MB}{BP_KB}{{K}}{KE}{BP_VB}{VE}', ()),
-    (f'{MB}{BP_VB}{{V}}', ()),
-    (f'{MB}{BP_VB}{VE}', ()),
+    (f'{BP_MB}{BP_KB}{{K}}{BP_KE}{BP_VB}{{V}}', ()),
+    (f'{BP_MB}{BP_KB}{{K}}{BP_KE}{BP_VB}{BP_VE}', ()),
+    (f'{BP_MB}{BP_VB}{{V}}', ()),
+    (f'{BP_MB}{BP_VB}{BP_VE}', ()),
 
     # Incomplete metadata, missing key.
-    (f'{MB}{BP_KB}{KE}{BP_VB}{{V}}{VE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
-    (f'{MB}{BP_VB}{{V}}{VE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
+    (f'{BP_MB}{BP_KB}{BP_KE}{BP_VB}{{V}}{BP_VE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
+    (f'{BP_MB}{BP_VB}{{V}}{BP_VE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
 
     # Nesting, value inside key.
-    (f'{MB}{BP_KB}{{K}}{BP_VB}{{V}}{VE}{KE}', ('{K}', '{V}')),
-    (f'{MB}{BP_KB}{{K}}{BP_VB}{VE}{KE}', ()),
+    (f'{BP_MB}{BP_KB}{{K}}{BP_VB}{{V}}{BP_VE}{BP_KE}', ('{K}', '{V}')),
+    (f'{BP_MB}{BP_KB}{{K}}{BP_VB}{BP_VE}{BP_KE}', ()),
 
     # Nesting, key inside value.
-    (f'{MB}{BP_VB}_{{V}}_{BP_KB}{{K}}{KE}{BP_VB}{{V}}{VE}', ('{K}', '{V}')),
-    (f'{MB}{BP_VB}{BP_KB}{{K}}{KE}{BP_VB}{{V}}{VE}', ('{K}', '{V}')),
-    (f'{MB}{BP_VB}_{{V}}_{BP_KB}{KE}{BP_VB}{{V}}{VE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
-    (f'{MB}{BP_VB}{BP_KB}{KE}{BP_VB}{{V}}{VE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
-    (f'{MB}{BP_VB}_{{V}}_{BP_KB}{{K}}{KE}{BP_VB}{{V}}', ()),
-    (f'{MB}{BP_VB}{BP_KB}{{K}}{KE}{BP_VB}{{V}}', ()),
+    (f'{BP_MB}{BP_VB}_{{V}}_{BP_KB}{{K}}{BP_KE}{BP_VB}{{V}}{BP_VE}', ('{K}', '{V}')),
+    (f'{BP_MB}{BP_VB}{BP_KB}{{K}}{BP_KE}{BP_VB}{{V}}{BP_VE}', ('{K}', '{V}')),
+    (f'{BP_MB}{BP_VB}_{{V}}_{BP_KB}{BP_KE}{BP_VB}{{V}}{BP_VE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
+    (f'{BP_MB}{BP_VB}{BP_KB}{BP_KE}{BP_VB}{{V}}{BP_VE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
+    (f'{BP_MB}{BP_VB}_{{V}}_{BP_KB}{{K}}{BP_KE}{BP_VB}{{V}}', ()),
+    (f'{BP_MB}{BP_VB}{BP_KB}{{K}}{BP_KE}{BP_VB}{{V}}', ()),
 
     # Ill-formed, no closing tags.
-    (f'{MB}{BP_KB}{{K}}{BP_VB}{{V}}', ()),
-    (f'{MB}{BP_KB}{{K}}{BP_VB}', ()),
-    (f'{MB}{BP_KB}{BP_VB}{{V}}', ()),
-    (f'{MB}{BP_KB}{BP_VB}', ()),
+    (f'{BP_MB}{BP_KB}{{K}}{BP_VB}{{V}}', ()),
+    (f'{BP_MB}{BP_KB}{{K}}{BP_VB}', ()),
+    (f'{BP_MB}{BP_KB}{BP_VB}{{V}}', ()),
+    (f'{BP_MB}{BP_KB}{BP_VB}', ()),
+], ids=[
+    'test_baratz_parser_ok_1',
+    'test_baratz_parser_ok_2',
+    'test_baratz_parser_no_marker_1',
+    'test_baratz_parser_no_marker_2',
+    'test_baratz_parser_missing_value_1',
+    'test_baratz_parser_missing_value_2',
+    'test_baratz_parser_missing_value_3',
+    'test_baratz_parser_missing_value_4',
+    'test_baratz_parser_missing_key_1',
+    'test_baratz_parser_missing_key_2',
+    'test_baratz_parser_nesting_v_in_k_1',
+    'test_baratz_parser_nesting_v_in_k_2',
+    'test_baratz_parser_nesting_k_in_v_1',
+    'test_baratz_parser_nesting_k_in_v_2',
+    'test_baratz_parser_nesting_k_in_v_3',
+    'test_baratz_parser_nesting_k_in_v_4',
+    'test_baratz_parser_nesting_k_in_v_5',
+    'test_baratz_parser_nesting_k_in_v_6',
+    'test_baratz_parser_no_closing_tags_1',
+    'test_baratz_parser_no_closing_tags_2',
+    'test_baratz_parser_no_closing_tags_3',
+    'test_baratz_parser_no_closing_tags_4',
 ])
 def test_baratz_parser(contents: str, expected: tuple[str, str]) -> None:  # pylint: disable=unused-variable
     """Test *Baratz* parser."""

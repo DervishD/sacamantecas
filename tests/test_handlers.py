@@ -186,6 +186,9 @@ def test_spreadsheet_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) ->
 @pytest.mark.parametrize(('suffix', 'handler_factory'), [
     ('.txt', textfile_handler),
     ('.xlsx', spreadsheet_handler),
+], ids=[
+    'test_missing_txt_source',
+    'test_missing_xlsx_source',
 ])
 # pylint: disable-next=unused-variable
 def test_missing_source(tmp_path: Path, suffix: str, handler_factory: Callable[[Path], Handler]) -> None:
@@ -201,11 +204,14 @@ def test_missing_source(tmp_path: Path, suffix: str, handler_factory: Callable[[
 @pytest.mark.parametrize(('unreadable_path', 'handler_factory'), [
     ('unreadable_textfile.txt', textfile_handler),
     ('unreadable_spreadsheet.xlsx', spreadsheet_handler),
-], indirect=['unreadable_path'])
+], indirect=['unreadable_path'], ids=[
+    'test_txt_input_no_permission',
+    'test_xlsx_input_no_permission',
+])
 # pylint: disable-next=unused-variable
 def test_input_no_permission(unreadable_path: Path, handler_factory: Callable[[Path], Handler]) -> None:
     """Test handling of unreadable files."""
-    handler = handler_factory(Path(unreadable_path))
+    handler = handler_factory(unreadable_path)
 
     with pytest.raises(SourceError) as excinfo:
         bootstrap(handler)
@@ -217,7 +223,11 @@ def test_input_no_permission(unreadable_path: Path, handler_factory: Callable[[P
     ('http://s.url', f'unwritable_single_url{Constants.SINKFILE_STEM}.txt', single_url_handler),
     ('s.txt', f'unwritable_textfile{Constants.SINKFILE_STEM}.txt', textfile_handler),
     ('s.xlsx', f'unwritable_spreadsheet{Constants.SINKFILE_STEM}.xlsx', spreadsheet_handler),
-], indirect=['unwritable_path'])
+], indirect=['unwritable_path'], ids=[
+    'test_url_output_no_permission',
+    'test_txt_output_no_permission',
+    'test_xlsx_output_no_permission',
+])
 # pylint: disable-next=unused-variable
 def test_output_no_permission(
     tmp_path: Path,

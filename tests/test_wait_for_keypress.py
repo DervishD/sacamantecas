@@ -12,20 +12,17 @@ from sacamantecas import (
 from .helpers import CallableSpy
 
 
-@pytest.mark.parametrize(('is_running_as_script', 'is_console_attached', 'is_console_transient', 'expected'),
-    [
-        (True, True, True, True),
-        (False, True, True, False),
-        (False, False, True, False),
-        (False, False, False, False),
-    ],
-    ids=[
-        'wait for keypress',
-        'do not wait, script imported',
-        'do not wait, no console attached',
-        'do not wait, no transient console',
-    ],
-)
+@pytest.mark.parametrize(('running_as_script', 'console_attached', 'console_transient', 'expected'), [
+    (True, True, True, True),
+    (False, True, True, False),
+    (False, False, True, False),
+    (False, False, False, False),
+], ids=[
+    'test_do_wait_for_keypress',
+    'test_no_wait_for_keypress_script_imported',
+    'test_no_wait_for_keypress_no_console_attached',
+    'test_no_wait_for_keypress_no_transient_console',
+])
 # pylint: disable=unused-variable
 def test_wait_for_keypress(
     monkeypatch: pytest.MonkeyPatch, *,
