@@ -13,15 +13,15 @@ from .helpers import CallableSpy
 
 
 @pytest.mark.parametrize(('running_as_script', 'console_attached', 'console_transient', 'expected'), [
+    (False, None, None, False),
+    (True, False, None, False),
+    (True, True, False, False),
     (True, True, True, True),
-    (False, True, True, False),
-    (False, False, True, False),
-    (False, False, False, False),
 ], ids=[
-    'test_do_wait_for_keypress',
     'test_no_wait_for_keypress_script_imported',
     'test_no_wait_for_keypress_no_console_attached',
     'test_no_wait_for_keypress_no_transient_console',
+    'test_do_wait_for_keypress',
 ])
 # pylint: disable=unused-variable
 def test_wait_for_keypress(
