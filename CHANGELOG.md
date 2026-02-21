@@ -5,7 +5,11 @@ This document is based on the [DervishD changelog specification](https://gist.gi
 
 This project versioning scheme complies with the `Python Packaging Authority` [version specifiers](https://packaging.python.org/en/latest/specifications/version-specifiers/) as defined by the `Python Packaging User Guide`.
 
+
 ## [Development]
+
+
+## [5.4.0] 2026-02-21
 ### Changed
 - Update documentation
 - Improve building system
@@ -186,7 +190,9 @@ not user-visible.
 ## [1.0] 2022-02-22
 First public release
 
-[Development]: https://github.com/DervishD/sacamantecas/compare/v...development
+[Development]: https://github.com/DervishD/sacamantecas/compare/v5.4.0...development
+[5.4.0]: https://github.com/DervishD/sacamantecas/compare/v5.3.0...v5.4.0
+[5.3.0]: https://github.com/DervishD/sacamantecas/compare/v5.2.0...v5.3.0
 [5.2.0]: https://github.com/DervishD/sacamantecas/compare/v5.1.0...v5.2.0
 [5.1.0]: https://github.com/DervishD/sacamantecas/compare/v5.0.0...v5.1.0
 [5.0.0]: https://github.com/DervishD/sacamantecas/compare/v4.4...v5.0.0
