@@ -515,7 +515,7 @@ class BaseParser(HTMLParser):
         if self.current_k and not self.current_v:
             logger.debug(Messages.METADATA_MISSING_VALUE.format(self.current_k))
         if not self.current_k and self.current_v:
-            self.current_k = self.last_k if self.last_k else self.EMPTY_KEY_PLACEHOLDER
+            self.current_k = self.last_k or self.EMPTY_KEY_PLACEHOLDER
             logger.debug(Messages.METADATA_MISSING_KEY.format(self.current_k))
         if self.current_k and self.current_v:
             if self.current_k not in self.retrieved_metadata:
