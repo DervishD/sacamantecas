@@ -15,18 +15,21 @@ from zipfile import ZIP_DEFLATED, ZipFile
 from sacamantecas import Constants
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Iterable, Sequence
     from io import TextIOWrapper
 
 
-SCRIPT_PATH = sys.modules[Constants.__module__].__file__ or ''
-BASE_PATH = Path(__file__).parent
-VENV_PATH = BASE_PATH / '.venv'
-BUILD_PATH = BASE_PATH / 'build'
-PYINSTALLER = VENV_PATH / 'Scripts' / 'pyinstaller.exe'
-FROZEN_EXE_PATH = (BUILD_PATH / Constants.APP_NAME).with_suffix('.exe')
-PACKAGE_SUFFIX = 'zip'
-PACKAGE_PATH = BASE_PATH / f'{Constants.APP_NAME}_v{Constants.APP_VERSION.split('+', maxsplit=1)[0]}.{PACKAGE_SUFFIX}'
+VENV_DIRNAME = '.venv'
+BUILD_DIRNAME = 'build'
+BUNDLE_VERSION = Constants.APP_VERSION.split('+', maxsplit=1)[0]
+BUNDLE_SUFFIX = 'zip'
+
+PROJECT_ROOT = Path(__file__).parent.resolve()
+
+PACKAGE_DATAFILES = (
+    Constants.INIFILE_PATH,
+)
+
 ERROR_MARKER = '\n*** '
 ERROR_HEADER = 'Error, '
 PROGRESS_MARKER = '  ▶ '
@@ -78,16 +81,14 @@ def run_command(command: Sequence[str]) -> CompletedProcess[str]:
         raise CalledProcessError(0, command, None, f"Command '{command[0]}' not found.\n") from exc
 
 
-def is_venv_ready() -> bool:
+def is_venv_ready(venv_path: Path) -> bool:
     """Check if the virtual environment is active and functional."""
-    progress(f'Checking virtual environment at {VENV_PATH}')
-
     # If no virtual environment exists, try to use global packages.
-    if not VENV_PATH.exists():
+    if not venv_path.exists():
         return True
 
     # But if it exists, it has to be active.
-    if os.environ['VIRTUAL_ENV'].lower() != str(VENV_PATH).lower():
+    if os.environ['VIRTUAL_ENV'].lower() != str(venv_path).lower():
         error('wrong or missing VIRTUAL_ENV environment variable.')
         return False
 
@@ -98,15 +99,17 @@ def is_venv_ready() -> bool:
     return True
 
 
-def are_required_packages_installed() -> bool:
-    """Check application dependencies."""
-    progress('Checking that required packages are installed')
+def get_required_packages(distribution: str) -> set[str]:
+    """Get the set of required packages for *distribution*."""
+    return set(metadata(distribution).get_all('Requires-Dist', {}))
 
+
+def are_required_packages_installed(required_packages: set[str]) -> bool:
+    """Check that *required_packages* are installed."""
     pip_list = ['pip', 'list', '--local', '--format=freeze', '--not-required', '--exclude=pip', '--exclude-editable']
     installed_packages = {line.strip() for line in run_command(pip_list).stdout.splitlines()}
 
-    dependencies = set(metadata(Constants.APP_NAME).get_all('Requires-Dist', {}))
-    if diff := dependencies - installed_packages:
+    if diff := required_packages - installed_packages:
         diff = '\n'.join(diff)
         error(f'missing packages:\n{diff}\n')
         return False
@@ -114,18 +117,20 @@ def are_required_packages_installed() -> bool:
     return True
 
 
-def build_frozen_executable() -> bool:
-    """Build frozen executable."""
-    progress('Building frozen executable')
+def build_frozen_executable(frozen_exe_path: Path) -> bool:
+    """Build frozen executable at *frozen_exe_path*."""
+    app_name = frozen_exe_path.stem
+    build_path = frozen_exe_path.parent
+    script_path = Path(getattr(sys.modules.get(app_name), '__file__', '')).resolve()
 
-    if FROZEN_EXE_PATH.exists():
-        FROZEN_EXE_PATH.unlink()
+    if frozen_exe_path.exists():
+        frozen_exe_path.unlink()
 
-    cmd = [str(PYINSTALLER)]
+    cmd = ['pyinstaller']
     cmd.append('--log-level=WARN')
-    cmd.extend([f'--workpath={BUILD_PATH}', f'--specpath={BUILD_PATH}', f'--distpath={BUILD_PATH}'])
-    cmd.extend(['--copy-metadata', Constants.APP_NAME, '--onefile', '--name', Constants.APP_NAME])
-    cmd.append(SCRIPT_PATH)
+    cmd.extend([f'--workpath={build_path}', f'--specpath={build_path}', f'--distpath={build_path}'])
+    cmd.extend(['--copy-metadata', app_name, '--onefile', '--name', app_name])
+    cmd.append(str(script_path))
     try:
         run_command(cmd)
     except CalledProcessError as exc:
@@ -135,30 +140,38 @@ def build_frozen_executable() -> bool:
     return True
 
 
-def build_package() -> None:
-    """Build distributable package."""
-    progress(f'Building distributable package {PACKAGE_PATH}.')
-
-    with ZipFile(PACKAGE_PATH, 'w', compression=ZIP_DEFLATED, compresslevel=9) as bundle:
-        bundle.write(FROZEN_EXE_PATH, FROZEN_EXE_PATH.name)
-        bundle.write(Constants.INIFILE_PATH, Constants.INIFILE_PATH.name)
+def create_bundle(bundle_path: Path, manifest:Iterable[Path]) -> None:
+    """Build bundle at *bundle_path* containing *manifest* paths."""
+    with ZipFile(bundle_path, 'w', compression=ZIP_DEFLATED, compresslevel=9) as bundle:
+        for path in manifest:
+            bundle.write(path, path.name)
 
 
 def main() -> int:
     """."""
     pretty_print(f'Building {Constants.APP_NAME} {Constants.APP_VERSION}')
 
-    if not is_venv_ready():
+    venv_path = PROJECT_ROOT / VENV_DIRNAME
+    progress(f'Checking virtual environment: {venv_path}')
+    if not is_venv_ready(venv_path):
         return 1
 
-    if not are_required_packages_installed():
+    required_packages = get_required_packages(Constants.APP_NAME)
+    progress(f'Checking that required packages are installed: {', '.join(required_packages)}')
+    if not are_required_packages_installed(required_packages):
         return 1
 
     # The virtual environment is guaranteed to work from this point on.
 
-    if not build_frozen_executable():
+    frozen_exe_path = (PROJECT_ROOT / BUILD_DIRNAME / Constants.APP_NAME).with_suffix('.exe')
+    progress(f'Building frozen executable: {frozen_exe_path}')
+    if not build_frozen_executable(frozen_exe_path):
         return 1
-    build_package()
+
+    bundle_path = PROJECT_ROOT / f'{Constants.APP_NAME}_v{BUNDLE_VERSION}.{BUNDLE_SUFFIX}'
+    progress(f'Building distributable bundle: {bundle_path}')
+    manifest = (frozen_exe_path, *PACKAGE_DATAFILES)
+    create_bundle(bundle_path, manifest)
 
     pretty_print('\nApplication built successfully!')
 
