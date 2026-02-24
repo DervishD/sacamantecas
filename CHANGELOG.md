@@ -7,6 +7,9 @@ This project versioning scheme complies with the `Python Packaging Authority` [v
 
 
 ## [Development]
+### Changed
+- Include `CHANGELOG.md` and `README.md` in released ZIP file
+- Improve building system
 
 
 ## [5.4.0] 2026-02-21
@@ -45,9 +48,8 @@ This project versioning scheme complies with the `Python Packaging Authority` [v
 
 ## [5.1.0] 2024-06-26
 ### Changed
-- Type annotate the code. This is not an user-visible change, but it is quite an
-  important change for the program nonetheless.
-- Improve logging framework
+- Type annotate the code. Not an user-visible change, but important nonetheless
+- Logging framework
 - Improve error handling
 
 ### Fixed
@@ -68,9 +70,8 @@ not user-visible.
 ### Changed
 - Versioning system. Now Semantic Versioning 2.0.0 is used
 - New `pytest`-based test suite
-- Code has been adapted to the new test system to improve testability
-- Improve command line handling
-- Improve logging system
+- Command line handling
+- Logging system
 - Simplify HTML parser
 - Normalize program exit codes
 - Simplify building system
@@ -83,11 +84,8 @@ not user-visible.
 
 ### Fixed
 - Improve `README.md`
-- Improve program output messages
-- Program output for unhandled errors
-- Program output for general errors
-- Error when waiting for a keypress at program termination
-- Do not wait for a keypress at program termination if code is imported
+- Program output messages
+- Problems related with waiting for a keypress at program termination
 
 
 ## [4.4] 2023-09-14
@@ -98,7 +96,6 @@ not user-visible.
 ## [4.3] 2023-05-19
 ### Fixed
 - Building system output encoding
-- Test suite reference files
 - Empty logging messages handling
 
 
@@ -110,15 +107,14 @@ not user-visible.
 ## [4.1] 2022-08-02
 ### Fixed
 - Building system output
-- Improve building system
 
 
 ## [4.0] 2022-08-01
 ### Changed
-- Improve HTML parser, making it more flexible
+- Better HTML parser, making it more flexible
 - Better looking logging output
 - INI file syntax
-- Improve building system
+- Better building system
 
 ### Added
 - Basic test suite
@@ -152,18 +148,17 @@ not user-visible.
 
 ## [3.2] 2022-03-08
 ### Changed
-- New Python-based building system
+- Building system is now Python-based
 
 
 ## [3.1] 2022-03-04
 ### Added
-- Building system, with more automation
+- Building system
 - Support for heading-less Excel files
 
 
 ## [3.0] 2022-03-02
 ### Changed
-- General code refactoring
 - Improve command line handling
 
 ### Added
@@ -176,7 +171,7 @@ not user-visible.
 
 ## [2.0] 2022-02-28
 ### Changed
-- Modify HTML parser
+- Better HTML parser
 
 ### Added
 - Support URL-based parsing profiles
