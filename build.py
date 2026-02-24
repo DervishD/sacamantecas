@@ -28,6 +28,8 @@ PROJECT_ROOT = Path(__file__).parent.resolve()
 
 PACKAGE_DATAFILES = (
     Constants.INIFILE_PATH,
+    PROJECT_ROOT / 'README.md',
+    PROJECT_ROOT / 'CHANGELOG.md',
 )
 
 ERROR_MARKER = '\n*** '
