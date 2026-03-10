@@ -11,17 +11,14 @@ import atexit
 from collections.abc import Callable, Generator
 import configparser
 import contextlib
-from ctypes import byref, c_uint, create_unicode_buffer, windll
-from ctypes.wintypes import MAX_PATH as MAX_PATH_LEN
 from enum import IntEnum, StrEnum
 import errno
-from functools import wraps
+from functools import partial, wraps
 from html.parser import HTMLParser
 from http.client import HTTPException
 from importlib.metadata import metadata as get_app_metadata, version
 import logging
 from logging.config import dictConfig
-from msvcrt import get_osfhandle, getch
 from pathlib import Path
 import platform
 import re
@@ -35,6 +32,7 @@ from urllib.parse import quote, unquote, urlparse, urlunparse
 from urllib.request import Request, urlopen
 from zipfile import BadZipFile
 
+from legion import wait_for_keypress
 from openpyxl import load_workbook
 from openpyxl.cell.cell import Cell, MergedCell, TYPE_STRING as CELLTYPE_STRING
 from openpyxl.styles import Font, PatternFill
@@ -742,75 +740,6 @@ def warning(message: str) -> None:
     logger.warning('%s', Messages.WARNING_HEADER + message[0].lower() + message[1:])
 
 
-def is_running_as_script() -> bool:
-    """Predicate for `wait_for_keypress()`.
-
-    Return `True` if module is running as a script rather than imported.
-    """
-    return __name__ == '__main__'
-
-
-def is_console_attached() -> bool:
-    """Predicate for `wait_for_keypress()`.
-
-    Return `True` if there is a real console attached to `sys.stdout`.
-    """
-    # Since 'sys.stdout.isatty()' returns 'True' under Windows when the
-    # 'sys.stdout' stream is redirected to 'NUL', another check, a bit
-    # more complicated, is needed here. The test below has been adapted
-    # from https://stackoverflow.com/a/33168697
-    return windll.kernel32.GetConsoleMode(get_osfhandle(sys.stdout.fileno()), byref(c_uint()))
-
-
-def is_console_transient() -> bool:
-    """Predicate for `wait_for_keypress()`.
-
-    Return `True` if the console attached to `sys.stdout` is transient.
-    """
-    # Determining if a console is transient is not easy as there is no
-    # bulletproof method available for every possible situation.
-    #
-    # There are TWO main runtime scenarios to consider, though: one is a
-    # frozen executable and the other is a `.py` file. In both cases the
-    # console title has to be obtained first.
-    #
-    # If the console title cannot be determined, then consider that the
-    # console is NOT transient.
-    buffer_size = MAX_PATH_LEN + 1
-    console_title = create_unicode_buffer(buffer_size)
-    if not windll.kernel32.GetConsoleTitleW(console_title, buffer_size):
-        return False
-
-    # For a frozen executable, it is easy: if the console title is not
-    # equal to `sys.executable`, then the console is NOT transient.
-    #
-    # For a `.py` file, this is more complicated, but in most cases if
-    # the console title contains the name of the `.py` file, the console
-    # is NOT transient.
-    if getattr(sys, 'frozen', False):
-        if console_title.value != sys.executable:
-            return False
-    elif Constants.APP_NAME in console_title.value:
-        return False
-    return True
-
-
-def wait_for_keypress() -> None:
-    """Wait for a keypress to continue in particular circumstances.
-
-    If the module is running as a script instead of being imported, an
-    actual console is attached to `sys.stdout` and that attached console
-    is transient (that is, the console window will automatically close
-    when the program exits), this function will print a simple message
-    telling the end user that the program will be paused until any key
-    is pressed.
-    """
-    if is_running_as_script() and is_console_attached() and is_console_transient():
-        sys.stdout.write(Messages.PRESS_ANY_KEY)
-        sys.stdout.flush()
-        getch()
-
-
 def excepthook(exc_type: type[BaseException], exc_value: BaseException, exc_traceback: TracebackType | None) -> None:
     """Log unhandled exceptions. Default exception hook.
 
@@ -1472,6 +1401,6 @@ def main(*args: str) -> ExitCodes:
 
 
 if __name__ == '__main__':
-    atexit.register(wait_for_keypress)
+    atexit.register(partial(wait_for_keypress, Messages.PRESS_ANY_KEY))
     sys.excepthook = excepthook
     sys.exit(main(*sys.argv[1:]))
