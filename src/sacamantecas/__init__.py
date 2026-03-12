@@ -16,7 +16,7 @@ import errno
 from functools import partial, wraps
 from html.parser import HTMLParser
 from http.client import HTTPException
-from importlib.metadata import metadata as get_app_metadata, version
+from importlib.metadata import metadata, PackageNotFoundError, version
 import logging
 from logging.config import dictConfig
 from pathlib import Path
@@ -527,10 +527,10 @@ class BaseParser(HTMLParser):
 
     def get_metadata(self) -> dict[str, str]:
         """Get the metadata retrieved so far."""
-        metadata: dict[str, str] = {}
+        processed_metadata: dict[str, str] = {}
         for key, value in self.retrieved_metadata.items():
-            metadata[key] = self.MULTIVALUE_SEPARATOR.join(value)
-        return metadata
+            processed_metadata[key] = self.MULTIVALUE_SEPARATOR.join(value)
+        return processed_metadata
 
 
 class OldRegimeParser(BaseParser):  # pylint: disable=unused-variable
@@ -966,11 +966,11 @@ def single_url_handler(url: str) -> Handler:
         logger.debug(Messages.DUMPING_METADATA_TO_SINK.format(sinkfile_path))
         yield Constants.HANDLER_BOOTSTRAP_SUCCESS
         if is_accepted_url(url):
-            metadata = yield url
+            retrieved_metadata = yield url
             yield url
-            if metadata:
+            if retrieved_metadata:
                 sink.write(Constants.TEXTSINK_METADATA_HEADER.format(url))
-                for key, value in metadata.items():
+                for key, value in retrieved_metadata.items():
                     logger.debug(Messages.DUMPING_METADATA_K_V.format(key, value))
                     message = Constants.TEXTSINK_METADATA_PAIR.format(key, value)
 
@@ -1013,11 +1013,11 @@ def textfile_handler(source_file: Path) -> Handler:
             url = line.strip()
             if not is_accepted_url(url):
                 continue
-            metadata = yield url
+            retrieved_metadata = yield url
             yield url
-            if metadata:
+            if retrieved_metadata:
                 sink.write(Constants.TEXTSINK_METADATA_HEADER.format(url))
-                for key, value in metadata.items():
+                for key, value in retrieved_metadata.items():
                     logger.debug(Messages.DUMPING_METADATA_K_V.format(key, value))
                     sink.write(Constants.TEXTSINK_METADATA_PAIR.format(key, value))
                 sink.write(Constants.TEXTSINK_METADATA_FOOTER)
@@ -1063,10 +1063,10 @@ def spreadsheet_handler(source_file: Path) -> Handler:
         logger.debug(Messages.PROCESSING_ROW.format(row_number))
         if (url := get_url_from_row(row)) is None:
             continue
-        metadata = yield url
+        retrieved_metadata = yield url
         yield url
-        if metadata and row_number:
-            store_metadata_in_sheet(sink_sheet, row_number, metadata)
+        if retrieved_metadata and row_number:
+            store_metadata_in_sheet(sink_sheet, row_number, retrieved_metadata)
     sink_workbook.save(sinkfile_path)
     sink_workbook.close()
     source_workbook.close()
@@ -1089,21 +1089,22 @@ def get_url_from_row(row: tuple[Cell | MergedCell, ...]) -> str | None:
 def store_metadata_in_sheet(
     sheet: Worksheet,
     row: int,
-    metadata: dict[str, str],
+    new_metadata: dict[str, str],
     static: SimpleNamespace = SimpleNamespace(known_metadata = {}),  # noqa: B008
 ) -> None:
-    """Store *metadata* in provided *sheet* at given *row*.
+    """Store *new_metadata* in provided *sheet* at given *row*.
 
-    For new metadata, a new column is added to the *sheet*. For already
-    existing metadata, the value is added to the existing column.
+    For new metadata keys, a new column is added to the *sheet* and the
+    value is added there. For already existing metadata keys, the value
+    is added to the corresponding existing column.
     """
     # NOTE: since default parameters are evaluated just once, a typical
     # trick for simulating static variables in functions is using a fake
     # default parameter and using 'SimpleNamespace':
     # https://stackoverflow.com/a/51437838
-    if not metadata:
+    if not new_metadata:
         return
-    for key, value in metadata.items():
+    for key, value in new_metadata.items():
         if key not in static.known_metadata:
             column_header = Constants.SPREADSHEET_METADATA_COLUMN_TITLE.format(key)
             logger.debug(Messages.NEW_METADATA_FOUND.format(key))
@@ -1228,8 +1229,8 @@ def saca_las_mantecas(url: str, parser: BaseParser) -> dict[str, str]:  # noqa: 
 
     parser.feed(contents.decode(encoding))
     parser.close()
-    if metadata := parser.get_metadata():
-        return metadata
+    if retrieved_metadata := parser.get_metadata():
+        return retrieved_metadata
     raise SkimmingError(Messages.NO_METADATA_FOUND)
 
 
@@ -1379,10 +1380,10 @@ def main(*args: str) -> ExitCodes:
         logger.indent()
         for url in handler:
             logger.info(url)
-            metadata = {}
+            retrieved_metadata = {}
             try:
                 parser = get_parser(url, profiles)
-                metadata = saca_las_mantecas(url, parser)
+                retrieved_metadata = saca_las_mantecas(url, parser)
             except SkimmingError as exc:
                 logger.indent()
                 warning(str(exc))
@@ -1394,7 +1395,7 @@ def main(*args: str) -> ExitCodes:
                 # handler has to be 'advanced' to the next URL, so the
                 # metadata it is expecting has to be sent back to the
                 # handler.
-                handler.send(metadata)
+                handler.send(retrieved_metadata)
         logger.dedent()
     logger.dedent()
     return exitcode
