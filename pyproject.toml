@@ -5,6 +5,24 @@ requires = [
     "versioningit==3.3.0"
 ]
 
+[dependency-groups]
+dev = [
+    {include-group="freeze"},
+    {include-group="tests"},
+    {include-group="lint"},
+]
+freeze = [
+    "pyinstaller==6.19.0",
+]
+tests = [
+    "pytest==9.0.2",
+]
+lint = [
+    "pylint",
+    "vulture",
+    "ruff",
+]
+
 [project]
 name = "sacamantecas"
 dynamic = ["version"]
@@ -17,8 +35,6 @@ authors = [{name="Raúl Núñez de Arenas Coronado", email="raulnac@gmail.com"}]
 maintainers = [{name="Raúl Núñez de Arenas Coronado", email="raulnac@gmail.com"}]
 dependencies = [
     "openpyxl==3.1.3",
-    "pyinstaller==6.19.0",
-    "pytest==9.0.2",
 ]
 
 [project.urls]
