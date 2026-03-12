@@ -25,10 +25,7 @@ dependencies = [
 source = "https://github.com/DervishD/sacamantecas"
 issues = "https://github.com/DervishD/sacamantecas/issues"
 
-[tool.versioningit.next-version]
-method = "smallest"
-
 [tool.versioningit.format]
 dirty = "{base_version}+{rev}.dirty"
-distance = "{next_version}.dev{distance}+{rev}"
-distance-dirty = "{next_version}.dev{distance}+{rev}.dirty"
+distance = "{next_version}.post{distance}+{rev}"
+distance-dirty = "{next_version}.post{distance}+{rev}.dirty"

@@ -58,7 +58,7 @@ class Constants:  # pylint: disable=too-few-public-methods
     ).split(',')[1].strip()
     APP_PLATFORM = f'Windows {platform.version()};{platform.architecture()[0]};{platform.machine()}'
 
-    DEVELOPMENT_MODE = 'dev' in APP_VERSION
+    DEVELOPMENT_MODE = '.post' in APP_VERSION
 
     UTF8 = 'utf-8'
     ASCII = 'ascii'
