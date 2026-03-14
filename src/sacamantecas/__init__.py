@@ -32,7 +32,7 @@ from urllib.parse import quote, unquote, urlparse, urlunparse
 from urllib.request import Request, urlopen
 from zipfile import BadZipFile
 
-from legion import wait_for_keypress
+from legion import format_message, wait_for_keypress
 from openpyxl import load_workbook
 from openpyxl.cell.cell import Cell, MergedCell, TYPE_STRING as CELLTYPE_STRING
 from openpyxl.styles import Font, PatternFill
@@ -68,6 +68,7 @@ class Constants:  # pylint: disable=too-few-public-methods
     OUTPUT_SEPARATOR = ', '
 
     ERROR_MARKER = '*** '
+    WARNING_MARKER = '* '
     ERROR_PAYLOAD_INDENT = len(ERROR_MARKER)
 
     TIMESTAMP_FORMAT = '%Y%m%d_%H%M%S'
@@ -142,20 +143,23 @@ class Messages(StrEnum):
 
     PRESS_ANY_KEY = '\nPulse cualquier tecla para continuar...'
     KEYBOARD_INTERRUPT = 'El usuario interrumpió la operación de la aplicación.'
-    NO_ARGUMENTS = (
-        'No se han especificado fuentes de entrada para ser procesadas.\n'
+    NO_ARGUMENTS = 'No se han especificado fuentes de entrada para ser procesadas.'
+    NO_ARGUMENTS_DETAILS = (
         '\n'
         'Arrastre y suelte un fichero de entrada sobre el icono de la aplicación,\n'
         'o bien proporcione los nombres de las fuentes de entrada como argumentos.'
     )
 
     DEBUGGING_INIT = 'Registro de depuración iniciado.'
-    APP_BANNER = f'{Constants.APP_NAME} versión {Constants.APP_VERSION} ({Constants.APP_REPOSITORY})'
+    APP_REPOSITORY = Constants.APP_REPOSITORY and f' ({Constants.APP_REPOSITORY})'
+    APP_BANNER = f'{Constants.APP_NAME} versión {Constants.APP_VERSION}{APP_REPOSITORY}'
+
+    DEPENDENCY_BANNER = 'Usando paquete {}'
     PROCESS_DONE = '\nProceso finalizado.'
     DEBUGGING_DONE = 'Registro de depuración finalizado.'
 
-    ERROR_HEADER = f'\n{Constants.ERROR_MARKER}Error en {Constants.APP_NAME}.\n'
-    WARNING_HEADER = '* Aviso: '
+    ERROR_PREFIX = f'\n{Constants.ERROR_MARKER}Error: '
+    WARNING_PREFIX = f'{Constants.WARNING_MARKER}Aviso: '
     ERROR_DETAILS_HEADING = '\nInformación adicional sobre el error:'
     ERROR_DETAILS_PREAMBLE = '│ '
     ERROR_DETAILS_TAIL = '╰'
@@ -716,28 +720,25 @@ class Profile(NamedTuple):
 def error(message: str, details: str='') -> None:
     """Preprocess and log error *message*, including optional *details*.
 
-    Both an error marker and a header are prepended to *message*, and a
-    visual separator is prepended to *details*. In addition to this both
-    *message* and *details* are indented.
+    First, the initial letter of *message* is lowercased. Then, a fixed
+    prefix is prepended to *message*. Finally, the resulting string is
+    formatted together with *details* using `legion.format_message()`.
 
-    Finally, everything is logged using `logger.error()`.
+    The result is then logged using `logger.error()`.
     """
-    logger.set_indent(0)
-    logger.error(Messages.ERROR_HEADER)
-
-    logger.set_indent(Constants.ERROR_PAYLOAD_INDENT)
-    logger.error(message)
-
-    if details := details.strip():
-        logger.error(Messages.ERROR_DETAILS_HEADING)
-        logger.error('\n'.join(f'{Messages.ERROR_DETAILS_PREAMBLE}{line}' for line in details.split('\n')))
-        logger.error(Messages.ERROR_DETAILS_TAIL)
-    logger.set_indent(0)
+    prefixed_message = f'{Messages.ERROR_PREFIX}{message[0].lower()}{message[1:]}'
+    logger.error(format_message(prefixed_message, details, details_indent=' ' * len(Constants.ERROR_MARKER.lstrip())))
 
 
 def warning(message: str) -> None:
-    """Preprocess and log warning *message*."""
-    logger.warning('%s', Messages.WARNING_HEADER + message[0].lower() + message[1:])
+    """Preprocess and log warning *message*.
+
+    First, the initial letter of *message* is lowercased. Then, a fixed
+    prefix is prepended to *message*.
+
+    The result is then logged using `logger.warning()`.
+    """
+    logger.warning('%s', Messages.WARNING_PREFIX + message[0].lower() + message[1:])
 
 
 def excepthook(exc_type: type[BaseException], exc_value: BaseException, exc_traceback: TracebackType | None) -> None:
@@ -793,6 +794,8 @@ def loggerize(function: Callable[..., ExitCodes]) -> Callable[..., ExitCodes]:
 
         logger.debug(Messages.DEBUGGING_INIT)
         logger.info(Messages.APP_BANNER)
+        for required_package in metadata(Constants.APP_NAME).get_all('Requires-Dist', {}):
+            logger.debug(Messages.DEPENDENCY_BANNER.format(required_package.replace('==', ' v')))
         logger.debug(Constants.USER_AGENT)
 
         status = function(*args)

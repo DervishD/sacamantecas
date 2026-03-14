@@ -6,19 +6,16 @@ from typing import NamedTuple, TYPE_CHECKING
 import pytest
 
 from sacamantecas import Constants, error, logger, Messages, warning
+from tests.helpers import format_log_message, remove_logging_timestamps
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
     from helpers import LogPaths
 
-ERROR_HEADER = Messages.ERROR_HEADER
-ERROR_DETAILS_HEADING = Messages.ERROR_DETAILS_HEADING
-ERROR_DETAILS_PREAMBLE = Messages.ERROR_DETAILS_PREAMBLE
-ERROR_DETAILS_TAIL = Messages.ERROR_DETAILS_TAIL
-PAD = ' ' * Constants.ERROR_PAYLOAD_INDENT
-WARNING_HEADER = Messages.WARNING_HEADER
-LEVELNAME_SEPARATOR = Constants.LOGGING_LEVELNAME_SEPARATOR
+ERROR_PREFIX = Messages.ERROR_PREFIX
+WARNING_PREFIX = Messages.WARNING_PREFIX
+PADDING = ' ' * Constants.ERROR_PAYLOAD_INDENT
 
 
 def test_logging_paths_creation(log_paths: LogPaths) -> None:  # pylint: disable=unused-variable
@@ -40,50 +37,47 @@ def test_logging_paths_creation(log_paths: LogPaths) -> None:  # pylint: disable
 #   - The expected stderr output.
 class Expected(NamedTuple):
     """Expected output abstraction."""  # noqa: D204
-    log: str
-    debug: str
-    out: str
-    err: str
+    log: list[str]
+    debug: list[str]
+    out: list[str]
+    err: list[str]
 TEST_MESSAGE = 'Test message'
 @pytest.mark.parametrize(('logfunc', 'expected'), [
     (logger.debug, Expected(
-        '',
-        f'DEBUG   {LEVELNAME_SEPARATOR}{TEST_MESSAGE}',
-        '',
-        '',
+        [],
+        format_log_message(TEST_MESSAGE, levelname='DEBUG'),
+        [],
+        [],
     )),
     (logger.info, Expected(
-        TEST_MESSAGE,
-        f'INFO    {LEVELNAME_SEPARATOR}{TEST_MESSAGE}',
-        f'{TEST_MESSAGE}\n',
-        '',
+        format_log_message(TEST_MESSAGE),
+        format_log_message(TEST_MESSAGE, levelname='INFO'),
+        format_log_message(TEST_MESSAGE),
+        [],
     )),
     (logger.warning, Expected(
-        TEST_MESSAGE,
-        f'WARNING {LEVELNAME_SEPARATOR}{TEST_MESSAGE}',
-        '',
-        f'{TEST_MESSAGE}\n',
+        format_log_message(TEST_MESSAGE),
+        format_log_message(TEST_MESSAGE, levelname='WARNING'),
+        [],
+        format_log_message(TEST_MESSAGE),
     )),
     (logger.error, Expected(
-        TEST_MESSAGE,
-        f'ERROR   {LEVELNAME_SEPARATOR}{TEST_MESSAGE}',
-        '',
-        f'{TEST_MESSAGE}\n',
+        format_log_message(TEST_MESSAGE),
+        format_log_message(TEST_MESSAGE, levelname='ERROR'),
+        [],
+        format_log_message(TEST_MESSAGE),
     )),
     (warning, Expected(
-        f'{WARNING_HEADER}{TEST_MESSAGE[0].lower()}{TEST_MESSAGE[1:]}',
-        f'WARNING {LEVELNAME_SEPARATOR}{WARNING_HEADER}{TEST_MESSAGE[0].lower()}{TEST_MESSAGE[1:]}',
-        '',
-        f'{WARNING_HEADER}{TEST_MESSAGE[0].lower()}{TEST_MESSAGE[1:]}\n',
+        format_log_message(f'{WARNING_PREFIX}{TEST_MESSAGE[0].lower()}{TEST_MESSAGE[1:]}'),
+        format_log_message(f'{WARNING_PREFIX}{TEST_MESSAGE[0].lower()}{TEST_MESSAGE[1:]}', levelname='WARNING'),
+        [],
+        format_log_message(f'{WARNING_PREFIX}{TEST_MESSAGE[0].lower()}{TEST_MESSAGE[1:]}'),
     )),
     (error, Expected(
-        '\n'.join((ERROR_HEADER, f'{PAD}{TEST_MESSAGE}'.rstrip())),
-        '\n'.join((
-            '\n'.join(f'ERROR   {LEVELNAME_SEPARATOR}{line}'.rstrip() for line in ERROR_HEADER.split('\n')),
-            '\n'.join(f'ERROR   {LEVELNAME_SEPARATOR}{PAD}{line}'.rstrip() for line in TEST_MESSAGE.split('\n')),
-        )),
-        '',
-        '\n'.join((ERROR_HEADER, f'{PAD}{TEST_MESSAGE}', '')),
+        format_log_message(f'{ERROR_PREFIX}{TEST_MESSAGE[0].lower()}{TEST_MESSAGE[1:]}'),
+        format_log_message(f'{ERROR_PREFIX}{TEST_MESSAGE[0].lower()}{TEST_MESSAGE[1:]}', levelname='ERROR'),
+        [],
+        format_log_message(f'{ERROR_PREFIX}{TEST_MESSAGE[0].lower()}{TEST_MESSAGE[1:]}'),
     )),
 ], ids=[
     'test_logger_debug',
@@ -107,22 +101,16 @@ def test_logging_functions(
 
     logging.shutdown()
 
-    main_log_file_contents = log_paths.log.read_text(encoding='utf-8').splitlines()
-    main_log_file_contents = [' '.join(line.split(' ')[1:]) for line in main_log_file_contents]
-    main_log_file_contents = '\n'.join(main_log_file_contents)
+    main_log_file_contents = remove_logging_timestamps(log_paths.log.read_text(encoding=Constants.UTF8).split('\n'))
+    assert main_log_file_contents == [*expected.log, '']
 
-    assert main_log_file_contents == expected.log
-
-    full_log_file_contents = log_paths.trace.read_text(encoding='utf-8').splitlines()
-    full_log_file_contents = [' '.join(line.split(' ')[1:]) for line in full_log_file_contents]
-    full_log_file_contents = '\n'.join(full_log_file_contents)
-
-    assert full_log_file_contents == expected.debug
+    full_log_file_contents = remove_logging_timestamps(log_paths.trace.read_text(encoding=Constants.UTF8).split('\n'))
+    assert full_log_file_contents == [*expected.debug, '']
 
     captured_output = capsys.readouterr()
 
-    assert captured_output.out == expected.out
-    assert captured_output.err == expected.err
+    assert captured_output.out.split('\n') == [*expected.out, '']
+    assert captured_output.err.split('\n') == [*expected.err, '']
 
 
 # pylint: disable-next=unused-variable
@@ -135,34 +123,26 @@ def test_error_details(log_paths: LogPaths, capsys: pytest.CaptureFixture[str]) 
 
     logging.shutdown()
 
-    expected = '\n'.join((
-        ERROR_HEADER,
-        '\n'.join(f'{PAD}{line}'.rstrip() for line in (
-            TEST_MESSAGE.split('\n') +
-            ERROR_DETAILS_HEADING.split('\n') +
-            [f'{ERROR_DETAILS_PREAMBLE}{line}' for line in details.split('\n')] +
-            ERROR_DETAILS_TAIL.split('\n')
-        )),
+    message = TEST_MESSAGE[0].lower() + TEST_MESSAGE[1:]
+    main_log_file_contents = remove_logging_timestamps(log_paths.log.read_text(encoding=Constants.UTF8).split('\n'))
+    expected = [
+        *format_log_message(f'{Messages.ERROR_PREFIX}{message}'),
+        *format_log_message(details, padding=PADDING),
         '',
-    ))
-
-    main_log_file_contents = log_paths.log.read_text(encoding='utf-8').split('\n')
-    main_log_file_contents = [' '.join(line.split(' ')[1:]) for line in main_log_file_contents]
-    main_log_file_contents = '\n'.join(main_log_file_contents)
-
+    ]
     assert main_log_file_contents == expected
 
-    full_log_file_contents = log_paths.trace.read_text(encoding='utf-8').split('\n')
-    full_log_file_contents = [line.split(LEVELNAME_SEPARATOR, maxsplit=1)[1:] for line in full_log_file_contents]
-    full_log_file_contents = [''.join(line) for line in full_log_file_contents]
-    full_log_file_contents = '\n'.join(full_log_file_contents)
-
-    assert full_log_file_contents == expected
-
     captured_output = capsys.readouterr()
-
     assert not captured_output.out
-    assert captured_output.err == expected
+    assert captured_output.err.split('\n') == expected
+
+    full_log_file_contents = remove_logging_timestamps(log_paths.trace.read_text(encoding=Constants.UTF8).split('\n'))
+    expected = [
+        *format_log_message(f'{Messages.ERROR_PREFIX}{message}', levelname='ERROR'),
+        *format_log_message(details, padding=PADDING, levelname='ERROR'),
+        '',
+    ]
+    assert full_log_file_contents == expected
 
 
 @pytest.mark.parametrize('message', [

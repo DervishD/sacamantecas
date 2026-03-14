@@ -62,7 +62,7 @@ def test_single_url_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> 
     assert len(urls) == 1
     assert urls[0] == SAMPLE_URLS[0]
 
-    result = sinkfile_path.read_text().rstrip(Constants.TEXTSINK_METADATA_FOOTER).splitlines()
+    result = sinkfile_path.read_text().rstrip(Constants.TEXTSINK_METADATA_FOOTER).split('\n')
 
     assert result[0] == SAMPLE_URLS[0]
 
@@ -99,7 +99,7 @@ def test_textfile_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> No
 
     result: dict[str, dict[str, str]] = {}
     current_k = None
-    for line in sinkfile_path.read_text().rstrip(Constants.TEXTSINK_METADATA_FOOTER).splitlines():
+    for line in sinkfile_path.read_text().rstrip(Constants.TEXTSINK_METADATA_FOOTER).split('\n'):
         if not line.rstrip():
             continue
         if line.startswith(Constants.TEXTSINK_METADATA_INDENT) and current_k is not None:

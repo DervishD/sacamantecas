@@ -53,6 +53,7 @@ def test_keyboard_interrupt_handler(log_paths: LogPaths, capsys: pytest.CaptureF
     logging.shutdown()
 
     result = capsys.readouterr().err.rstrip()
-    expected = f'{Messages.WARNING_HEADER}{Messages.KEYBOARD_INTERRUPT[0].lower()}{Messages.KEYBOARD_INTERRUPT[1:]}'
+    message = Messages.KEYBOARD_INTERRUPT[0].lower() + Messages.KEYBOARD_INTERRUPT[1:]
+    expected = f'{Messages.WARNING_PREFIX}{message}'
 
     assert result == expected

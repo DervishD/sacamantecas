@@ -1,9 +1,11 @@
 #! /usr/bin/env python3
 """Test suite for `main()` function."""
 
+from importlib.metadata import metadata
 from typing import TYPE_CHECKING
 
 from sacamantecas import Constants, ExitCodes, main, Messages
+from tests.helpers import format_log_message, remove_logging_timestamps
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -11,8 +13,7 @@ if TYPE_CHECKING:
     from helpers import LogPaths
     import pytest
 
-PAD = ' ' * Constants.ERROR_PAYLOAD_INDENT
-LEVELNAME_SEPARATOR = Constants.LOGGING_LEVELNAME_SEPARATOR
+PADDING = ' ' * Constants.ERROR_PAYLOAD_INDENT
 
 def test_logging_setup(log_paths: LogPaths, monkeypatch: pytest.MonkeyPatch) -> None:  # pylint: disable=unused-variable
     """Test for proper logging setup."""
@@ -35,30 +36,35 @@ def test_no_arguments(log_paths: LogPaths, monkeypatch: pytest.MonkeyPatch) -> N
 
     assert main() == ExitCodes.NO_ARGUMENTS
 
-    result = log_paths.log.read_text(encoding='utf-8').splitlines()
-    result = '\n'.join([' '.join(line.split(' ')[1:]) for line in result])
-    expected = '\n'.join((
-        Messages.APP_BANNER,
-        Messages.ERROR_HEADER,
-        '\n'.join(f'{PAD}{line}'.rstrip() for line in Messages.NO_ARGUMENTS.split('\n')),
-        Messages.PROCESS_DONE,
-    ))
+    message = Messages.NO_ARGUMENTS[0].lower() + Messages.NO_ARGUMENTS[1:]
 
-    assert result == expected
+    result = remove_logging_timestamps(log_paths.log.read_text(encoding=Constants.UTF8).split('\n'))
+    expected_log = [
+        *format_log_message(Messages.APP_BANNER),
+        *format_log_message(f'{Messages.ERROR_PREFIX}{message}'),
+        *format_log_message(Messages.NO_ARGUMENTS_DETAILS, padding=PADDING),
+        *format_log_message(Messages.PROCESS_DONE),
+        '',
+    ]
 
-    result = log_paths.trace.read_text(encoding='utf-8').splitlines()
-    result = '\n'.join([' '.join(line.split(' ')[1:]) for line in result])
-    expected = '\n'.join((
-        f'DEBUG   {LEVELNAME_SEPARATOR}{Messages.DEBUGGING_INIT}',
-        f'INFO    {LEVELNAME_SEPARATOR}{Messages.APP_BANNER}',
-        f'DEBUG   {LEVELNAME_SEPARATOR}{Constants.USER_AGENT}',
-        '\n'.join(f'ERROR   {LEVELNAME_SEPARATOR}{line}'.rstrip() for line in Messages.ERROR_HEADER.split('\n')),
-        '\n'.join(f'ERROR   {LEVELNAME_SEPARATOR}{PAD}{line}'.rstrip() for line in Messages.NO_ARGUMENTS.split('\n')),
-        '\n'.join(f'INFO    {LEVELNAME_SEPARATOR}{line}'.rstrip() for line in Messages.PROCESS_DONE.split('\n')),
-        f'DEBUG   {LEVELNAME_SEPARATOR}{Messages.DEBUGGING_DONE}',
-    ))
+    assert result == expected_log
 
-    assert result == expected
+    result = remove_logging_timestamps(log_paths.trace.read_text(encoding=Constants.UTF8).split('\n'))
+    dependency_packages = metadata(Constants.APP_NAME).get_all('Requires-Dist', {})
+    dependency_banners = [Messages.DEPENDENCY_BANNER.format(pkg.replace('==', ' v')) for pkg in dependency_packages]
+    expected_trace = [
+        *format_log_message(Messages.DEBUGGING_INIT, levelname='DEBUG'),
+        *format_log_message(Messages.APP_BANNER, levelname='INFO'),
+        *format_log_message('\n'.join(dependency_banners), levelname='DEBUG'),
+        *format_log_message(Constants.USER_AGENT, levelname='DEBUG'),
+        *format_log_message(f'{Messages.ERROR_PREFIX}{message}', levelname='ERROR'),
+        *format_log_message(Messages.NO_ARGUMENTS_DETAILS, levelname='ERROR', padding=PADDING),
+        *format_log_message(Messages.PROCESS_DONE, levelname='INFO'),
+        *format_log_message(Messages.DEBUGGING_DONE, levelname='DEBUG'),
+        '',
+    ]
+
+    assert result == expected_trace
 
 
 # pylint: disable-next=unused-variable
@@ -77,8 +83,9 @@ def test_missing_ini(
 
     assert main('') == ExitCodes.ERROR
 
-    result = capsys.readouterr().err.splitlines()[3].strip()
-    expected = f'No se encontró o no se pudo leer el fichero de perfiles «{path}».'
+    result = '\n'.join(capsys.readouterr().err.split('\n')[0:2])
+    message = Messages.MISSING_PROFILES.format(path)
+    expected = f'{Messages.ERROR_PREFIX}{message[0].lower() + message[1:]}'
 
     assert result == expected
 
@@ -100,8 +107,9 @@ def test_ini_syntax_error(
 
     assert main('') == ExitCodes.ERROR
 
-    result = capsys.readouterr().err.splitlines()[3].strip()
-    expected = 'Error de sintaxis «MissingSectionHeader» leyendo el fichero de perfiles.'
+    result = '\n'.join(capsys.readouterr().err.split('\n')[0:2])
+    message = Messages.PROFILES_WRONG_SYNTAX.format('MissingSectionHeader')
+    expected = f'{Messages.ERROR_PREFIX}{message[0].lower() + message[1:]}'
 
     assert result == expected
 
