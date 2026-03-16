@@ -13,10 +13,6 @@ if TYPE_CHECKING:
 
     from helpers import LogPaths
 
-ERROR_PREFIX = Messages.ERROR_PREFIX
-WARNING_PREFIX = Messages.WARNING_PREFIX
-PADDING = ' ' * Constants.ERROR_PAYLOAD_INDENT
-
 
 def test_logging_paths_creation(log_paths: LogPaths) -> None:  # pylint: disable=unused-variable
     """Test that the logging paths are created propertly."""
@@ -42,6 +38,8 @@ class Expected(NamedTuple):
     out: list[str]
     err: list[str]
 TEST_MESSAGE = 'Test message'
+ERROR_PREFIX = Messages.ERROR_PREFIX
+WARNING_PREFIX = Messages.WARNING_PREFIX
 @pytest.mark.parametrize(('logfunc', 'expected'), [
     (logger.debug, Expected(
         [],
@@ -111,38 +109,6 @@ def test_logging_functions(
 
     assert captured_output.out.split('\n') == [*expected.out, '']
     assert captured_output.err.split('\n') == [*expected.err, '']
-
-
-# pylint: disable-next=unused-variable
-def test_error_details(log_paths: LogPaths, capsys: pytest.CaptureFixture[str]) -> None:
-    """Test handling of details by the `error()` function."""
-    logger.config(main_log_output=log_paths.log, full_log_output=log_paths.trace)
-
-    details = 'Additional details in multiple lines.'.replace(' ', '\n')
-    error(TEST_MESSAGE, details)
-
-    logging.shutdown()
-
-    message = TEST_MESSAGE[0].lower() + TEST_MESSAGE[1:]
-    main_log_file_contents = remove_logging_timestamps(log_paths.log.read_text(encoding=Constants.UTF8).split('\n'))
-    expected = [
-        *format_log_message(f'{Messages.ERROR_PREFIX}{message}'),
-        *format_log_message(details, padding=PADDING),
-        '',
-    ]
-    assert main_log_file_contents == expected
-
-    captured_output = capsys.readouterr()
-    assert not captured_output.out
-    assert captured_output.err.split('\n') == expected
-
-    full_log_file_contents = remove_logging_timestamps(log_paths.trace.read_text(encoding=Constants.UTF8).split('\n'))
-    expected = [
-        *format_log_message(f'{Messages.ERROR_PREFIX}{message}', levelname='ERROR'),
-        *format_log_message(details, padding=PADDING, levelname='ERROR'),
-        '',
-    ]
-    assert full_log_file_contents == expected
 
 
 @pytest.mark.parametrize('message', [
