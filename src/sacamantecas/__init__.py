@@ -16,7 +16,7 @@ import errno
 from functools import partial, wraps
 from html.parser import HTMLParser
 from http.client import HTTPException
-from importlib.metadata import metadata, PackageNotFoundError, version
+from importlib.metadata import metadata, requires, version
 import logging
 from logging.config import dictConfig
 from pathlib import Path
@@ -53,9 +53,9 @@ class Constants:  # pylint: disable=too-few-public-methods
     APP_NAME = 'sacamantecas'
     APP_VERSION = version(APP_NAME)
     APP_REPOSITORY = next(
-        (url for url in get_app_metadata(APP_NAME).get_all('Project-URL', []) if url.startswith('source')),
+        (url for url in metadata(APP_NAME).get_all('Project-URL', []) if url.startswith('source')),
         '',
-    ).split(',')[1].strip()
+    ).split(', ', maxsplit=1)[1]
     APP_PLATFORM = f'Windows {platform.version()};{platform.architecture()[0]};{platform.machine()}'
 
     DEVELOPMENT_MODE = '.post' in APP_VERSION
@@ -791,7 +791,7 @@ def loggerize(function: Callable[..., ExitCodes]) -> Callable[..., ExitCodes]:
 
         logger.debug(Messages.DEBUGGING_INIT)
         logger.info(Messages.APP_BANNER)
-        for required_package in metadata(Constants.APP_NAME).get_all('Requires-Dist', {}):
+        for required_package in requires(Constants.APP_NAME) or []:
             logger.debug(Messages.DEPENDENCY_BANNER.format(required_package.replace('==', ' v')))
         logger.debug(Constants.USER_AGENT)
 
