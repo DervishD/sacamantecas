@@ -15,6 +15,7 @@ class UsageTrackerVisitor(ast.NodeVisitor):
         """Initialize visitor with class name."""
         self.class_name = class_name
         self.within_classdef = False
+        self.within_methoddef = False
         self.within_attributedef = False
         self.unused_attributes: set[str] = set()
 
@@ -25,9 +26,16 @@ class UsageTrackerVisitor(ast.NodeVisitor):
         self.generic_visit(node)
         self.within_classdef = False
 
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:  # pylint: disable=invalid-name
+        """Mark function definitions within a class for further processing."""
+        if self.within_classdef:
+            self.within_methoddef = True
+        self.generic_visit(node)
+        self.within_methoddef = False
+
     def visit_Assign(self, node: ast.Assign) -> None:  # pylint: disable=invalid-name
         """Mark class attribute definitions for further processing."""
-        if self.within_classdef:
+        if self.within_classdef and not self.within_methoddef:
             for target in node.targets:
                 if not isinstance(target, ast.Name):
                     continue
@@ -54,7 +62,10 @@ class UsageTrackerVisitor(ast.NodeVisitor):
         self.unused_attributes.discard(node.attr)
 
 
-CODETREE = ast.parse(inspect.getsource(sacamantecas))
+@pytest.fixture(scope='module', name='codetree')
+def get_parsed_codetree() -> ast.Module:  # pylint: disable=unused-variable
+    """Fixture to get the parsed code tree of the module under test."""
+    return ast.parse(inspect.getsource(sacamantecas))
 
 
 @pytest.mark.parametrize('classname', [
@@ -66,9 +77,9 @@ CODETREE = ast.parse(inspect.getsource(sacamantecas))
     'test_no_unused_Messages',
     'test_no_unused_Exitcodes',
 ])
-def test_no_unused_attributes(classname: str) -> None:   # pylint: disable=unused-variable
+def test_no_unused_attributes(classname: str, codetree: ast.Module) -> None:  # pylint: disable=unused-variable
     """Test that all attributes in classname are used."""
     visitor = UsageTrackerVisitor(classname)
-    visitor.visit(CODETREE)
+    visitor.visit(codetree)
 
     assert visitor.unused_attributes == set()
