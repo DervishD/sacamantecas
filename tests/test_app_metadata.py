@@ -27,7 +27,7 @@ from sacamantecas import Constants
 # the one provided in 'PyPA' documentation.
 VERSION_REGEX = r"""^
     (0|[1-9][0-9]*)(\.(0|[1-9][0-9]*)){2}  # Release segment
-    (\.dev(0|[1-9][0-9]*))?                # 'dev' release segment
+    (\.post(0|[1-9][0-9]*))?               # '.post' release segment
     (\+[0-9a-f]{7}(?:\.dirty)?)?           # Local version identifier
 $"""
 
