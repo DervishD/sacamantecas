@@ -4,7 +4,7 @@ Build application executable for `Win32` in a virtual environment and
 pack it together with the corresponding `.ini` file in a `.zip` file for
 distribution.
 """
-from importlib.metadata import metadata
+from importlib.metadata import requires
 import os
 from pathlib import Path
 from subprocess import CalledProcessError, CompletedProcess, run
@@ -103,7 +103,7 @@ def is_venv_ready(venv_path: Path) -> bool:
 
 def get_required_packages(distribution: str) -> set[str]:
     """Get the set of required packages for *distribution*."""
-    return set(metadata(distribution).get_all('Requires-Dist', {}))
+    return set(requires(distribution) or {})
 
 
 def are_required_packages_installed(required_packages: set[str]) -> bool:
