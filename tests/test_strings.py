@@ -22,7 +22,7 @@ ALLOWED_STRINGS = (
     'full_log_handler', 'main_log_handler', 'stdout_handler', 'stderr_handler',
     'loggers', 'handlers', 'formatters', 'filters',
     # Miscellaneous strings.
-    'Project-URL', ',', 'source', 'reconfigure', 'dev',
+    'Project-URL', ', ', 'source', 'reconfigure', '.post', '==', ' v',
 )
 
 class UnrefactoredStringsFinderVisitor(ast.NodeVisitor):
