@@ -160,9 +160,6 @@ class Messages(StrEnum):
 
     ERROR_PREFIX = f'\n{Constants.ERROR_MARKER}Error: '
     WARNING_PREFIX = f'{Constants.WARNING_MARKER}Aviso: '
-    ERROR_DETAILS_HEADING = '\nInformación adicional sobre el error:'
-    ERROR_DETAILS_PREAMBLE = '│ '
-    ERROR_DETAILS_TAIL = '╰'
 
     UNEXPECTED_OSERROR = 'Error inesperado del sistema operativo.'
     OSERROR_DETAILS = (
@@ -727,7 +724,7 @@ def error(message: str, details: str='') -> None:
     The result is then logged using `logger.error()`.
     """
     prefixed_message = f'{Messages.ERROR_PREFIX}{message[0].lower()}{message[1:]}'
-    logger.error(format_message(prefixed_message, details, details_indent=' ' * len(Constants.ERROR_MARKER.lstrip())))
+    logger.error(format_message(prefixed_message, details, details_indent=' ' * Constants.ERROR_PAYLOAD_INDENT))
 
 
 def warning(message: str) -> None:
@@ -1357,7 +1354,7 @@ def main(*args: str) -> ExitCodes:
         # so it is better to signal the end user with an error and give
         # an explanation if no input arguments are provided, as soon as
         # possible.
-        error(Messages.NO_ARGUMENTS)
+        error(Messages.NO_ARGUMENTS, Messages.NO_ARGUMENTS_DETAILS)
         return ExitCodes.NO_ARGUMENTS
 
     try:
