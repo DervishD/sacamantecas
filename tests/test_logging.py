@@ -11,7 +11,7 @@ from tests.helpers import format_log_message, remove_logging_timestamps
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from helpers import LogPaths
+    from tests.helpers import LogPaths
 
 
 def test_logging_paths_creation(log_paths: LogPaths) -> None:  # pylint: disable=unused-variable

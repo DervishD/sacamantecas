@@ -10,8 +10,9 @@ from tests.helpers import format_log_message, remove_logging_timestamps
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from helpers import LogPaths
     import pytest
+
+    from tests.helpers import LogPaths
 
 PADDING = ' ' * Constants.ERROR_PAYLOAD_INDENT
 

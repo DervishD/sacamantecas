@@ -8,7 +8,7 @@ import pytest
 from sacamantecas import Constants, ExitCodes, keyboard_interrupt_handler, logger, loggerize, Messages
 
 if TYPE_CHECKING:
-    from helpers import LogPaths
+    from tests.helpers import LogPaths
 
 
 @loggerize
