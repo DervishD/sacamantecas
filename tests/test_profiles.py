@@ -21,7 +21,7 @@ from sacamantecas import (
 )
 
 
-def test_missing(tmp_path: Path) -> None: # pylint: disable=unused-variable
+def test_missing(tmp_path: Path) -> None:  # pylint: disable=unused-variable
     """Test for missing profiles configuration file."""
     path = tmp_path / 'non_existent.ini'
     with pytest.raises(ProfilesError) as excinfo:
