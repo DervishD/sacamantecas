@@ -16,7 +16,7 @@ class LogPaths(NamedTuple):  # pylint: disable=unused-variable
 
 
 def remove_logging_timestamps (contents: Sequence[str]) -> Sequence[str]:  # pylint: disable=unused-variable
-    """Retrieve *logfile* contents, removing timestamps."""
+    """Process *contents*, removing timestamps."""
     return [' '.join(line.split(' ')[1:]) for line in contents]
 
 
