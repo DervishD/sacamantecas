@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 """See 'README.md' for details."""
-import sys  # noqa: I001
+import sys
+
 if sys.platform != 'win32':
     sys.stdout.write('\nThis program is compatible only with the Win32 platform.\n')
     sys.stdout.flush()
@@ -24,8 +25,7 @@ import platform
 import re
 from shutil import copy2
 import time
-import traceback as tb
-from types import SimpleNamespace, TracebackType
+from types import SimpleNamespace
 from typing import Any, cast, ClassVar, LiteralString, NamedTuple, TYPE_CHECKING
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, unquote, urlparse, urlunparse
@@ -161,24 +161,9 @@ class Messages(StrEnum):
     ERROR_PREFIX = f'\n{Constants.ERROR_MARKER}Error: '
     WARNING_PREFIX = f'{Constants.WARNING_MARKER}Aviso: '
 
-    UNEXPECTED_OSERROR = 'Error inesperado del sistema operativo.'
-    OSERROR_DETAILS = (
-        '     type = {}\n'
-        '    errno = {}\n'
-        ' winerror = {}\n'
-        ' strerror = {}\n'
-        ' filename = {}\n'
-        'filename2 = {}\n'
-    )
-    OSERROR_DETAIL_NA = '[No disponible]'
-    UNHANDLED_EXCEPTION = 'Excepción sin gestionar.'
-    EXCEPTION_DETAILS = 'type = {}\nvalue = {}\nargs: {}'
-    EXCEPTION_DETAILS_ARG = '\n  [{}] {}'
-    TRACEBACK_HEADER = '\n\ntraceback:\n{}'
-    TRACEBACK_FRAME_HEADER = '▸ {}\n'
-    TRACEBACK_FRAME_LINE = '  {}, {}: {}\n'
-    TRACEBACK_TOPLEVEL_FRAME = '<module>'
     UNKNOWN_ERRNO = 'desconocido'
+
+    UNHANDLED_EXCEPTION = 'Excepción sin gestionar'
 
     PROCESSING_ARG = 'Procesando argumento «{}».'
     ARG_IS_SOURCE_SINGLE_URL = 'El argumento es una fuente de tipo single_url.'
@@ -736,51 +721,6 @@ def warning(message: str) -> None:
     The result is then logged using `logger.warning()`.
     """
     logger.warning('%s', Messages.WARNING_PREFIX + message[0].lower() + message[1:])
-
-
-def excepthook(exc_type: type[BaseException], exc_value: BaseException, exc_traceback: TracebackType | None) -> None:
-    """Log unhandled exceptions. Default exception hook.
-
-    Unhandled exceptions are logged, using the provided arguments, that
-    is, the exception type (*exc_type*), its value (*exc_value*) and the
-    associated traceback (*exc_traceback*).
-
-    For `OSError` exceptions a different format is used, which includes
-    any additional `OSError` information, and no traceback is logged.
-
-    For any other exception, a generic message is logged together with
-    the traceback, if available.
-    """
-    if isinstance(exc_value, OSError):
-        message = Messages.UNEXPECTED_OSERROR
-        errno_message = Messages.OSERROR_DETAIL_NA
-        if exc_value.errno:
-            with contextlib.suppress(IndexError):
-                errno_message = errno.errorcode[exc_value.errno]
-        details = Messages.OSERROR_DETAILS.format(
-            exc_type.__name__,
-            errno_message,
-            exc_value.winerror or Messages.OSERROR_DETAIL_NA,
-            exc_value.strerror,
-            Messages.OSERROR_DETAIL_NA if exc_value.filename is None else exc_value.filename,
-            Messages.OSERROR_DETAIL_NA if exc_value.filename2 is None else exc_value.filename2,
-        )
-    else:
-        message = Messages.UNHANDLED_EXCEPTION
-        args = ''
-        for arg in exc_value.args:
-            args += Messages.EXCEPTION_DETAILS_ARG.format(type(arg).__name__, arg)
-        details = Messages.EXCEPTION_DETAILS.format(exc_type.__name__, str(exc_value), args)
-    current_frame_source_path = None
-    traceback = ''
-    for frame in tb.extract_tb(exc_traceback):
-        if current_frame_source_path != frame.filename:
-            traceback += Messages.TRACEBACK_FRAME_HEADER.format(frame.filename)
-            current_frame_source_path = frame.filename
-        frame.name = Constants.APP_NAME if frame.name == Messages.TRACEBACK_TOPLEVEL_FRAME else frame.name
-        traceback += Messages.TRACEBACK_FRAME_LINE.format(frame.lineno, frame.name, frame.line)
-    details += Messages.TRACEBACK_HEADER.format(traceback) if traceback else ''
-    error(message, details)
 
 
 def loggerize(function: Callable[..., ExitCodes]) -> Callable[..., ExitCodes]:
@@ -1403,5 +1343,5 @@ def main(*args: str) -> ExitCodes:
 
 if __name__ == '__main__':
     atexit.register(partial(wait_for_keypress, Messages.PRESS_ANY_KEY))
-    sys.excepthook = excepthook
+    sys.excepthook = partial(excepthook, heading=Messages.UNHANDLED_EXCEPTION)
     sys.exit(main(*sys.argv[1:]))
