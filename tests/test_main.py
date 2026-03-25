@@ -1,16 +1,19 @@
 #! /usr/bin/env python3
 """Test suite for `main()` function."""
-
-from typing import TYPE_CHECKING
+import logging
+from typing import NoReturn
 
 from legion import format_message
+import pytest
 
-from sacamantecas import Constants, ExitCodes, main, Messages
-
-if TYPE_CHECKING:
-    from pathlib import Path
-
-    import pytest
+from sacamantecas import (
+    Constants,
+    ExitCodes,
+    keyboard_interrupt_handler,
+    logger,
+    main,
+    Messages,
+)
 
 
 # pylint: disable-next=unused-variable
@@ -34,48 +37,25 @@ def test_no_arguments(
     assert captured.err == expected
 
 
-# pylint: disable-next=unused-variable
-def test_missing_ini(
-    monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    """Test for missing main INI file."""
-    monkeypatch.setattr(Constants, 'MAIN_OUTPUT_PATH', None)
-    monkeypatch.setattr(Constants, 'FULL_OUTPUT_PATH', None)
-
-    path = tmp_path / 'non_existent.ini'
-    monkeypatch.setattr(Constants, 'INIFILE_PATH', path)
-
-    assert main('') == ExitCodes.ERROR
-
-    result = '\n'.join(capsys.readouterr().err.split('\n')[0:2])
-    message = Messages.MISSING_PROFILES.format(path)
-    expected = f'{Messages.ERROR_PREFIX}{message[0].lower() + message[1:]}'
-
-    assert result == expected
+@keyboard_interrupt_handler
+def interrupted_function() -> NoReturn:
+    """Mock function to be decorated."""
+    raise KeyboardInterrupt
 
 
-# pylint: disable-next=unused-variable
-def test_ini_syntax_error(
-    monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    """Test for syntax errors in INI file."""
-    monkeypatch.setattr(Constants, 'MAIN_OUTPUT_PATH', None)
-    monkeypatch.setattr(Constants, 'FULL_OUTPUT_PATH', None)
+def test_keyboard_interrupt_handler(capsys: pytest.CaptureFixture[str]) -> None:  # pylint: disable=unused-variable
+    """Test the `keyboard_interrupt_handler()` decorator."""
+    logger.config(main_log_output=None, full_log_output=None)
 
-    path = tmp_path / 'profiles_syntax_error.ini'
-    path.write_text('o')
-    monkeypatch.setattr(Constants, 'INIFILE_PATH', path)
+    try:
+        interrupted_function()
+    except KeyboardInterrupt as exc:
+        pytest.fail(f'Unexpected exception «{type(exc).__name__}{exc.args}»', pytrace=False)
 
-    assert main('') == ExitCodes.ERROR
+    logging.shutdown()
 
-    result = '\n'.join(capsys.readouterr().err.split('\n')[0:2])
-    message = Messages.PROFILES_WRONG_SYNTAX.format('MissingSectionHeader')
-    expected = f'{Messages.ERROR_PREFIX}{message[0].lower() + message[1:]}'
+    result = capsys.readouterr().err.rstrip()
+    message = Messages.KEYBOARD_INTERRUPT[0].lower() + Messages.KEYBOARD_INTERRUPT[1:]
+    expected = f'{Messages.WARNING_PREFIX}{message}'
 
     assert result == expected
-
-    path.unlink()
