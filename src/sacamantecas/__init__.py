@@ -69,7 +69,7 @@ class Constants:  # pylint: disable=too-few-public-methods
 
     ERROR_MARKER = '*** '
     WARNING_MARKER = '* '
-    ERROR_PAYLOAD_INDENT = len(ERROR_MARKER)
+    ERROR_PAYLOAD_INDENTATION = ' ' * len(ERROR_MARKER)
 
     TIMESTAMP_FORMAT = '%Y%m%d_%H%M%S'
 
@@ -143,8 +143,8 @@ class Messages(StrEnum):
 
     PRESS_ANY_KEY = '\nPulse cualquier tecla para continuar...'
     KEYBOARD_INTERRUPT = 'El usuario interrumpió la operación de la aplicación.'
-    NO_ARGUMENTS = 'No se han especificado fuentes de entrada para ser procesadas.'
-    NO_ARGUMENTS_DETAILS = (
+    NO_ARGUMENTS_HEADING = 'No se han especificado fuentes de entrada para ser procesadas.'
+    NO_ARGUMENTS_INSTRUCTIONS = (
         '\n'
         'Arrastre y suelte un fichero de entrada sobre el icono de la aplicación,\n'
         'o bien proporcione los nombres de las fuentes de entrada como argumentos.'
@@ -699,17 +699,17 @@ class Profile(NamedTuple):
     parser_config: dict[str, re.Pattern[str]]
 
 
-def error(message: str, details: str='') -> None:
-    """Preprocess and log error *message*, including optional *details*.
+def error(heading: str, message: str) -> None:
+    """Preprocess and log error *message*, prepending *heading*.
 
-    First, the initial letter of *message* is lowercased. Then, a fixed
-    prefix is prepended to *message*. Finally, the resulting string is
-    formatted together with *details* using `legion.format_message()`.
+    First, the initial letter of *heading* is lowercased. Then, a fixed
+    prefix is prepended to *heading*. Finally, the resulting string is
+    formatted together with *message* using `legion.format_message()`.
 
     The result is then logged using `logger.error()`.
     """
-    prefixed_message = f'{Messages.ERROR_PREFIX}{message[0].lower()}{message[1:]}'
-    logger.error(format_message(prefixed_message, details, details_indent=' ' * Constants.ERROR_PAYLOAD_INDENT))
+    prefixed_heading = f'{Messages.ERROR_PREFIX}{heading[0].lower()}{heading[1:]}'
+    logger.error(format_message(prefixed_heading, message, indentation=Constants.ERROR_PAYLOAD_INDENTATION))
 
 
 def warning(message: str) -> None:
@@ -1294,7 +1294,7 @@ def main(*args: str) -> ExitCodes:
         # so it is better to signal the end user with an error and give
         # an explanation if no input arguments are provided, as soon as
         # possible.
-        error(Messages.NO_ARGUMENTS, Messages.NO_ARGUMENTS_DETAILS)
+        error(Messages.NO_ARGUMENTS_HEADING, Messages.NO_ARGUMENTS_INSTRUCTIONS)
         return ExitCodes.NO_ARGUMENTS
 
     try:
