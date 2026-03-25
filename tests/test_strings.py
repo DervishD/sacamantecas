@@ -13,14 +13,7 @@ ALLOWED_STRINGS = (
     # Python well-known strings.
     'frozen', '__main__', 'w', '%s',
     # For typing hints.
-    'TextIOWrapper', 'CustomLogger',
-    # Strings used for logging.dictConfig configuration dictionary.
-    'version', 'disable_existing_loggers', 'level', 'propagate',
-    '()', 'style', 'format', 'datefmt', 'formatter', 'class',
-    'filename', 'mode', 'encoding', 'stream',
-    'full_log_formatter', 'main_log_formatter', 'console_formatter',
-    'full_log_handler', 'main_log_handler', 'stdout_handler', 'stderr_handler',
-    'loggers', 'handlers', 'formatters', 'filters',
+    'TextIOWrapper',
     # Miscellaneous strings.
     'Project-URL', ', ', 'source', 'reconfigure', '.post', '==', ' v',
 )

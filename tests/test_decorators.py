@@ -1,20 +1,11 @@
 #! /usr/bin/env python3
 """Test suite for decorators."""
 import logging
-from typing import NoReturn, TYPE_CHECKING
+from typing import NoReturn
 
 import pytest
 
-from sacamantecas import Constants, ExitCodes, keyboard_interrupt_handler, logger, loggerize, Messages
-
-if TYPE_CHECKING:
-    from tests.helpers import LogPaths
-
-
-@loggerize
-def loggerized_function() -> ExitCodes:
-    """Mock function to be decorated."""
-    return ExitCodes.SUCCESS
+from sacamantecas import keyboard_interrupt_handler, logger, Messages
 
 
 @keyboard_interrupt_handler
@@ -23,27 +14,9 @@ def interrupted_function() -> NoReturn:
     raise KeyboardInterrupt
 
 
-# pylint: disable-next=unused-variable
-def test_loggerize(log_paths: LogPaths, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Test the `loggerize()` decorator."""
-    monkeypatch.setattr(Constants, 'MAIN_OUTPUT_PATH', log_paths.log)
-    monkeypatch.setattr(Constants, 'FULL_OUTPUT_PATH', log_paths.trace)
-
-    assert not log_paths.log.is_file()
-    assert not log_paths.trace.is_file()
-
-    loggerized_function()
-
-    logging.shutdown()
-
-    assert log_paths.log.is_file()
-    assert log_paths.trace.is_file()
-
-
-# pylint: disable-next=unused-variable
-def test_keyboard_interrupt_handler(log_paths: LogPaths, capsys: pytest.CaptureFixture[str]) -> None:
+def test_keyboard_interrupt_handler(capsys: pytest.CaptureFixture[str]) -> None:  # pylint: disable=unused-variable
     """Test the `keyboard_interrupt_handler()` decorator."""
-    logger.config(main_log_output=log_paths.log, full_log_output=log_paths.trace)
+    logger.config(main_log_output=None, full_log_output=None)
 
     try:
         interrupted_function()

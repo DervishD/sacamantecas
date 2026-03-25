@@ -19,20 +19,19 @@ from html.parser import HTMLParser
 from http.client import HTTPException
 from importlib.metadata import metadata, requires, version
 import logging
-from logging.config import dictConfig
 from pathlib import Path
 import platform
 import re
 from shutil import copy2
 import time
 from types import SimpleNamespace
-from typing import Any, cast, ClassVar, LiteralString, NamedTuple, TYPE_CHECKING
+from typing import cast, ClassVar, NamedTuple, TYPE_CHECKING
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, unquote, urlparse, urlunparse
 from urllib.request import Request, urlopen
 from zipfile import BadZipFile
 
-from legion import format_message, wait_for_keypress
+from legion import excepthook, format_message, get_logger, wait_for_keypress
 from openpyxl import load_workbook
 from openpyxl.cell.cell import Cell, MergedCell, TYPE_STRING as CELLTYPE_STRING
 from openpyxl.styles import Font, PatternFill
@@ -93,20 +92,6 @@ class Constants:  # pylint: disable=too-few-public-methods
     MAIN_OUTPUT_PATH = ROOT_PATH / f'{APP_NAME}_log{"" if DEVELOPMENT_MODE else TIMESTAMP_STEM}{TEXTFILE_SUFFIX}'
     FULL_OUTPUT_PATH = ROOT_PATH / f'{APP_NAME}_trace{"" if DEVELOPMENT_MODE else TIMESTAMP_STEM}{TEXTFILE_SUFFIX}'
     INIFILE_PATH = ROOT_PATH / f'{APP_NAME}.ini'
-
-    LOGGING_INDENTCHAR = ' '
-    LOGGING_FORMAT_STYLE = '{'
-    LOGGING_LEVELNAME_MAX_LEN = len(max(logging.getLevelNamesMapping(), key=len))
-    LOGGING_LEVELNAME_SEPARATOR = '| '
-    LOGGING_LONG_FORMAT = (
-        '{asctime}.{msecs:04.0f} '
-        f'{{levelname:{LOGGING_LEVELNAME_MAX_LEN}}}'
-        f'{LOGGING_LEVELNAME_SEPARATOR}'
-        '{message}'
-    )
-    LOGGING_FALLBACK_FORMAT = '{message}'
-    LOGGING_SHORT_FORMAT = '{asctime} {message}'
-    LOGGING_CONSOLE_FORMAT = '{message}'
 
     HANDLER_BOOTSTRAP_SUCCESS = 'Handler bootstrap successful.'
 
@@ -244,16 +229,6 @@ class ExitCodes(IntEnum):
     KEYBOARD_INTERRUPT = 127
 
 
-# Needed for having VERY basic logging when the code is imported rather
-# than run (for example, when running tests).
-logging.basicConfig(
-    level=logging.NOTSET,
-    style=Constants.LOGGING_FORMAT_STYLE,
-    format=Constants.LOGGING_FALLBACK_FORMAT,
-    force=True,
-)
-
-
 # Reconfigure standard output streams so they use UTF-8 encoding even if
 # they are redirected to a file when running the program from a shell.
 if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
@@ -261,151 +236,7 @@ if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
 if sys.stderr and hasattr(sys.stdout, 'reconfigure'):
     cast('TextIOWrapper', sys.stderr).reconfigure(encoding=Constants.UTF8)
 
-
-class CustomLogger(logging.Logger):
-    """Custom logger with indentation support."""
-
-    INCREASE_INDENT_SYMBOL = '+'
-    DECREASE_INDENT_SYMBOL = '-'
-
-    def __init__(self, name: str, level: int = logging.NOTSET) -> None:
-        """Initialize logger with a *name* and an optional *level*."""
-        super().__init__(name, level)
-        self.indentlevel: int = 0
-        self.indentation = ''
-
-    def makeRecord(self, *args: Any, **kwargs: Any) -> logging.LogRecord:  # noqa: ANN401, N802
-        """Create a new logging record with indentation support."""
-        record = super().makeRecord(*args, **kwargs)
-        record.msg = '\n'.join(f'{self.indentation}{line}'.rstrip() for line in record.msg.split('\n'))
-        return record
-
-    def _set_indentlevel(self, level: int | LiteralString) -> None:
-        """Set current logging indentation to *level*.
-
-        If *level* is:
-            - `INCREASE_INDENT_SYMBOL` string, indentation is increased
-            - `DECREASE_INDENT_SYMBOL` string, indentation is decreased
-            - Any integer `>=0`, indentation is set to that value
-
-        For any other value, `ValueError` is raised.
-
-        Not for public usage, use `self.set_indent(level)` instead.
-        """
-        if level == self.INCREASE_INDENT_SYMBOL:
-            self.indentlevel += 1
-        if level == self.DECREASE_INDENT_SYMBOL:
-            self.indentlevel = max(0, self.indentlevel - 1)
-        if isinstance(level, int) and level >= 0:
-            self.indentlevel = level
-        self.indentation = Constants.LOGGING_INDENTCHAR * self.indentlevel
-
-    def set_indent(self, level: int) -> None:
-        """Set current logging indentation to *level*.
-
-        *level* can be any positive integer or zero.
-
-        For any other value, `ValueError` is raised.
-        """
-        self._set_indentlevel(max(0, level))
-
-    def indent(self) -> None:
-        """Increment current logging indentation level."""
-        self._set_indentlevel(self.INCREASE_INDENT_SYMBOL)
-
-    def dedent(self) -> None:
-        """Decrement current logging indentation level."""
-        self._set_indentlevel(self.DECREASE_INDENT_SYMBOL)
-
-    def config(self, *, main_log_output: Path, full_log_output: Path) -> None:
-        """Configure logger.
-
-        With the default configuration **ALL** logging messages are sent
-        to *full_log_output* using a detailed format which includes the
-        current timestamp and some debugging information; messages with
-        severity of `logging.INFO` or higher, intended to be the typical
-        program output, are sent to *main_log_output*, also timestamped.
-        """
-        class MultilineFormatter(logging.Formatter):
-            """Simple custom formatter with multiline support."""  # noqa: D204
-            def format(self, record: logging.LogRecord) -> str:
-                """Format multiline records so they look like multiple records."""
-                formatted_record = super().format(record)
-                preamble = formatted_record[0:formatted_record.rfind(record.message)]
-                return '\n'.join(f'{preamble}{line}'.rstrip() for line in record.message.split('\n'))
-
-        logging_configuration: dict[str, Any] = {
-            'version': 1,
-            'disable_existing_loggers': False,
-            'loggers': {
-                self.name: {
-                    'level': logging.NOTSET,
-                    'propagate': False,
-                    'handlers': [],
-                },
-            },
-        }
-
-        formatters = {}
-        handlers = {}
-
-        if full_log_output:
-            formatters['full_log_formatter'] = {
-                '()': MultilineFormatter,
-                'style': Constants.LOGGING_FORMAT_STYLE,
-                'format': Constants.LOGGING_LONG_FORMAT,
-                'datefmt': Constants.TIMESTAMP_FORMAT,
-            }
-            handlers['full_log_handler'] = {
-                'level': logging.NOTSET,
-                'formatter': 'full_log_formatter',
-                'class': logging.FileHandler,
-                'filename': full_log_output,
-                'mode': 'w',
-                'encoding': Constants.UTF8,
-            }
-
-        if main_log_output:
-            formatters['main_log_formatter'] = {
-                '()': MultilineFormatter,
-                'style': Constants.LOGGING_FORMAT_STYLE,
-                'format': Constants.LOGGING_SHORT_FORMAT,
-                'datefmt': Constants.TIMESTAMP_FORMAT,
-            }
-            handlers['main_log_handler'] = {
-                'level': logging.INFO,
-                'formatter': 'main_log_formatter',
-                'class': logging.FileHandler,
-                'filename': main_log_output,
-                'mode': 'w',
-                'encoding': Constants.UTF8,
-            }
-
-        formatters['console_formatter'] = {
-            '()': MultilineFormatter,
-            'style': Constants.LOGGING_FORMAT_STYLE,
-            'format': Constants.LOGGING_CONSOLE_FORMAT,
-        }
-        handlers['stdout_handler'] = {
-            'level': logging.NOTSET,
-            'formatter': 'console_formatter',
-            'filters': [lambda record: (record.levelno == logging.INFO)],  # type: ignore  # noqa: PGH003
-            'class': logging.StreamHandler,
-            'stream': sys.stdout,
-        }
-        handlers['stderr_handler'] = {
-            'level': logging.WARNING,
-            'formatter': 'console_formatter',
-            'class': logging.StreamHandler,
-            'stream': sys.stderr,
-        }
-
-        logging_configuration['formatters'] = formatters
-        logging_configuration['handlers'] = handlers
-        logging_configuration['loggers'][self.name]['handlers'] = handlers.keys()
-        dictConfig(logging_configuration)
-logging.setLoggerClass(CustomLogger)
-logger: CustomLogger = cast('CustomLogger', logging.getLogger(Constants.APP_NAME))
+logger = get_logger(Constants.APP_NAME)
 
 
 class BaseCustomError(Exception):

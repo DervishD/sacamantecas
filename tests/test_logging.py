@@ -1,142 +1,95 @@
 #! /usr/bin/env python3
 """Test suite for the logging system."""
+from importlib.metadata import metadata, requires, version
 import logging
-from typing import NamedTuple, TYPE_CHECKING
+import platform
+from textwrap import dedent
+from typing import TYPE_CHECKING
 
-import pytest
+from legion import format_message
 
-from sacamantecas import Constants, error, logger, Messages, warning
-from tests.helpers import format_log_message, remove_logging_timestamps
+from sacamantecas import Constants, error, ExitCodes, logger, loggerize, Messages, warning
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from pathlib import Path
+
+    import pytest
 
     from tests.helpers import LogPaths
 
 
-def test_logging_paths_creation(log_paths: LogPaths) -> None:  # pylint: disable=unused-variable
-    """Test that the logging paths are created propertly."""
-    assert not log_paths.log.is_file()
-    assert not log_paths.trace.is_file()
+def get_clean_logfile_contents (logfile: Path) -> list[str]:  # pylint: disable=unused-variable
+    """Get clean *logfile**. For now, just remove timestamps."""
+    return [' '.join(line.split(' ')[1:]) for line in logfile.read_text(encoding='utf-8').splitlines()]
 
-    logger.config(main_log_output=log_paths.log, full_log_output=log_paths.trace)
 
-    logging.shutdown()
+def test_logging_setup(log_paths: LogPaths, monkeypatch: pytest.MonkeyPatch) -> None:  # pylint: disable=unused-variable
+    """Test that the logging system is properly set-up."""
+    monkeypatch.setattr(Constants, 'MAIN_OUTPUT_PATH', log_paths.main)
+    monkeypatch.setattr(Constants, 'FULL_OUTPUT_PATH', log_paths.full)
 
-    assert log_paths.log.is_file()
-    assert log_paths.trace.is_file()
+    assert not log_paths.main.is_file()
+    assert not log_paths.full.is_file()
 
-# The 'expected' argument is a tuple containing four items:
-#   - The expected main log file contents.
-#   - The expected full log file contents.
-#   - The expected stdout output.
-#   - The expected stderr output.
-class Expected(NamedTuple):
-    """Expected output abstraction."""  # noqa: D204
-    log: list[str]
-    debug: list[str]
-    out: list[str]
-    err: list[str]
-TEST_MESSAGE = 'Test message'
-ERROR_PREFIX = Messages.ERROR_PREFIX
-WARNING_PREFIX = Messages.WARNING_PREFIX
-@pytest.mark.parametrize(('logfunc', 'expected'), [
-    (logger.debug, Expected(
-        [],
-        format_log_message(TEST_MESSAGE, levelname='DEBUG'),
-        [],
-        [],
-    )),
-    (logger.info, Expected(
-        format_log_message(TEST_MESSAGE),
-        format_log_message(TEST_MESSAGE, levelname='INFO'),
-        format_log_message(TEST_MESSAGE),
-        [],
-    )),
-    (logger.warning, Expected(
-        format_log_message(TEST_MESSAGE),
-        format_log_message(TEST_MESSAGE, levelname='WARNING'),
-        [],
-        format_log_message(TEST_MESSAGE),
-    )),
-    (logger.error, Expected(
-        format_log_message(TEST_MESSAGE),
-        format_log_message(TEST_MESSAGE, levelname='ERROR'),
-        [],
-        format_log_message(TEST_MESSAGE),
-    )),
-    (warning, Expected(
-        format_log_message(f'{WARNING_PREFIX}{TEST_MESSAGE[0].lower()}{TEST_MESSAGE[1:]}'),
-        format_log_message(f'{WARNING_PREFIX}{TEST_MESSAGE[0].lower()}{TEST_MESSAGE[1:]}', levelname='WARNING'),
-        [],
-        format_log_message(f'{WARNING_PREFIX}{TEST_MESSAGE[0].lower()}{TEST_MESSAGE[1:]}'),
-    )),
-    (error, Expected(
-        format_log_message(f'{ERROR_PREFIX}{TEST_MESSAGE[0].lower()}{TEST_MESSAGE[1:]}'),
-        format_log_message(f'{ERROR_PREFIX}{TEST_MESSAGE[0].lower()}{TEST_MESSAGE[1:]}', levelname='ERROR'),
-        [],
-        format_log_message(f'{ERROR_PREFIX}{TEST_MESSAGE[0].lower()}{TEST_MESSAGE[1:]}'),
-    )),
-], ids=[
-    'test_logger_debug',
-    'test_logger_info',
-    'test_logger_warning',
-    'test_logger_error',
-    'test_helper_warning',
-    'test_helper_error',
-])
-# pylint: disable-next=unused-variable
-def test_logging_functions(
-    log_paths: LogPaths,
-    capsys: pytest.CaptureFixture[str],
-    logfunc: Callable[[str], None],
-    expected: Expected,
-) -> None:
-    """Test all logging functions."""
-    logger.config(main_log_output=log_paths.log, full_log_output=log_paths.trace)
+    def f(message: str) -> ExitCodes:
+        logger.error(message)
+        return ExitCodes.SUCCESS
 
-    logfunc(TEST_MESSAGE)
+    message = 'Test message'
+    loggerize(f)(message)
+
+    assert log_paths.main.is_file()
+    assert log_paths.full.is_file()
+
+    self_version = version(Constants.APP_NAME)
+    repository = next(
+        (url for url in metadata(Constants.APP_NAME).get_all('Project-URL', []) if url.startswith('source')),
+        '',
+    ).split(', ', maxsplit=1)[1]
+    platform_string = f'(Windows {platform.version()};{platform.architecture()[0]};{platform.machine()})'
+    required_packages = [f'{pkg.replace('==', ' v')}' for pkg in requires(Constants.APP_NAME) or []]
+    required_packages = [f'        DEBUG    | loggerize_wrapper() Usando paquete {pkg}' for pkg in required_packages]
+
+    expected_full_log = dedent(f"""
+        DEBUG    | loggerize_wrapper() Registro de depuración iniciado.
+        INFO     | loggerize_wrapper() sacamantecas versión {self_version} ({repository})
+        {'\n'.join(required_packages).lstrip()}
+        DEBUG    | loggerize_wrapper() sacamantecas/{self_version} +{repository} {platform_string}
+        ERROR    | f() {message}
+        INFO     | loggerize_wrapper()
+        INFO     | loggerize_wrapper() Proceso finalizado.
+        DEBUG    | loggerize_wrapper() Registro de depuración finalizado.
+    """).lstrip().splitlines()
+
+    expected_main_log = dedent(f"""
+        sacamantecas versión {self_version} ({repository})
+        {message}
+
+        Proceso finalizado.
+    """).lstrip().splitlines()
+
+    assert get_clean_logfile_contents(log_paths.full) == expected_full_log
+    assert get_clean_logfile_contents(log_paths.main) == expected_main_log
+
+
+def test_logging_helpers(capsys: pytest.CaptureFixture[str]) -> None:  # pylint: disable=unused-variable
+    """Test logging helper functions."""
+    message = 'Test message 1\n\nTest message 2\n\n'
+    heading = 'Heading'
+
+    logger.config()
+
+    warning(message)
+    captured = capsys.readouterr()
+    assert not captured.out
+    assert captured.err == f'{Messages.WARNING_PREFIX}{message[0].lower()}{message[1:]}\n'
+
+    error(heading, message)
+    captured = capsys.readouterr()
+    assert not captured.out
+    assert captured.err == format_message(
+        f'{Messages.ERROR_PREFIX}{heading[0].lower()}{heading[1:]}',
+        f'{message}\n',
+    indentation=Constants.ERROR_PAYLOAD_INDENTATION)
 
     logging.shutdown()
-
-    main_log_file_contents = remove_logging_timestamps(log_paths.log.read_text(encoding=Constants.UTF8).split('\n'))
-    assert main_log_file_contents == [*expected.log, '']
-
-    full_log_file_contents = remove_logging_timestamps(log_paths.trace.read_text(encoding=Constants.UTF8).split('\n'))
-    assert full_log_file_contents == [*expected.debug, '']
-
-    captured_output = capsys.readouterr()
-
-    assert captured_output.out.split('\n') == [*expected.out, '']
-    assert captured_output.err.split('\n') == [*expected.err, '']
-
-
-@pytest.mark.parametrize('message', [
-    'No whitespace.',
-    '   Leading whitespace.',
-    '\nLeading newline.',
-    'Trailing newline.\n',
-    '\bLeading and trailing newline.\n',
-], ids=[
-    'test_no_whitespace',
-    'test_leading_whitespace',
-    'test_leading_newline',
-    'test_trailing_newline',
-    'test_both_newlines',
-])
-# pylint: disable-next=unused-variable
-def test_whitespace_honoring(log_paths: LogPaths, capsys: pytest.CaptureFixture[str], message: str) -> None:
-    """Test whether whitespace is honored where it should."""
-    terminator = '<TERMINATOR>'
-
-    logger.config(main_log_output=log_paths.log, full_log_output=log_paths.trace)
-
-    logging.StreamHandler.terminator, saved_terminator = terminator, logging.StreamHandler.terminator
-    logger.info(message)
-    logging.StreamHandler.terminator = saved_terminator
-
-    logging.shutdown()
-
-    captured_output = capsys.readouterr().out
-
-    assert captured_output == message + terminator
