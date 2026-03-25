@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 from legion import format_message
 
-from sacamantecas import Constants, error, ExitCodes, logger, loggerize, Messages, warning
+from sacamantecas import Constants, error, ExitCodes, logger, loggerize, warning
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -82,14 +82,14 @@ def test_logging_helpers(capsys: pytest.CaptureFixture[str]) -> None:  # pylint:
     warning(message)
     captured = capsys.readouterr()
     assert not captured.out
-    assert captured.err == f'{Messages.WARNING_PREFIX}{message[0].lower()}{message[1:]}\n'
+    assert captured.err == f'* Aviso: {message[0].lower()}{message[1:]}\n'
 
     error(heading, message)
     captured = capsys.readouterr()
     assert not captured.out
     assert captured.err == format_message(
-        f'{Messages.ERROR_PREFIX}{heading[0].lower()}{heading[1:]}',
+        f'\n*** Error: {heading[0].lower()}{heading[1:]}',
         f'{message}\n',
-    indentation=Constants.ERROR_PAYLOAD_INDENTATION)
+        indentation='    ')
 
     logging.shutdown()

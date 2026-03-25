@@ -8,7 +8,7 @@ from urllib.parse import quote
 
 import pytest
 
-from sacamantecas import Constants, detect_html_charset, get_redirected_url, resolve_file_url, retrieve_url
+from sacamantecas import detect_html_charset, get_redirected_url, resolve_file_url, retrieve_url
 
 
 @pytest.mark.parametrize(('netloc', 'base', 'extra'), [
@@ -40,7 +40,7 @@ def test_file_url_resolution(request: pytest.FixtureRequest, netloc:str, base:st
     if base.startswith('/./'):
         base = base.lstrip('/')
 
-    expected = f'file://{netloc}/{quote(Path(base).resolve().as_posix(), safe=Constants.FILE_URL_SAFE_CHARS)}{extra}'
+    expected = f'file://{netloc}/{quote(Path(base).resolve().as_posix(), safe=':/')}{extra}'
     result = resolve_file_url(f'file://{netloc}/{base}{extra}')
 
     assert result == expected
@@ -75,11 +75,11 @@ def test_url_redirection(delay: str, url: str, extra: str, expected: str) -> Non
 @pytest.mark.parametrize(('contents', 'expected'), [
     ('<meta http-equiv="content-type" charset="{}">', 'cp1252'),
     ('<meta charset="{}">', 'cp850'),
-    ('{}', Constants.FALLBACK_HTML_CHARSET),
+    ('{}', 'ISO-8859-1'),
 ], ids=[
     'test_cp1252_charset_detection',
     'test_cp850_charset_detection',
-    f'test_{Constants.FALLBACK_HTML_CHARSET}_charset_detection',
+    'test_ISO-8859-1_charset_detection',
 ])
 def test_charset_detection(contents: str, expected: str) -> None:  # pylint: disable=unused-variable
     """Test different ways of detecting the *contents* charset."""
@@ -99,7 +99,7 @@ def test_utf8_url_retrieval() -> None:  # pylint: disable=unused-variable
     The first one, against a live server returning a UTF-8 encoded body.
     The second, using a temporary file with fake contents.
     """
-    expected_contents = SAMPLE_FILE_PATH.read_text(encoding=Constants.UTF8)
+    expected_contents = SAMPLE_FILE_PATH.read_text(encoding='utf-8')
 
     previous_cwd = Path.cwd()
     chdir(SERVER_ROOT)
@@ -112,12 +112,12 @@ def test_utf8_url_retrieval() -> None:  # pylint: disable=unused-variable
 
         url = f'http://{MOCK_HOST}:{http_server.server_port}/{SAMPLE_FILE_PATH.name}'
         contents, encoding = retrieve_url(url)
-        assert encoding.lower() == Constants.UTF8.lower()
+        assert encoding.lower() == 'utf-8'
         assert contents.decode(encoding) == expected_contents
 
-        url = f'{Constants.FILE_SCHEME}/{SAMPLE_FILE_PATH}'
+        url = f'file:///{SAMPLE_FILE_PATH}'
         contents, encoding = retrieve_url(url)
-        assert encoding.lower() == Constants.UTF8.lower()
+        assert encoding.lower() == 'utf-8'
         assert contents.decode(encoding) == expected_contents
 
     finally:

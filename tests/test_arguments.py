@@ -7,7 +7,6 @@ import pytest
 from sacamantecas import (
     bootstrap,
     Handler,
-    Messages,
     parse_arguments,
     single_url_handler,
     SourceError,
@@ -29,7 +28,7 @@ def test_unsupported_source() -> None:  # pylint: disable=unused-variable
     assert inspect.isgenerator(handler)
     assert inspect.isgeneratorfunction(unsupported_source_handler)
     assert handler.gi_code.co_name == unsupported_source_handler.__name__
-    assert str(excinfo.value) == Messages.UNSUPPORTED_SOURCE
+    assert str(excinfo.value) == 'La fuente no es de un tipo admitido.'
 
 
 @pytest.mark.parametrize(('sources', 'expected'), [

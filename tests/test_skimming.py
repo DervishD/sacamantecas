@@ -7,7 +7,7 @@ from urllib.error import HTTPError, URLError
 
 import pytest
 
-from sacamantecas import BaseParser, Messages, saca_las_mantecas, SkimmingError
+from sacamantecas import BaseParser, saca_las_mantecas, SkimmingError
 
 MOCK_PARSER = BaseParser()
 MOCK_HOST = 'localhost'
@@ -16,32 +16,31 @@ CONNREFUSED_ERRNO = 10061
 CONNREFUSED_MSG = 'No se puede establecer una conexión ya que el equipo de destino denegó expresamente dicha conexión'
 GETADDRINFO_ERRNO = 11001
 GETADDRINFO_MSG = 'getaddrinfo failed'
-UNKNOWN_URL_TYPE_MESSAGE = (Messages.UNKNOWN_URL_TYPE[0].lower() + Messages.UNKNOWN_URL_TYPE[1:]).rstrip('.')
 @pytest.mark.parametrize(('url', 'side_effect', 'expected'), [
     (
         f'scheme://{MOCK_HOST}',
         Exception(),
-        Messages.GENERIC_URLERROR.format('', UNKNOWN_URL_TYPE_MESSAGE.format(f'scheme://{MOCK_HOST}')),
+        f'Error de URL: el URL «scheme://{MOCK_HOST}» es de tipo desconocido.',
     ),
     (
         f'https://{MOCK_HOST}/status/404',
         HTTPError(url=f'https://{MOCK_HOST}/status/404', code=404, msg='Not Found', hdrs=HTTPMessage(), fp=None),
-        Messages.HTTP_PROTOCOL_URLERROR.format('404', 'not found'),
+        'Error de protocolo HTTP 404: not found.',
     ),
     (
         f'https://{MOCK_HOST}/status/200',
         HTTPError(url='https://{MOCK_URL}/status/200', code=200, msg='Bad Request', hdrs=HTTPMessage(), fp=None),
-        Messages.HTTP_PROTOCOL_URLERROR.format('200', 'bad request'),
+        'Error de protocolo HTTP 200: bad request.',
     ),
     (
         f'http://{MOCK_HOST}:7',
         URLError(OSError(CONNREFUSED_ERRNO, CONNREFUSED_MSG)),
-        Messages.OSLIKE_URLERROR.format(errorcode[CONNREFUSED_ERRNO], CONNREFUSED_MSG.lower()),
+        f'Error de red {errorcode[CONNREFUSED_ERRNO]}: {CONNREFUSED_MSG.lower()}.',
     ),
     (
         f'http://{MOCK_HOST}/nonexistent',
         URLError(OSError(GETADDRINFO_ERRNO, GETADDRINFO_MSG)),
-        Messages.OSLIKE_URLERROR.format(GETADDRINFO_ERRNO, GETADDRINFO_MSG),
+        f'Error de red {GETADDRINFO_ERRNO}: {GETADDRINFO_MSG}.',
     ),
 ], ids=[
     'test_bad_scheme_url_error',
@@ -64,7 +63,7 @@ def test_url_errors(  # pylint: disable=unused-variable
     with pytest.raises(SkimmingError) as excinfo:
         saca_las_mantecas(url, MOCK_PARSER)
 
-    assert str(excinfo.value) == Messages.URL_ACCESS_ERROR
+    assert str(excinfo.value) == 'No resultó posible acceder a la dirección especificada.'
     assert excinfo.value.details == expected
 
 
@@ -83,7 +82,7 @@ def test_http_errors(monkeypatch: pytest.MonkeyPatch) -> None:  # pylint: disabl
         saca_las_mantecas(url, MOCK_PARSER)
 
     assert isinstance(excinfo.value.__cause__, HTTPException)
-    assert str(excinfo.value) == Messages.HTTP_RETRIEVAL_ERROR
+    assert str(excinfo.value) == 'No se obtuvieron contenidos.'
     assert excinfo.value.details == f"InvalidURL: nonnumeric port: '{port}'."
 
 
@@ -102,5 +101,5 @@ def test_connection_errors(monkeypatch: pytest.MonkeyPatch) -> None:  # pylint: 
         saca_las_mantecas(url, MOCK_PARSER)
 
     assert isinstance(excinfo.value.__cause__, ConnectionError)
-    assert str(excinfo.value) == Messages.CONNECTION_ERROR.format(errorcode[CONNREFUSED_ERRNO])
+    assert str(excinfo.value) == f'Se produjo un error de conexión «{errorcode[CONNREFUSED_ERRNO]}» accediendo al URL.'
     assert excinfo.value.details == f'{CONNREFUSED_MSG}.'

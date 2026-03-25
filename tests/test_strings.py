@@ -3,9 +3,8 @@
 import ast
 from contextlib import suppress
 from inspect import getsource
-import sys
 
-from sacamantecas import Constants
+import sacamantecas
 
 ALLOWED_STRINGS = (
     # Early platform check.
@@ -81,7 +80,7 @@ class UnrefactoredStringsFinderVisitor(ast.NodeVisitor):
 def test_strings() -> None:  # pylint: disable=unused-variable
     """Test for non-refactored strings."""
     visitor = UnrefactoredStringsFinderVisitor()
-    visitor.visit(ast.parse(getsource(sys.modules[Constants.__module__])))
+    visitor.visit(ast.parse(getsource(sacamantecas)))
 
     assert not visitor.dangling_strings
     assert not visitor.ignored_strings

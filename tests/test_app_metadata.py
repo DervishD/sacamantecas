@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 """Test suite for validating application metadata."""
-from importlib.metadata import metadata
+from importlib.metadata import metadata, version
 import re
 
 from sacamantecas import Constants
@@ -31,9 +31,10 @@ VERSION_REGEX = r"""^
     (\+[0-9a-f]{7}(?:\.dirty)?)?           # Local version identifier
 $"""
 
+VERSION = version(Constants.APP_NAME)
 def test_validate_version_string() -> None:  # pylint: disable=unused-variable
     """Test application version string."""
-    assert re.fullmatch(VERSION_REGEX, Constants.APP_VERSION, re.ASCII|re.VERBOSE) is not None
+    assert re.fullmatch(VERSION_REGEX, VERSION, re.ASCII|re.VERBOSE) is not None
 
 
 def test_app_name() -> None:  # pylint: disable=unused-variable

@@ -8,7 +8,7 @@ from unicodedata import category
 
 import pytest
 
-from sacamantecas import BaratzParser, BaseParser, logger, Messages, OldRegimeParser
+from sacamantecas import BaratzParser, BaseParser, logger, OldRegimeParser
 
 K = 'key'
 V = 'value'
@@ -94,10 +94,10 @@ def test_parser_reset() -> None:  # pylint: disable=unused-variable
 
 
 @pytest.mark.parametrize(('k', 'v', 'expected'), [
-    (None, None, Messages.METADATA_IS_EMPTY),
-    (K, None, Messages.METADATA_MISSING_VALUE.format(K)),
-    (None, V, Messages.METADATA_MISSING_KEY.format(BaseParser.EMPTY_KEY_PLACEHOLDER)),
-    (K, V, Messages.METADATA_OK.format(K, V)),
+    (None, None, 'Metadato vacío.'),
+    (K, None, f'Metadato «{K}» incompleto, ignorando.'),
+    (None, V, f'No se encontró una clave, usando «{BaseParser.EMPTY_KEY_PLACEHOLDER}».'),
+    (K, V, f'Metadato correcto «{K}: {V}».'),
 ], ids=[
     'test_metadata_emtpy',
     'test_metadata_missing_value',

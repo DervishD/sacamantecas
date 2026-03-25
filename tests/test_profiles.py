@@ -15,7 +15,6 @@ from sacamantecas import (
     get_parser,
     load_profiles,
     main,
-    Messages,
     OldRegimeParser,
     Profile,
     ProfilesError,
@@ -38,15 +37,14 @@ def test_missing_ini_file(
     with pytest.raises(ProfilesError) as excinfo:
         load_profiles(path)
 
-    assert str(excinfo.value) == Messages.MISSING_PROFILES.format(path)
+    assert str(excinfo.value) == f'No se encontró o no se pudo leer el fichero de perfiles «{path}».'
 
     monkeypatch.setattr(Constants, 'INIFILE_PATH', path)
 
     assert main('') == ExitCodes.ERROR
 
     result = '\n'.join(capsys.readouterr().err.split('\n')[0:2])
-    message = Messages.MISSING_PROFILES.format(path)
-    expected = f'{Messages.ERROR_PREFIX}{message[0].lower() + message[1:]}'
+    expected = f'\n*** Error: no se encontró o no se pudo leer el fichero de perfiles «{path}».'
 
     assert result == expected
 
@@ -68,8 +66,7 @@ def test_ini_syntax_error(
     assert main('') == ExitCodes.ERROR
 
     result = '\n'.join(capsys.readouterr().err.split('\n')[0:2])
-    message = Messages.PROFILES_WRONG_SYNTAX.format('MissingSectionHeader')
-    expected = f'{Messages.ERROR_PREFIX}{message[0].lower() + message[1:]}'
+    expected = '\n*** Error: error de sintaxis «MissingSectionHeader» leyendo el fichero de perfiles.'
 
     assert result == expected
 
@@ -87,7 +84,7 @@ def test_unreadable(unreadable_path: Path) -> None:  # pylint: disable=unused-va
     with pytest.raises(ProfilesError) as excinfo:
         load_profiles(unreadable_path)
 
-    assert str(excinfo.value) == Messages.MISSING_PROFILES.format(unreadable_path)
+    assert str(excinfo.value) == f'No se encontró o no se pudo leer el fichero de perfiles «{unreadable_path}».'
 
 
 @pytest.mark.parametrize('text', ['', '[s]'], ids=['test_totally_empty_ini_file', 'test_section_empty_ini_file'])
@@ -99,7 +96,7 @@ def test_empty(tmp_path: Path, text: str) -> None:  # pylint: disable=unused-var
     with pytest.raises(ProfilesError) as excinfo:
         load_profiles(path)
 
-    assert str(excinfo.value) == Messages.EMPTY_PROFILES.format(path)
+    assert str(excinfo.value) == f'No hay perfiles definidos en el fichero de perfiles «{path}».'
 
 
 @pytest.mark.parametrize(('text', 'error'), [
@@ -120,7 +117,7 @@ def test_syntax_errors(tmp_path: Path, text: str, error: str) -> None:  # pylint
     with pytest.raises(ProfilesError) as excinfo:
         load_profiles(path)
 
-    assert str(excinfo.value).startswith(Messages.PROFILES_WRONG_SYNTAX.format(error))
+    assert str(excinfo.value).startswith(f'Error de sintaxis «{error}» leyendo el fichero de perfiles.')
 
     path.unlink()
 
@@ -158,7 +155,7 @@ EXPECTED_PROFILES = {
 }
 def test_profile_loading(tmp_path: Path) -> None:   # pylint: disable=unused-variable
     """Test full profile loading."""
-    path = tmp_path / Constants.INIFILE_PATH.name
+    path = tmp_path / 'profiles.ini'
     path.write_text(INIFILE_CONTENTS)
 
     profiles = load_profiles(path)
@@ -210,7 +207,7 @@ def test_profile_validation(
     monkeypatch.setitem(load_profiles.__globals__, 'BaseParser', MockBaseParser)
 
     with context_manager:
-        inifile_path = tmp_path / Constants.INIFILE_PATH.name
+        inifile_path = tmp_path / 'profiles.ini'
         inifile_path.write_text(inifile_contents)
         load_profiles(inifile_path)
         inifile_path.unlink()
@@ -267,4 +264,4 @@ def test_no_matching_profile(url: str) -> None:  # pylint: disable=unused-variab
     with pytest.raises(SkimmingError) as excinfo:
         get_parser(url, PROFILES)
 
-    assert str(excinfo.value) == Messages.NO_MATCHING_PROFILE
+    assert str(excinfo.value) == 'No se encontró un perfil para procesar el URL.'

@@ -68,7 +68,6 @@ class Constants:  # pylint: disable=too-few-public-methods
 
     ERROR_MARKER = '*** '
     WARNING_MARKER = '* '
-    ERROR_PAYLOAD_INDENTATION = ' ' * len(ERROR_MARKER)
 
     TIMESTAMP_FORMAT = '%Y%m%d_%H%M%S'
 
@@ -540,7 +539,7 @@ def error(heading: str, message: str) -> None:
     The result is then logged using `logger.error()`.
     """
     prefixed_heading = f'{Messages.ERROR_PREFIX}{heading[0].lower()}{heading[1:]}'
-    logger.error(format_message(prefixed_heading, message, indentation=Constants.ERROR_PAYLOAD_INDENTATION))
+    logger.error(format_message(prefixed_heading, message, indentation=' ' * len(Constants.ERROR_MARKER)))
 
 
 def warning(message: str) -> None:

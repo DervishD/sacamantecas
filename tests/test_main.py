@@ -1,5 +1,6 @@
 #! /usr/bin/env python3
 """Test suite for `main()` function."""
+from importlib.metadata import metadata, version
 import logging
 from typing import NoReturn
 
@@ -12,7 +13,6 @@ from sacamantecas import (
     keyboard_interrupt_handler,
     logger,
     main,
-    Messages,
 )
 
 
@@ -29,11 +29,21 @@ def test_no_arguments(
 
     captured = capsys.readouterr()
 
-    assert captured.out == f'{Messages.APP_BANNER}\n{Messages.PROCESS_DONE}\n'
+    self_version = version(Constants.APP_NAME)
+    repository = next(
+        (url for url in metadata(Constants.APP_NAME).get_all('Project-URL', []) if url.startswith('source')),
+        '',
+    ).split(', ', maxsplit=1)[1]
 
-    heading = f'{Messages.ERROR_PREFIX}{Messages.NO_ARGUMENTS_HEADING[0].lower()}{Messages.NO_ARGUMENTS_HEADING[1:]}'
-    message = Messages.NO_ARGUMENTS_INSTRUCTIONS
-    expected = f'{format_message(heading, message, indentation=Constants.ERROR_PAYLOAD_INDENTATION)}\n'
+    assert captured.out == f'{Constants.APP_NAME} versión {self_version} ({repository})\n\nProceso finalizado.\n'
+
+    heading = '\n*** Error: no se han especificado fuentes de entrada para ser procesadas.'
+    message = (
+        '\n'
+        'Arrastre y suelte un fichero de entrada sobre el icono de la aplicación,\n'
+        'o bien proporcione los nombres de las fuentes de entrada como argumentos.'
+    )
+    expected = f'{format_message(heading, message, indentation='    ')}\n'
     assert captured.err == expected
 
 
@@ -55,7 +65,7 @@ def test_keyboard_interrupt_handler(capsys: pytest.CaptureFixture[str]) -> None:
     logging.shutdown()
 
     result = capsys.readouterr().err.rstrip()
-    message = Messages.KEYBOARD_INTERRUPT[0].lower() + Messages.KEYBOARD_INTERRUPT[1:]
-    expected = f'{Messages.WARNING_PREFIX}{message}'
+    message = 'el usuario interrumpió la operación de la aplicación.'
+    expected = f'* Aviso: {message}'
 
     assert result == expected

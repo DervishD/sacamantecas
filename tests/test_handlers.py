@@ -13,10 +13,8 @@ import pytest
 
 from sacamantecas import (
     bootstrap,
-    Constants,
     get_url_from_row,
     Handler,
-    Messages,
     single_url_handler,
     SourceError,
     spreadsheet_handler,
@@ -28,8 +26,8 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 HASHES = [hash_function for hash_function in algorithms_available if not hash_function.startswith('shake')]
-SAMPLE_URLS = [f'{choice(Constants.ACCEPTED_URL_SCHEMES)}://subdomain{i}.domain.tld' for i in range(10)]  # noqa: S311
-EXPECTED_METADATA = {u: {h: new_hash(h, u.encode(Constants.UTF8)).hexdigest() for h in HASHES} for u in SAMPLE_URLS}
+SAMPLE_URLS = [f'{choice(('https', 'http', 'file'))}://subdomain{i}.domain.tld' for i in range(10)]  # noqa: S311
+EXPECTED_METADATA = {u: {h: new_hash(h, u.encode('utf-8')).hexdigest() for h in HASHES} for u in SAMPLE_URLS}
 
 
 def test_single_url_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:  # pylint: disable=unused-variable
@@ -39,7 +37,7 @@ def test_single_url_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> 
 
     assert single_url == expected
 
-    sinkfile_path = tmp_path / f'testsink{Constants.SINKFILE_STEM}.txt'
+    sinkfile_path = tmp_path / 'testsink_out.txt'
     def patched_generate_sinkfile_path(_: Path) -> Path:
         return sinkfile_path
 
@@ -62,11 +60,11 @@ def test_single_url_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> 
     assert len(urls) == 1
     assert urls[0] == SAMPLE_URLS[0]
 
-    result = sinkfile_path.read_text().rstrip(Constants.TEXTSINK_METADATA_FOOTER).split('\n')
+    result = sinkfile_path.read_text().rstrip('\n').split('\n')
 
     assert result[0] == SAMPLE_URLS[0]
 
-    result = dict(line.strip().split(Constants.TEXTSINK_METADATA_SEPARATOR) for line in result[1:])
+    result = dict(line.strip().split(': ') for line in result[1:])
 
     assert result == EXPECTED_METADATA[urls[0]]
 
@@ -75,7 +73,7 @@ def test_textfile_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> No
     """Test textfile handler."""
     sourcefile_path = tmp_path / 'urls.txt'
     sourcefile_path.write_text('\n'.join(SAMPLE_URLS), encoding='utf-8')
-    sinkfile_path = tmp_path / f'testsink{Constants.SINKFILE_STEM}.txt'
+    sinkfile_path = tmp_path / 'testsink_out.txt'
     def patched_generate_sinkfile_path(_: Path) -> Path:
         return sinkfile_path
 
@@ -99,11 +97,11 @@ def test_textfile_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> No
 
     result: dict[str, dict[str, str]] = {}
     current_k = None
-    for line in sinkfile_path.read_text().rstrip(Constants.TEXTSINK_METADATA_FOOTER).split('\n'):
+    for line in sinkfile_path.read_text().rstrip('\n').split('\n'):
         if not line.rstrip():
             continue
-        if line.startswith(Constants.TEXTSINK_METADATA_INDENT) and current_k is not None:
-            result[current_k].update(dict([line.strip().split(Constants.TEXTSINK_METADATA_SEPARATOR)]))
+        if line.startswith('  ') and current_k is not None:
+            result[current_k].update(dict([line.strip().split(': ')]))
             continue
         current_k = line.strip()
         result[current_k] = {}
@@ -137,7 +135,7 @@ def test_spreadsheet_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) ->
     workbook.save(sourcefile_path)
     workbook.close()
 
-    sinkfile_path = tmp_path / f'testsink{Constants.SINKFILE_STEM}.xlsx'
+    sinkfile_path = tmp_path / 'testsink_out.xlsx'
     def patched_generate_sinkfile_path(_: Path) -> Path:
         return sinkfile_path
 
@@ -167,9 +165,9 @@ def test_spreadsheet_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) ->
     headers: dict[int ,str] = {}
     for cell in next(sheet.rows):
         value = str(cell.value)
-        if not value or not value.startswith(Constants.SPREADSHEET_METADATA_COLUMN_MARKER):
+        if not value or not value.startswith('[sm] '):
             continue
-        value = value.removeprefix(Constants.SPREADSHEET_METADATA_COLUMN_MARKER)
+        value = value.removeprefix('[sm] ')
         assert cell.column is not None
         headers[cell.column] = value
 
@@ -198,7 +196,7 @@ def test_missing_source(tmp_path: Path, suffix: str, handler_factory: Callable[[
     with pytest.raises(SourceError) as excinfo:
         bootstrap(handler)
 
-    assert str(excinfo.value).startswith(Messages.INPUT_FILE_NOT_FOUND)
+    assert str(excinfo.value).startswith('No se encontró el fichero de entrada.')
 
 
 @pytest.mark.parametrize(('unreadable_path', 'handler_factory'), [
@@ -216,13 +214,13 @@ def test_input_no_permission(unreadable_path: Path, handler_factory: Callable[[P
     with pytest.raises(SourceError) as excinfo:
         bootstrap(handler)
 
-    assert str(excinfo.value).startswith(Messages.INPUT_FILE_NO_PERMISSION)
+    assert str(excinfo.value).startswith('No hay permisos suficientes para leer el fichero de entrada.')
 
 
 @pytest.mark.parametrize(('source_stem', 'unwritable_path', 'handler_factory'), [
-    ('http://s.url', f'unwritable_single_url{Constants.SINKFILE_STEM}.txt', single_url_handler),
-    ('s.txt', f'unwritable_textfile{Constants.SINKFILE_STEM}.txt', textfile_handler),
-    ('s.xlsx', f'unwritable_spreadsheet{Constants.SINKFILE_STEM}.xlsx', spreadsheet_handler),
+    ('http://s.url', 'unwritable_single_url_out.txt', single_url_handler),
+    ('s.txt', 'unwritable_textfile_out.txt', textfile_handler),
+    ('s.xlsx', 'unwritable_spreadsheet_out.xlsx', spreadsheet_handler),
 ], indirect=['unwritable_path'], ids=[
     'test_url_output_no_permission',
     'test_txt_output_no_permission',
@@ -253,4 +251,4 @@ def test_output_no_permission(
     with pytest.raises(SourceError) as excinfo:
         bootstrap(handler)
 
-    assert str(excinfo.value).startswith(Messages.OUTPUT_FILE_NO_PERMISSION)
+    assert str(excinfo.value).startswith('No hay permisos suficientes para crear el fichero de salida.')
