@@ -7,7 +7,11 @@ from urllib.error import HTTPError, URLError
 
 import pytest
 
-from sacamantecas import BaseParser, saca_las_mantecas, SkimmingError
+from sacamantecas import (
+    BaseParser,
+    saca_las_mantecas,
+    SkimmingError,
+)
 
 MOCK_PARSER = BaseParser()
 MOCK_HOST = 'localhost'

@@ -8,7 +8,12 @@ from unicodedata import category
 
 import pytest
 
-from sacamantecas import BaratzParser, BaseParser, logger, OldRegimeParser
+from sacamantecas import (
+    BaratzParser,
+    BaseParser,
+    logger,
+    OldRegimeParser,
+)
 
 K = 'key'
 V = 'value'

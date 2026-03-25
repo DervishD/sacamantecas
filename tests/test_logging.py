@@ -8,7 +8,14 @@ from typing import TYPE_CHECKING
 
 from legion import format_message
 
-from sacamantecas import Constants, error, ExitCodes, logger, loggerize, warning
+from sacamantecas import (
+    Constants,
+    error,
+    ExitCodes,
+    logger,
+    loggerize,
+    warning,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path

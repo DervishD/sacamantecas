@@ -8,7 +8,12 @@ from urllib.parse import quote
 
 import pytest
 
-from sacamantecas import detect_html_charset, get_redirected_url, resolve_file_url, retrieve_url
+from sacamantecas import (
+    detect_html_charset,
+    get_redirected_url,
+    resolve_file_url,
+    retrieve_url,
+)
 
 
 @pytest.mark.parametrize(('netloc', 'base', 'extra'), [
