@@ -21,7 +21,8 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
-def test_unsupported_source() -> None:  # pylint: disable=unused-variable
+# pylint: disable-next=unused-variable
+def test_unsupported_source() -> None:
     """Test unsupported source."""
     sources = 'source'
     source, handler = next(parse_arguments(sources))
@@ -42,7 +43,8 @@ def test_unsupported_source() -> None:  # pylint: disable=unused-variable
     pytest.param('source.txt', textfile_handler, id='test_source_identification_txt_file'),
     pytest.param('source.xlsx', spreadsheet_handler, id='test_source_identification_xlsx_file'),
 ])
-def test_source_identification(sources: str, expected: Handler) -> None:  # pylint: disable=unused-variable
+# pylint: disable-next=unused-variable
+def test_source_identification(sources: str, expected: Handler) -> None:
     """Test identification of different *sources*."""
     source, handler = next(parse_arguments(sources))
 

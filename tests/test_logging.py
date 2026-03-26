@@ -25,12 +25,14 @@ if TYPE_CHECKING:
     from tests.helpers import LogPaths
 
 
-def get_clean_logfile_contents (logfile: Path) -> list[str]:  # pylint: disable=unused-variable
+# pylint: disable-next=unused-variable
+def get_clean_logfile_contents (logfile: Path) -> list[str]:
     """Get clean *logfile**. For now, just remove timestamps."""
     return [' '.join(line.split(' ')[1:]) for line in logfile.read_text(encoding='utf-8').splitlines()]
 
 
-def test_logging_setup(log_paths: LogPaths, monkeypatch: pytest.MonkeyPatch) -> None:  # pylint: disable=unused-variable
+# pylint: disable-next=unused-variable
+def test_logging_setup(log_paths: LogPaths, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that the logging system is properly set-up."""
     monkeypatch.setattr(Constants, 'MAIN_OUTPUT_PATH', log_paths.main)
     monkeypatch.setattr(Constants, 'FULL_OUTPUT_PATH', log_paths.full)
@@ -79,7 +81,8 @@ def test_logging_setup(log_paths: LogPaths, monkeypatch: pytest.MonkeyPatch) -> 
     assert get_clean_logfile_contents(log_paths.main) == expected_main_log
 
 
-def test_logging_helpers(capsys: pytest.CaptureFixture[str]) -> None:  # pylint: disable=unused-variable
+# pylint: disable-next=unused-variable
+def test_logging_helpers(capsys: pytest.CaptureFixture[str]) -> None:
     """Test logging helper functions."""
     message = 'Test message 1\n\nTest message 2\n\n'
     heading = 'Heading'

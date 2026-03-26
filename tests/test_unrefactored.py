@@ -77,7 +77,8 @@ class UnrefactoredStringsFinderVisitor(ast.NodeVisitor):
             self.unrefactored_strings.append((node.lineno, repr(node.value)))
 
 
-def test_unrefactored_strings() -> None:  # pylint: disable=unused-variable
+# pylint: disable-next=unused-variable
+def test_unrefactored_strings() -> None:
     """Test for non-refactored strings."""
     visitor = UnrefactoredStringsFinderVisitor()
     visitor.visit(ast.parse(getsource(sacamantecas)))

@@ -64,7 +64,8 @@ BASE_URL = f'{SCHEME}{NETLOC}{PATH}{EXTRA}'
     pytest.param(f'{RSCHEME}{RNETLOC}{RPATH}', f'{RSCHEME}{RNETLOC}{RPATH}', id='test_url_redirection_full'),
     pytest.param(f'{RPATH}', f'{SCHEME}{NETLOC}{RPATH}', id='test_url_redirection_partial'),
 ])
-def test_url_redirection(delay: str, url: str, extra: str, expected: str) -> None:  # pylint: disable=unused-variable
+# pylint: disable-next=unused-variable
+def test_url_redirection(delay: str, url: str, extra: str, expected: str) -> None:
     """Test *url* redirections using *delay* and *extra* fields."""
     contents = fr'<meta http-equiv="refresh" content="{delay}url={url}{extra}"'.encode()
     result = get_redirected_url(contents, BASE_URL)
@@ -77,14 +78,16 @@ def test_url_redirection(delay: str, url: str, extra: str, expected: str) -> Non
     pytest.param('<meta charset="{}">', 'cp850', id='test_url_charset_detection_cp850'),
     pytest.param('{}', 'iso-8859-1', id='test_url_charset_detection_iso-8859-1'),
 ])
-def test_url_charset_detection(contents: str, expected: str) -> None:  # pylint: disable=unused-variable
+# pylint: disable-next=unused-variable
+def test_url_charset_detection(contents: str, expected: str) -> None:
     """Test different ways of detecting the *contents* charset."""
     result = detect_html_charset(contents.format(expected).encode('ascii')).lower()
 
     assert result == expected
 
 
-def test_url_retrieve_utf8_data() -> None:  # pylint: disable=unused-variable
+# pylint: disable-next=unused-variable
+def test_url_retrieve_utf8_data() -> None:
     """Test full URL retrieval of UTF-8 encoded data.
 
     Both `https:` and `file:` URL schemes are tested.

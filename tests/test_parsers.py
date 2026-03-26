@@ -43,7 +43,8 @@ def generate_random_string() -> str:
     return escape(''.join(randchoices(allowed_chars, k=randint(min_len, max_len))))  # noqa: S311
 
 
-def test_random_data_parsing() -> None:  # pylint: disable=unused-variable
+# pylint: disable-next=unused-variable
+def test_random_data_parsing() -> None:
     """Test parser behavior against random data."""
     max_random_strings_to_feed = 2 ** 10
     feeds_per_random_string = 10
@@ -69,7 +70,10 @@ def test_random_data_parsing() -> None:  # pylint: disable=unused-variable
 
 
 K, V = 'key', 'value'
-def test_parser_reset() -> None:  # pylint: disable=unused-variable
+
+
+# pylint: disable-next=unused-variable
+def test_parser_reset() -> None:
     """Test parser state after a reset."""
     parser = BaseParser()
 
@@ -233,7 +237,8 @@ def test_parser_baseline(contents: tuple[str | None, str | None], expected: dict
         id='test_metadata_multiple_values_multiple_keys',
     ),
 ])
-def test_parser_multivalues(multikeys: bool, separator: str) -> None:  # pylint: disable=unused-variable  # noqa: FBT001
+# pylint: disable-next=unused-variable
+def test_parser_multivalues(multikeys: bool, separator: str) -> None: # noqa: FBT001
     """Test parsing of multiple values per key."""
     key = K
     multivalues = [f'value_{n}' for n in range(9)]
@@ -334,7 +339,8 @@ OP_EE = ELEMENT_E.format(TAG=TAG)
     pytest.param(f'{OP_KB}{OP_VB}{{V}}', (), id='test_old_regime_parser_no_closing_tags_3'),
     pytest.param(f'{OP_KB}{OP_VB}', (), id='test_old_regime_parser_no_closing_tags_4'),
 ])
-def test_old_regime_parser(contents: str, expected: tuple[str, str]) -> None:  # pylint: disable=unused-variable
+# pylint: disable-next=unused-variable
+def test_old_regime_parser(contents: str, expected: tuple[str, str]) -> None:
     """Test *Old Regime* parser."""
     k_data = generate_random_string()
     v_data = generate_random_string()
@@ -441,7 +447,8 @@ BP_VB, BP_VE = ELEMENT_B.format(TAG=BaratzParser.V_TAG, MARKER=''), ELEMENT_E.fo
     pytest.param(f'{BP_MB}{BP_KB}{BP_VB}{{V}}', (), id='test_baratz_parser_no_closing_tags_3'),
     pytest.param(f'{BP_MB}{BP_KB}{BP_VB}', (), id='test_baratz_parser_no_closing_tags_4'),
 ])
-def test_baratz_parser(contents: str, expected: tuple[str, str]) -> None:  # pylint: disable=unused-variable
+# pylint: disable-next=unused-variable
+def test_baratz_parser(contents: str, expected: tuple[str, str]) -> None:
     """Test *Baratz* parser."""
     k_data = generate_random_string()
     v_data = generate_random_string()

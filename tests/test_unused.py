@@ -63,7 +63,8 @@ class UsageTrackerVisitor(ast.NodeVisitor):
 
 
 @pytest.fixture(scope='module', name='codetree')
-def get_parsed_codetree() -> ast.Module:  # pylint: disable=unused-variable
+# pylint: disable-next=unused-variable
+def get_parsed_codetree() -> ast.Module:
     """Fixture to get the parsed code tree of the module under test."""
     return ast.parse(inspect.getsource(sacamantecas))
 
@@ -73,7 +74,8 @@ def get_parsed_codetree() -> ast.Module:  # pylint: disable=unused-variable
     pytest.param(sacamantecas.Messages.__name__, id='test_no_unused_Messages_attributes'),
     pytest.param(sacamantecas.ExitCodes.__name__, id='test_no_unused_ExitCodes_attributes'),
 ])
-def test_no_unused_class_attributes(classname: str, codetree: ast.Module) -> None:  # pylint: disable=unused-variable
+# pylint: disable-next=unused-variable
+def test_no_unused_class_attributes(classname: str, codetree: ast.Module) -> None:
     """Test that all attributes in classname are used."""
     visitor = UsageTrackerVisitor(classname)
     visitor.visit(codetree)

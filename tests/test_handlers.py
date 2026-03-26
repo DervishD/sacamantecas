@@ -30,7 +30,8 @@ SAMPLE_URLS = [f'{choice(('https', 'http', 'file'))}://subdomain{i}.domain.tld' 
 EXPECTED_METADATA = {u: {h: new_hash(h, u.encode('utf-8')).hexdigest() for h in HASHES} for u in SAMPLE_URLS}
 
 
-def test_handler_single_url(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:  # pylint: disable=unused-variable
+# pylint: disable-next=unused-variable
+def test_handler_single_url(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """Test single URLs."""
     single_url = url_to_path('url://subdomain.domain.toplevel/path?param1=value1&param2=value2')
     expected = Path('url___subdomain_domain_toplevel_path_param1_value1_param2_value2')
@@ -68,8 +69,8 @@ def test_handler_single_url(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> 
 
     assert result == EXPECTED_METADATA[urls[0]]
 
-
-def test_handler_textfile(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:  # pylint: disable=unused-variable
+# pylint: disable-next=unused-variable
+def test_handler_textfile(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """Test textfile handler."""
     sourcefile_path = tmp_path / 'urls.txt'
     sourcefile_path.write_text('\n'.join(SAMPLE_URLS), encoding='utf-8')

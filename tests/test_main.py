@@ -53,7 +53,8 @@ def interrupted_function() -> NoReturn:
     raise KeyboardInterrupt
 
 
-def test_keyboard_interrupt_handler(capsys: pytest.CaptureFixture[str]) -> None:  # pylint: disable=unused-variable
+# pylint: disable-next=unused-variable
+def test_keyboard_interrupt_handler(capsys: pytest.CaptureFixture[str]) -> None:
     """Test the `keyboard_interrupt_handler()` decorator."""
     logger.config(main_log_output=None, full_log_output=None)
 

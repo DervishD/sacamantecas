@@ -14,7 +14,8 @@ if TYPE_CHECKING:
 
 
 @pytest.fixture
-def log_paths(tmp_path: Path) -> Generator[LogPaths]:  # pylint: disable=unused-variable
+# pylint: disable-next=unused-variable
+def log_paths(tmp_path: Path) -> Generator[LogPaths]:
     """Generate temporary paths for logging files in *tmp_path*."""
     main_output_path = tmp_path / 'log.txt'
     full_output_path = tmp_path / 'trace.txt'

@@ -7,13 +7,15 @@ if TYPE_CHECKING:
     from typing import Any
 
 
-class LogPaths(NamedTuple):  # pylint: disable=unused-variable
+# pylint: disable-next=unused-variable
+class LogPaths(NamedTuple):
     """Log paths abstraction."""  # noqa: D204
     main: Path
     full: Path
 
 
-class CallableSpy[**P, R]:  # pylint: disable=unused-variable, too-few-public-methods
+# pylint: disable-next=unused-variable, too-few-public-methods
+class CallableSpy[**P, R]:
     """Generic spy pattern for callables."""
 
     def __init__(self, target: Callable[P, R]) -> None:
