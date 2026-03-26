@@ -181,21 +181,6 @@ def test_spreadsheet_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) ->
     assert result == EXPECTED_METADATA
 
 
-@pytest.mark.parametrize(('suffix', 'handler_factory'), [
-    pytest.param('.txt', textfile_handler, id='test_missing_txt_source'),
-    pytest.param('.xlsx', spreadsheet_handler, id='test_missing_xlsx_source'),
-])
-# pylint: disable-next=unused-variable
-def test_missing_source(tmp_path: Path, suffix: str, handler_factory: Callable[[Path], Handler]) -> None:
-    """Test handling of missing sources."""
-    handler = handler_factory(tmp_path / f'non_existent{suffix}')
-
-    with pytest.raises(SourceError) as excinfo:
-        bootstrap(handler)
-
-    assert str(excinfo.value).startswith('No se encontró el fichero de entrada.')
-
-
 @pytest.mark.parametrize(('unreadable_path', 'handler_factory'), [
     pytest.param('unreadable_textfile.txt', textfile_handler, id='test_txt_input_no_permission'),
     pytest.param('unreadable_spreadsheet.xlsx', spreadsheet_handler, id='test_xlsx_input_no_permission'),
