@@ -52,7 +52,6 @@ GETADDRINFO_MSG = 'getaddrinfo failed'
         id='test_url_error_nonexistent_url',
     ),
 ])
-# pylint: disable-next=unused-variable
 def test_url_errors(
     monkeypatch: pytest.MonkeyPatch,
     url: str,
@@ -71,7 +70,6 @@ def test_url_errors(
     assert excinfo.value.details == expected
 
 
-# pylint: disable-next=unused-variable
 def test_http_errors(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test HTTP errors."""
     host = MOCK_HOST
@@ -91,7 +89,6 @@ def test_http_errors(monkeypatch: pytest.MonkeyPatch) -> None:
     assert excinfo.value.details == f"InvalidURL: nonnumeric port: '{port}'."
 
 
-# pylint: disable-next=unused-variable
 def test_connection_errors(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test connection errors."""
     host = MOCK_HOST

@@ -26,7 +26,6 @@ from sacamantecas import Constants
 # dirty, that is, current working copy has uncommitted changes. As such,
 # the regex used to validate the version string has been adapted from
 # the one provided in 'PyPA' documentation.
-# pylint: disable-next=unused-variable
 def test_version_matches_pypa_spec() -> None:
     """Test application version string."""
     pypa_spec_compliant_version_regex = r"""^
@@ -39,7 +38,6 @@ def test_version_matches_pypa_spec() -> None:
     assert program_version == Constants.VERSION
 
 
-# pylint: disable-next=unused-variable
 def test_program_name_matches_metadata() -> None:
     """Test the hardcorded app name is what it should be."""
     assert metadata(Constants.PROGRAM_NAME)['Name'] ==  Constants.PROGRAM_NAME

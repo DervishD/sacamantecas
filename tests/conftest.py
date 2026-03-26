@@ -14,7 +14,6 @@ if TYPE_CHECKING:
 
 
 @pytest.fixture
-# pylint: disable-next=unused-variable
 def log_paths(tmp_path: Path) -> Generator[LogPaths]:
     """Generate temporary paths for logging files in *tmp_path*."""
     main_output_path = tmp_path / 'log.txt'
@@ -27,7 +26,6 @@ def log_paths(tmp_path: Path) -> Generator[LogPaths]:
 
 
 @pytest.fixture
-# pylint: disable-next=unused-variable
 def unreadable_path(tmp_path: Path, request: pytest.FixtureRequest) -> Generator[Path]:
     """Create a file in *tmp_path*, unreadable by the current user."""
     path = tmp_path / request.param
@@ -40,7 +38,6 @@ def unreadable_path(tmp_path: Path, request: pytest.FixtureRequest) -> Generator
 
 
 @pytest.fixture
-# pylint: disable-next=unused-variable
 def unwritable_path(tmp_path: Path, request: pytest.FixtureRequest) -> Generator[Path]:
     """Create a file in *tmp_path*, non writable by the current user."""
     path = tmp_path / request.param

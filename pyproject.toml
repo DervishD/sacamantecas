@@ -19,6 +19,7 @@ tests = [
 ]
 lint = [
     "pylint",
+    "pylint-pytest",
     "vulture",
     "ruff",
 ]

@@ -26,7 +26,6 @@ from sacamantecas import (
     pytest.param('', '/./relpath', '?query#fragment', id='test_file_url_resolution_relpath_query'),
     pytest.param('netloc.url', '/./relpath', '?query#fragment', id='test_file_url_resolution_netloc_relpath_query'),
 ])
-# pylint: disable-next=unused-variable
 def test_file_url_resolution(request: pytest.FixtureRequest, netloc:str, base:str, extra:str) -> None:
     """Test resolution of `file:` URLs."""
     rootpath = Path(request.config.rootpath).as_posix()
@@ -64,7 +63,6 @@ BASE_URL = f'{SCHEME}{NETLOC}{PATH}{EXTRA}'
     pytest.param(f'{RSCHEME}{RNETLOC}{RPATH}', f'{RSCHEME}{RNETLOC}{RPATH}', id='test_url_redirection_full'),
     pytest.param(f'{RPATH}', f'{SCHEME}{NETLOC}{RPATH}', id='test_url_redirection_partial'),
 ])
-# pylint: disable-next=unused-variable
 def test_url_redirection(delay: str, url: str, extra: str, expected: str) -> None:
     """Test *url* redirections using *delay* and *extra* fields."""
     contents = fr'<meta http-equiv="refresh" content="{delay}url={url}{extra}"'.encode()
@@ -78,7 +76,6 @@ def test_url_redirection(delay: str, url: str, extra: str, expected: str) -> Non
     pytest.param('<meta charset="{}">', 'cp850', id='test_url_charset_detection_cp850'),
     pytest.param('{}', 'iso-8859-1', id='test_url_charset_detection_iso-8859-1'),
 ])
-# pylint: disable-next=unused-variable
 def test_url_charset_detection(contents: str, expected: str) -> None:
     """Test different ways of detecting the *contents* charset."""
     result = detect_html_charset(contents.format(expected).encode('ascii')).lower()
@@ -86,7 +83,6 @@ def test_url_charset_detection(contents: str, expected: str) -> None:
     assert result == expected
 
 
-# pylint: disable-next=unused-variable
 def test_url_retrieve_utf8_data() -> None:
     """Test full URL retrieval of UTF-8 encoded data.
 

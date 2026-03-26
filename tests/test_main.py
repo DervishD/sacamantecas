@@ -16,7 +16,6 @@ from sacamantecas import (
 )
 
 
-# pylint: disable-next=unused-variable
 def test_no_arguments(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
@@ -53,7 +52,6 @@ def interrupted_function() -> NoReturn:
     raise KeyboardInterrupt
 
 
-# pylint: disable-next=unused-variable
 def test_keyboard_interrupt_handler(capsys: pytest.CaptureFixture[str]) -> None:
     """Test the `keyboard_interrupt_handler()` decorator."""
     logger.config(main_log_output=None, full_log_output=None)

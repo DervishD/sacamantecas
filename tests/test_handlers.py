@@ -30,7 +30,6 @@ SAMPLE_URLS = [f'{choice(('https', 'http', 'file'))}://subdomain{i}.domain.tld' 
 EXPECTED_METADATA = {u: {h: new_hash(h, u.encode('utf-8')).hexdigest() for h in HASHES} for u in SAMPLE_URLS}
 
 
-# pylint: disable-next=unused-variable
 def test_handler_single_url(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """Test single URLs."""
     single_url = url_to_path('url://subdomain.domain.toplevel/path?param1=value1&param2=value2')
@@ -69,7 +68,6 @@ def test_handler_single_url(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> 
 
     assert result == EXPECTED_METADATA[urls[0]]
 
-# pylint: disable-next=unused-variable
 def test_handler_textfile(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """Test textfile handler."""
     sourcefile_path = tmp_path / 'urls.txt'
@@ -110,7 +108,7 @@ def test_handler_textfile(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> No
     assert result == EXPECTED_METADATA
 
 
-# pylint: disable-next=unused-variable,too-many-locals
+# pylint: disable-next=too-many-locals
 def test_handler_spreadsheet(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """Test spreadsheet handler."""
     fake_metadata_columns = 10
@@ -186,7 +184,6 @@ def test_handler_spreadsheet(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) ->
     pytest.param('unreadable_textfile.txt', textfile_handler, id='test_unreadable_txt_input'),
     pytest.param('unreadable_spreadsheet.xlsx', spreadsheet_handler, id='test_unreadable_xlsx_input'),
 ], indirect=['unreadable_path'])
-# pylint: disable-next=unused-variable
 def test_unreadable_input_file(unreadable_path: Path, handler_factory: Callable[[Path], Handler]) -> None:
     """Test handling of unreadable files."""
     handler = handler_factory(unreadable_path)
@@ -217,7 +214,6 @@ def test_unreadable_input_file(unreadable_path: Path, handler_factory: Callable[
         id='test_unwritable_output_file_xlsx_file',
     ),
 ], indirect=['unwritable_path'])
-# pylint: disable-next=unused-variable
 def test_unwritable_output_file(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
