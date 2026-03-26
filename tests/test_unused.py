@@ -69,13 +69,9 @@ def get_parsed_codetree() -> ast.Module:  # pylint: disable=unused-variable
 
 
 @pytest.mark.parametrize('classname', [
-    sacamantecas.Constants.__name__,
-    sacamantecas.Messages.__name__,
-    sacamantecas.ExitCodes.__name__,
-], ids=[
-    'test_no_unused_Constants',
-    'test_no_unused_Messages',
-    'test_no_unused_Exitcodes',
+    pytest.param(sacamantecas.Constants.__name__, id='test_no_unused_Constants'),
+    pytest.param(sacamantecas.Messages.__name__, id='test_no_unused_Messages'),
+    pytest.param(sacamantecas.ExitCodes.__name__, id='test_no_unused_Exitcodes'),
 ])
 def test_no_unused_attributes(classname: str, codetree: ast.Module) -> None:  # pylint: disable=unused-variable
     """Test that all attributes in classname are used."""

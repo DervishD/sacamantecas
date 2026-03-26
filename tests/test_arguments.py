@@ -32,15 +32,10 @@ def test_unsupported_source() -> None:  # pylint: disable=unused-variable
 
 
 @pytest.mark.parametrize(('sources', 'expected'), [
-    ('http://source', single_url_handler),
-    ('file://source', single_url_handler),
-    ('source.txt', textfile_handler),
-    ('source.xlsx', spreadsheet_handler),
-], ids=[
-    'test_http_source_identification',
-    'test_file_source_identification',
-    'test_txt_source_identification',
-    'test_xlsx_source_identification',
+    pytest.param('http://source', single_url_handler, id='test_http_source_identification'),
+    pytest.param('file://source', single_url_handler, id='test_file_source_identification'),
+    pytest.param('source.txt', textfile_handler, id='test_txt_source_identification'),
+    pytest.param('source.xlsx', spreadsheet_handler, id='test_xlsx_source_identification'),
 ])
 def test_source_identification(sources: str, expected: Handler) -> None:  # pylint: disable=unused-variable
     """Test identification of different *sources*."""

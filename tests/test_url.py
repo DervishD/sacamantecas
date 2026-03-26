@@ -17,23 +17,14 @@ from sacamantecas import (
 
 
 @pytest.mark.parametrize(('netloc', 'base', 'extra'), [
-    ('', '/abspath', ''),
-    ('netloc.url', '/abspath', ''),
-    ('', '/abspath', '?query#fragment'),
-    ('netloc.url', '/abspath', '?query#fragment'),
-    ('', '/./relpath', ''),
-    ('netloc.url', '/./relpath', ''),
-    ('', '/./relpath', '?query#fragment'),
-    ('netloc.url', '/./relpath', '?query#fragment'),
-], ids=[
-    'test_abspath_file_url_resolution',
-    'test_netloc_abspath_file_url_resolution',
-    'test_abspath_query_file_url_resolution',
-    'test_netloc_abspath_query_file_url_resolution',
-    'test_relpath_file_url_resolution',
-    'test_netloc_relpath_file_url_resolution',
-    'test_relpath_query_file_url_resolution',
-    'test_netloc_relpath_query_file_url_resolution',
+    pytest.param('', '/abspath', '', id='test_file_url_resolution_abspath'),
+    pytest.param('netloc.url', '/abspath', '', id='test_file_url_resolution_netloc_abspath'),
+    pytest.param('', '/abspath', '?query#fragment', id='test_file_url_resolution_abspath_query'),
+    pytest.param('netloc.url', '/abspath', '?query#fragment', id='test_file_url_resolution_netloc_abspath_query'),
+    pytest.param('', '/./relpath', '', id='test_file_url_resolution_relpath'),
+    pytest.param('netloc.url', '/./relpath', '', id='test_file_url_resolution_netloc_relpath'),
+    pytest.param('', '/./relpath', '?query#fragment', id='test_file_url_resolution_relpath_query'),
+    pytest.param('netloc.url', '/./relpath', '?query#fragment', id='test_file_url_resolution_netloc_relpath_query'),
 ])
 # pylint: disable-next=unused-variable
 def test_file_url_resolution(request: pytest.FixtureRequest, netloc:str, base:str, extra:str) -> None:
@@ -60,14 +51,18 @@ RPATH = '/rroot/rsub/rp.html'
 EXTRA = ';pr?k1=v1&k2=v2#fr'
 REXTRA = ';rpr?rk1=rv1&rk2=rv2#rfr'
 BASE_URL = f'{SCHEME}{NETLOC}{PATH}{EXTRA}'
-@pytest.mark.parametrize('delay', ['0; ', '1234; ', ''], ids=['0_delay', '1234_delay', 'no_delay'])
-@pytest.mark.parametrize('extra', [REXTRA, ''], ids=['extra', 'no_extra'])
+@pytest.mark.parametrize('delay', [
+    pytest.param('0; ', id='0_delay'),
+    pytest.param('1234; ', id='1234_delay'),
+    pytest.param('', id='no_delay'),
+])
+@pytest.mark.parametrize('extra', [
+    pytest.param(REXTRA, id='extra'),
+    pytest.param('', id='no_extra'),
+])
 @pytest.mark.parametrize(('url', 'expected'), [
-    (f'{RSCHEME}{RNETLOC}{RPATH}', f'{RSCHEME}{RNETLOC}{RPATH}'),
-    (f'{RPATH}', f'{SCHEME}{NETLOC}{RPATH}'),
-], ids=[
-    'test_full_url_redirection',
-    'test_partial_url_redirection',
+    pytest.param(f'{RSCHEME}{RNETLOC}{RPATH}', f'{RSCHEME}{RNETLOC}{RPATH}', id='test_full_url_redirection'),
+    pytest.param(f'{RPATH}', f'{SCHEME}{NETLOC}{RPATH}', id='test_partial_url_redirection'),
 ])
 def test_url_redirection(delay: str, url: str, extra: str, expected: str) -> None:  # pylint: disable=unused-variable
     """Test *url* redirections using *delay* and *extra* fields."""
@@ -78,13 +73,9 @@ def test_url_redirection(delay: str, url: str, extra: str, expected: str) -> Non
 
 
 @pytest.mark.parametrize(('contents', 'expected'), [
-    ('<meta http-equiv="content-type" charset="{}">', 'cp1252'),
-    ('<meta charset="{}">', 'cp850'),
-    ('{}', 'ISO-8859-1'),
-], ids=[
-    'test_cp1252_charset_detection',
-    'test_cp850_charset_detection',
-    'test_ISO-8859-1_charset_detection',
+    pytest.param('<meta http-equiv="content-type" charset="{}">', 'cp1252', id='test_cp1252_charset_detection'),
+    pytest.param('<meta charset="{}">', 'cp850', id='test_cp850_charset_detection'),
+    pytest.param('{}', 'ISO-8859-1', id='test_ISO-8859-1_charset_detection'),
 ])
 def test_charset_detection(contents: str, expected: str) -> None:  # pylint: disable=unused-variable
     """Test different ways of detecting the *contents* charset."""

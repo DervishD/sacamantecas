@@ -21,37 +21,36 @@ CONNREFUSED_MSG = 'No se puede establecer una conexión ya que el equipo de dest
 GETADDRINFO_ERRNO = 11001
 GETADDRINFO_MSG = 'getaddrinfo failed'
 @pytest.mark.parametrize(('url', 'side_effect', 'expected'), [
-    (
+    pytest.param(
         f'scheme://{MOCK_HOST}',
         Exception(),
         f'Error de URL: el URL «scheme://{MOCK_HOST}» es de tipo desconocido.',
+        id='test_bad_scheme_url_error',
     ),
-    (
+    pytest.param(
         f'https://{MOCK_HOST}/status/404',
         HTTPError(url=f'https://{MOCK_HOST}/status/404', code=404, msg='Not Found', hdrs=HTTPMessage(), fp=None),
         'Error de protocolo HTTP 404: not found.',
+        id='test_404_status_url_error',
     ),
-    (
+    pytest.param(
         f'https://{MOCK_HOST}/status/200',
         HTTPError(url='https://{MOCK_URL}/status/200', code=200, msg='Bad Request', hdrs=HTTPMessage(), fp=None),
         'Error de protocolo HTTP 200: bad request.',
+        id='test_200_status_url_error',
     ),
-    (
+    pytest.param(
         f'http://{MOCK_HOST}:7',
         URLError(OSError(CONNREFUSED_ERRNO, CONNREFUSED_MSG)),
         f'Error de red {errorcode[CONNREFUSED_ERRNO]}: {CONNREFUSED_MSG.lower()}.',
+        id='test_connection_refused_url_error',
     ),
-    (
+    pytest.param(
         f'http://{MOCK_HOST}/nonexistent',
         URLError(OSError(GETADDRINFO_ERRNO, GETADDRINFO_MSG)),
         f'Error de red {GETADDRINFO_ERRNO}: {GETADDRINFO_MSG}.',
+        id='test_nonexistent_url_error',
     ),
-], ids=[
-    'test_bad_scheme_url_error',
-    'test_404_status_url_error',
-    'test_200_status_url_error',
-    'test_connection_refused_url_error',
-    'test_nonexistent_url_error',
 ])
 def test_url_errors(  # pylint: disable=unused-variable
     monkeypatch: pytest.MonkeyPatch,

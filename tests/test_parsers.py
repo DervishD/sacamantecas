@@ -99,15 +99,30 @@ def test_parser_reset() -> None:  # pylint: disable=unused-variable
 
 
 @pytest.mark.parametrize(('k', 'v', 'expected'), [
-    (None, None, 'Metadato vacío.'),
-    (K, None, f'Metadato «{K}» incompleto, ignorando.'),
-    (None, V, f'No se encontró una clave, usando «{BaseParser.EMPTY_KEY_PLACEHOLDER}».'),
-    (K, V, f'Metadato correcto «{K}: {V}».'),
-], ids=[
-    'test_metadata_emtpy',
-    'test_metadata_missing_value',
-    'test_metadata_missing_key',
-    'test_metadata_ok',
+    pytest.param(
+        None,
+        None,
+        'Metadato vacío.',
+        id='test_metadata_empty',
+    ),
+    pytest.param(
+        K,
+        None,
+        f'Metadato «{K}» incompleto, ignorando.',
+        id='test_metadata_missing_value',
+    ),
+    pytest.param(
+        None,
+        V,
+        f'No se encontró una clave, usando «{BaseParser.EMPTY_KEY_PLACEHOLDER}».',
+        id='test_metadata_missing_key',
+    ),
+    pytest.param(
+        K,
+        V,
+        f'Metadato correcto «{K}: {V}».',
+        id='test_metadata_ok',
+    ),
 ])
 # pylint: disable-next=unused-variable
 def test_medatata_storage(caplog: pytest.LogCaptureFixture, k: str, v: str, expected: str) -> None:
@@ -132,11 +147,16 @@ SINGLE_V = ['single_value']
 MULTIPLE_K = 'multiple_key'
 MULTIPLE_V = ['multiple_value1', 'multiple_value2', 'multiple_value3']
 @pytest.mark.parametrize(('metadata', 'expected'), [
-    ({SINGLE_K: SINGLE_V}, {SINGLE_K: SINGLE_V[0]}),
-    ({MULTIPLE_K: MULTIPLE_V}, {MULTIPLE_K: BaseParser.MULTIVALUE_SEPARATOR.join(MULTIPLE_V)}),
-], ids=[
-    'test_metadata_single_value',
-    'test_metadata_multiple_value',
+    pytest.param(
+        {SINGLE_K: SINGLE_V},
+        {SINGLE_K: SINGLE_V[0]},
+        id='test_metadata_single_value',
+    ),
+    pytest.param(
+        {MULTIPLE_K: MULTIPLE_V},
+        {MULTIPLE_K: BaseParser.MULTIVALUE_SEPARATOR.join(MULTIPLE_V)},
+        id='test_metadata_multiple_value',
+    ),
 ])
 # pylint: disable-next=unused-variable
 def test_metadata_retrieval(metadata: dict[str, list[str]], expected: dict[str, str]) -> None:
@@ -154,29 +174,32 @@ WS_NL = '  {}\n   whitespaced     \n       and\t\n    newlined   '
 # and None that parser.feed() is not even called for that particular item.
 @pytest.mark.parametrize(('contents', 'expected'), [
     # Normal metadata.
-    ((K, V), {K: V}),
-    ((f'{K}:', V), {K: V}),
-    ((WS_NL.format(K), WS_NL.format(V)), {' '.join(WS_NL.split()).format(K): ' '.join(WS_NL.split()).format(V)}),
+    pytest.param(
+        (K, V),
+        {K: V},
+        id='test_parser_baseline_k_v',
+    ),
+    pytest.param(
+        (f'{K}:', V),
+        {K: V},
+        id='test_parser_baseline_k_v_with_sep',
+    ),
+    pytest.param(
+        (WS_NL.format(K), WS_NL.format(V)),
+        {' '.join(WS_NL.split()).format(K): ' '.join(WS_NL.split()).format(V)},
+        id='test_parser_baseline_k_v_whitespaced',
+    ),
 
     # Incomplete metadata, missing value.
-    ((K, EMPTY), {}),
-    ((K, None), {}),
+    pytest.param((K, EMPTY), {}, id='test_parser_baseline_missing_value_empty'),
+    pytest.param((K, None), {}, id='test_parser_baseline_missing_value_none'),
 
     # Incomplete metadata, missing key.
-    ((EMPTY, V), {BaseParser.EMPTY_KEY_PLACEHOLDER: V}),
-    ((None, V), {BaseParser.EMPTY_KEY_PLACEHOLDER: V}),
+    pytest.param((EMPTY, V), {BaseParser.EMPTY_KEY_PLACEHOLDER: V}, id='test_parser_baseline_missing_key_empty'),
+    pytest.param((None, V), {BaseParser.EMPTY_KEY_PLACEHOLDER: V}, id='test_parser_baseline_missing_key_none'),
 
     # Empty metadata.
-    ((EMPTY, EMPTY), {}),
-], ids=[
-    'test_parser_baseline_k_v',
-    'test_parser_baseline_k_v_with_sep',
-    'test_parser_baseline_k_v_whitespaced',
-    'test_parser_baseline_missing_value_empty',
-    'test_parser_baseline_missing_value_none',
-    'test_parser_baseline_missing_key_empty',
-    'test_parser_baseline_missing_key_none',
-    'test_parser_baseline_missing_metadata',
+    pytest.param((EMPTY, EMPTY), {}, id='test_parser_baseline_missing_metadata'),
 ])
 # pylint: disable-next=unused-variable
 def test_parser_baseline(contents: tuple[str | None, str | None], expected: dict[str, str]) -> None:
@@ -205,11 +228,16 @@ def test_parser_baseline(contents: tuple[str | None, str | None], expected: dict
 
 MULTIVALUES = [f'value_{n}' for n in range(9)]
 @pytest.mark.parametrize(('multikeys', 'separator'), [
-    (True, BaseParser.MULTIVALUE_SEPARATOR),
-    (False, BaseParser.MULTIDATA_SEPARATOR),
-], ids=[
-    'test_metadata_multivalues_multikeys',
-    'test_metadata_multivalues',
+    pytest.param(
+        True,
+        BaseParser.MULTIVALUE_SEPARATOR,
+        id='test_metadata_multivalues_multikeys',
+    ),
+    pytest.param(
+        False,
+        BaseParser.MULTIDATA_SEPARATOR,
+        id='test_metadata_multivalues',
+    ),
 ])
 def test_parser_multivalues(multikeys: bool, separator: str) -> None:  # pylint: disable=unused-variable  # noqa: FBT001
     """Test parsing of multiple values per key."""
@@ -252,55 +280,67 @@ OP_VB = ELEMENT_B.format(TAG=TAG, MARKER=V_CLASS)
 OP_EE = ELEMENT_E.format(TAG=TAG)
 @pytest.mark.parametrize(('contents', 'expected'), [
     # Normal metadata.
-    (f'{OP_KB}{{K}}{OP_EE}{OP_VB}{{V}}{OP_EE}', ('{K}', '{V}')),
+    pytest.param(f'{OP_KB}{{K}}{OP_EE}{OP_VB}{{V}}{OP_EE}', ('{K}', '{V}'), id='test_old_regime_parser_ok'),
 
     # Incomplete metadata, missing value.
-    (f'{OP_KB}{{K}}{OP_EE}{OP_VB}{{V}}', ()),
-    (f'{OP_KB}{{K}}{OP_EE}{OP_VB}{OP_EE}', ()),
-    (f'{OP_VB}{{V}}', ()),
-    (f'{OP_VB}{OP_EE}', ()),
+    pytest.param(f'{OP_KB}{{K}}{OP_EE}{OP_VB}{{V}}', (), id='test_old_regime_parser_missing_value_1'),
+    pytest.param(f'{OP_KB}{{K}}{OP_EE}{OP_VB}{OP_EE}', (), id='test_old_regime_parser_missing_value_2'),
+    pytest.param(f'{OP_VB}{{V}}', (), id='test_old_regime_parser_missing_value_3'),
+    pytest.param(f'{OP_VB}{OP_EE}', (), id='test_old_regime_parser_missing_value_4'),
 
     # Incomplete metadata, missing key.
-    (f'{OP_KB}{OP_EE}{OP_VB}{{V}}{OP_EE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
-    (f'{OP_VB}{{V}}{OP_EE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
+    pytest.param(
+        f'{OP_KB}{OP_EE}{OP_VB}{{V}}{OP_EE}',
+        (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}'),
+        id='test_old_regime_parser_missing_key_1',
+    ),
+    pytest.param(
+        f'{OP_VB}{{V}}{OP_EE}',
+        (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}'),
+        id='test_old_regime_parser_missing_key_2',
+    ),
 
     # Nesting, value inside key.
-    (f'{OP_KB}{{K}}{OP_VB}{{V}}{OP_EE}', ('{K}', '{V}')),
-    (f'{OP_KB}{{K}}{OP_VB}{OP_EE}', ()),
+    pytest.param(f'{OP_KB}{{K}}{OP_VB}{{V}}{OP_EE}', ('{K}', '{V}'), id='test_old_regime_parser_nesting_v_in_k_1'),
+    pytest.param(f'{OP_KB}{{K}}{OP_VB}{OP_EE}', (), id='test_old_regime_parser_nesting_v_in_k_2'),
 
     # Nesting, key inside value.
-    (f'{OP_VB}_{{V}}_{OP_KB}{{K}}{OP_EE}{OP_VB}{{V}}{OP_EE}', ('{K}', '{V}')),
-    (f'{OP_VB}{OP_KB}{{K}}{OP_EE}{OP_VB}{{V}}{OP_EE}', ('{K}', '{V}')),
-    (f'{OP_VB}_{{V}}_{OP_KB}{OP_EE}{OP_VB}{{V}}{OP_EE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
-    (f'{OP_VB}{OP_KB}{OP_EE}{OP_VB}{{V}}{OP_EE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
-    (f'{OP_VB}_{{V}}_{OP_KB}{{K}}{OP_EE}{OP_VB}{{V}}', ()),
-    (f'{OP_VB}{OP_KB}{{K}}{OP_EE}{OP_VB}{{V}}', ()),
+    pytest.param(
+        f'{OP_VB}_{{V}}_{OP_KB}{{K}}{OP_EE}{OP_VB}{{V}}{OP_EE}',
+        ('{K}', '{V}'),
+        id='test_old_regime_parser_nesting_k_in_v_1',
+    ),
+    pytest.param(
+        f'{OP_VB}{OP_KB}{{K}}{OP_EE}{OP_VB}{{V}}{OP_EE}',
+        ('{K}', '{V}'),
+        id='test_old_regime_parser_nesting_k_in_v_2',
+    ),
+    pytest.param(
+        f'{OP_VB}_{{V}}_{OP_KB}{OP_EE}{OP_VB}{{V}}{OP_EE}',
+        (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}'),
+        id='test_old_regime_parser_nesting_k_in_v_3',
+    ),
+    pytest.param(
+        f'{OP_VB}{OP_KB}{OP_EE}{OP_VB}{{V}}{OP_EE}',
+        (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}'),
+        id='test_old_regime_parser_nesting_k_in_v_4',
+    ),
+    pytest.param(
+        f'{OP_VB}_{{V}}_{OP_KB}{{K}}{OP_EE}{OP_VB}{{V}}',
+        (),
+        id='test_old_regime_parser_nesting_k_in_v_5',
+    ),
+    pytest.param(
+        f'{OP_VB}{OP_KB}{{K}}{OP_EE}{OP_VB}{{V}}',
+        (),
+        id='test_old_regime_parser_nesting_k_in_v_6',
+    ),
 
     # Ill-formed, no closing tags.
-    (f'{OP_KB}{{K}}{OP_VB}{{V}}', ()),
-    (f'{OP_KB}{{K}}{OP_VB}', ()),
-    (f'{OP_KB}{OP_VB}{{V}}', ()),
-    (f'{OP_KB}{OP_VB}', ()),
-], ids=[
-    'test_old_regime_parser_ok',
-    'test_old_regime_parser_missing_value_1',
-    'test_old_regime_parser_missing_value_2',
-    'test_old_regime_parser_missing_value_3',
-    'test_old_regime_parser_missing_value_4',
-    'test_old_regime_parser_missing_key_1',
-    'test_old_regime_parser_missing_key_2',
-    'test_old_regime_parser_nesting_v_in_k_1',
-    'test_old_regime_parser_nesting_v_in_k_2',
-    'test_old_regime_parser_nesting_k_in_v_1',
-    'test_old_regime_parser_nesting_k_in_v_2',
-    'test_old_regime_parser_nesting_k_in_v_3',
-    'test_old_regime_parser_nesting_k_in_v_4',
-    'test_old_regime_parser_nesting_k_in_v_5',
-    'test_old_regime_parser_nesting_k_in_v_6',
-    'test_old_regime_parser_no_closing_tags_1',
-    'test_old_regime_parser_no_closing_tags_2',
-    'test_old_regime_parser_no_closing_tags_3',
-    'test_old_regime_parser_no_closing_tags_4',
+    pytest.param(f'{OP_KB}{{K}}{OP_VB}{{V}}', (), id='test_old_regime_parser_no_closing_tags_1'),
+    pytest.param(f'{OP_KB}{{K}}{OP_VB}', (), id='test_old_regime_parser_no_closing_tags_2'),
+    pytest.param(f'{OP_KB}{OP_VB}{{V}}', (), id='test_old_regime_parser_no_closing_tags_3'),
+    pytest.param(f'{OP_KB}{OP_VB}', (), id='test_old_regime_parser_no_closing_tags_4'),
 ])
 def test_old_regime_parser(contents: str, expected: tuple[str, str]) -> None:  # pylint: disable=unused-variable
     """Test *Old Regime* parser."""
@@ -341,63 +381,80 @@ BP_VB = ELEMENT_B.format(TAG=BaratzParser.V_TAG, MARKER='')
 BP_VE = ELEMENT_E.format(TAG=BaratzParser.V_TAG)
 @pytest.mark.parametrize(('contents', 'expected'), [
     # Normal metadata.
-    (f'{BP_MB}{BP_KB}{{K}}{BP_KE}{BP_VB}{{V}}{BP_VE}{BP_ME}', ('{K}', '{V}')),
-    (f'{BP_MB}{BP_KB}{{K}}{BP_KE}{BP_VB}{{V}}{BP_VE}', ('{K}', '{V}')),
+    pytest.param(f'{BP_MB}{BP_KB}{{K}}{BP_KE}{BP_VB}{{V}}{BP_VE}{BP_ME}', ('{K}', '{V}'), id='test_baratz_parser_ok_1'),
+    pytest.param(f'{BP_MB}{BP_KB}{{K}}{BP_KE}{BP_VB}{{V}}{BP_VE}', ('{K}', '{V}'), id='test_baratz_parser_ok_2'),
 
     # No metadata marker.
-    (f'{BP_KB}{{K}}{BP_KE}{BP_VB}{{V}}{BP_VE}{BP_ME}', ()),
-    (f'{BP_KB}{{K}}{BP_KE}{BP_VB}{{V}}{BP_VE}', ()),
+    pytest.param(f'{BP_KB}{{K}}{BP_KE}{BP_VB}{{V}}{BP_VE}{BP_ME}', (), id='test_baratz_parser_no_marker_1'),
+    pytest.param(f'{BP_KB}{{K}}{BP_KE}{BP_VB}{{V}}{BP_VE}', (), id='test_baratz_parser_no_marker_2'),
 
     # Incomplete metadata, missing value.
-    (f'{BP_MB}{BP_KB}{{K}}{BP_KE}{BP_VB}{{V}}', ()),
-    (f'{BP_MB}{BP_KB}{{K}}{BP_KE}{BP_VB}{BP_VE}', ()),
-    (f'{BP_MB}{BP_VB}{{V}}', ()),
-    (f'{BP_MB}{BP_VB}{BP_VE}', ()),
+    pytest.param(f'{BP_MB}{BP_KB}{{K}}{BP_KE}{BP_VB}{{V}}', (), id='test_baratz_parser_missing_value_1'),
+    pytest.param(f'{BP_MB}{BP_KB}{{K}}{BP_KE}{BP_VB}{BP_VE}', (), id='test_baratz_parser_missing_value_2'),
+    pytest.param(f'{BP_MB}{BP_VB}{{V}}', (), id='test_baratz_parser_missing_value_3'),
+    pytest.param(f'{BP_MB}{BP_VB}{BP_VE}', (), id='test_baratz_parser_missing_value_4'),
 
     # Incomplete metadata, missing key.
-    (f'{BP_MB}{BP_KB}{BP_KE}{BP_VB}{{V}}{BP_VE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
-    (f'{BP_MB}{BP_VB}{{V}}{BP_VE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
+    pytest.param(
+        f'{BP_MB}{BP_KB}{BP_KE}{BP_VB}{{V}}{BP_VE}',
+        (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}'),
+        id='test_baratz_parser_missing_key_1',
+    ),
+    pytest.param(
+        f'{BP_MB}{BP_VB}{{V}}{BP_VE}',
+        (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}'),
+        id='test_baratz_parser_missing_key_2',
+    ),
 
     # Nesting, value inside key.
-    (f'{BP_MB}{BP_KB}{{K}}{BP_VB}{{V}}{BP_VE}{BP_KE}', ('{K}', '{V}')),
-    (f'{BP_MB}{BP_KB}{{K}}{BP_VB}{BP_VE}{BP_KE}', ()),
+    pytest.param(
+        f'{BP_MB}{BP_KB}{{K}}{BP_VB}{{V}}{BP_VE}{BP_KE}',
+        ('{K}', '{V}'),
+        id='test_baratz_parser_nesting_v_in_k_1',
+    ),
+    pytest.param(
+        f'{BP_MB}{BP_KB}{{K}}{BP_VB}{BP_VE}{BP_KE}',
+        (),
+        id='test_baratz_parser_nesting_v_in_k_2',
+    ),
 
     # Nesting, key inside value.
-    (f'{BP_MB}{BP_VB}_{{V}}_{BP_KB}{{K}}{BP_KE}{BP_VB}{{V}}{BP_VE}', ('{K}', '{V}')),
-    (f'{BP_MB}{BP_VB}{BP_KB}{{K}}{BP_KE}{BP_VB}{{V}}{BP_VE}', ('{K}', '{V}')),
-    (f'{BP_MB}{BP_VB}_{{V}}_{BP_KB}{BP_KE}{BP_VB}{{V}}{BP_VE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
-    (f'{BP_MB}{BP_VB}{BP_KB}{BP_KE}{BP_VB}{{V}}{BP_VE}', (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}')),
-    (f'{BP_MB}{BP_VB}_{{V}}_{BP_KB}{{K}}{BP_KE}{BP_VB}{{V}}', ()),
-    (f'{BP_MB}{BP_VB}{BP_KB}{{K}}{BP_KE}{BP_VB}{{V}}', ()),
+    pytest.param(
+        f'{BP_MB}{BP_VB}_{{V}}_{BP_KB}{{K}}{BP_KE}{BP_VB}{{V}}{BP_VE}',
+        ('{K}', '{V}'),
+        id='test_baratz_parser_nesting_k_in_v_1',
+    ),
+    pytest.param(
+        f'{BP_MB}{BP_VB}{BP_KB}{{K}}{BP_KE}{BP_VB}{{V}}{BP_VE}',
+        ('{K}', '{V}'),
+        id='test_baratz_parser_nesting_k_in_v_2',
+    ),
+    pytest.param(
+        f'{BP_MB}{BP_VB}_{{V}}_{BP_KB}{BP_KE}{BP_VB}{{V}}{BP_VE}',
+        (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}'),
+        id='test_baratz_parser_nesting_k_in_v_3',
+    ),
+    pytest.param(
+        f'{BP_MB}{BP_VB}{BP_KB}{BP_KE}{BP_VB}{{V}}{BP_VE}',
+        (BaseParser.EMPTY_KEY_PLACEHOLDER, '{V}'),
+        id='test_baratz_parser_nesting_k_in_v_4',
+    ),
+    pytest.param(
+        f'{BP_MB}{BP_VB}_{{V}}_{BP_KB}{{K}}{BP_KE}{BP_VB}{{V}}',
+        (),
+        id='test_baratz_parser_nesting_k_in_v_5',
+    ),
+    pytest.param(
+        f'{BP_MB}{BP_VB}{BP_KB}{{K}}{BP_KE}{BP_VB}{{V}}',
+        (),
+        id='test_baratz_parser_nesting_k_in_v_6',
+    ),
 
     # Ill-formed, no closing tags.
-    (f'{BP_MB}{BP_KB}{{K}}{BP_VB}{{V}}', ()),
-    (f'{BP_MB}{BP_KB}{{K}}{BP_VB}', ()),
-    (f'{BP_MB}{BP_KB}{BP_VB}{{V}}', ()),
-    (f'{BP_MB}{BP_KB}{BP_VB}', ()),
-], ids=[
-    'test_baratz_parser_ok_1',
-    'test_baratz_parser_ok_2',
-    'test_baratz_parser_no_marker_1',
-    'test_baratz_parser_no_marker_2',
-    'test_baratz_parser_missing_value_1',
-    'test_baratz_parser_missing_value_2',
-    'test_baratz_parser_missing_value_3',
-    'test_baratz_parser_missing_value_4',
-    'test_baratz_parser_missing_key_1',
-    'test_baratz_parser_missing_key_2',
-    'test_baratz_parser_nesting_v_in_k_1',
-    'test_baratz_parser_nesting_v_in_k_2',
-    'test_baratz_parser_nesting_k_in_v_1',
-    'test_baratz_parser_nesting_k_in_v_2',
-    'test_baratz_parser_nesting_k_in_v_3',
-    'test_baratz_parser_nesting_k_in_v_4',
-    'test_baratz_parser_nesting_k_in_v_5',
-    'test_baratz_parser_nesting_k_in_v_6',
-    'test_baratz_parser_no_closing_tags_1',
-    'test_baratz_parser_no_closing_tags_2',
-    'test_baratz_parser_no_closing_tags_3',
-    'test_baratz_parser_no_closing_tags_4',
+    pytest.param(f'{BP_MB}{BP_KB}{{K}}{BP_VB}{{V}}', (), id='test_baratz_parser_no_closing_tags_1'),
+    pytest.param(f'{BP_MB}{BP_KB}{{K}}{BP_VB}', (), id='test_baratz_parser_no_closing_tags_2'),
+    pytest.param(f'{BP_MB}{BP_KB}{BP_VB}{{V}}', (), id='test_baratz_parser_no_closing_tags_3'),
+    pytest.param(f'{BP_MB}{BP_KB}{BP_VB}', (), id='test_baratz_parser_no_closing_tags_4'),
 ])
 def test_baratz_parser(contents: str, expected: tuple[str, str]) -> None:  # pylint: disable=unused-variable
     """Test *Baratz* parser."""
