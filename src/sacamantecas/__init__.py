@@ -49,15 +49,15 @@ type Handler = Generator[str, dict[str, str] | None]
 class Constants:  # pylint: disable=too-few-public-methods
     """Program configuration values."""
 
-    APP_NAME = 'sacamantecas'
-    APP_VERSION = version(APP_NAME)
-    APP_REPOSITORY = next(
-        (url for url in metadata(APP_NAME).get_all('Project-URL', []) if url.startswith('source')),
+    PROGRAM_NAME = 'sacamantecas'
+    VERSION = version(PROGRAM_NAME)
+    REPOSITORY = next(
+        (url for url in metadata(PROGRAM_NAME).get_all('Project-URL', []) if url.startswith('source')),
         '',
     ).split(', ', maxsplit=1)[1]
-    APP_PLATFORM = f'Windows {platform.version()};{platform.architecture()[0]};{platform.machine()}'
+    PLATFORM = f'Windows {platform.version()};{platform.architecture()[0]};{platform.machine()}'
 
-    DEVELOPMENT_MODE = '.post' in APP_VERSION
+    DEVELOPMENT_MODE = '.post' in VERSION
 
     UTF8 = 'utf-8'
     ASCII = 'ascii'
@@ -71,7 +71,7 @@ class Constants:  # pylint: disable=too-few-public-methods
 
     TIMESTAMP_FORMAT = '%Y%m%d_%H%M%S'
 
-    USER_AGENT = f'{APP_NAME}/{APP_VERSION} +{APP_REPOSITORY} ({APP_PLATFORM})'
+    USER_AGENT = f'{PROGRAM_NAME}/{VERSION} +{REPOSITORY} ({PLATFORM})'
 
     ACCEPTED_URL_SCHEMES = ('https', 'http', 'file')
 
@@ -88,9 +88,9 @@ class Constants:  # pylint: disable=too-few-public-methods
 
     ROOT_PATH = Path(sys.executable if getattr(sys, 'frozen', False) else __file__).resolve().parent
 
-    MAIN_OUTPUT_PATH = ROOT_PATH / f'{APP_NAME}_log{"" if DEVELOPMENT_MODE else TIMESTAMP_STEM}{TEXTFILE_SUFFIX}'
-    FULL_OUTPUT_PATH = ROOT_PATH / f'{APP_NAME}_trace{"" if DEVELOPMENT_MODE else TIMESTAMP_STEM}{TEXTFILE_SUFFIX}'
-    INIFILE_PATH = ROOT_PATH / f'{APP_NAME}.ini'
+    MAIN_OUTPUT_PATH = ROOT_PATH / f'{PROGRAM_NAME}_log{"" if DEVELOPMENT_MODE else TIMESTAMP_STEM}{TEXTFILE_SUFFIX}'
+    FULL_OUTPUT_PATH = ROOT_PATH / f'{PROGRAM_NAME}_trace{"" if DEVELOPMENT_MODE else TIMESTAMP_STEM}{TEXTFILE_SUFFIX}'
+    INIFILE_PATH = ROOT_PATH / f'{PROGRAM_NAME}.ini'
 
     HANDLER_BOOTSTRAP_SUCCESS = 'Handler bootstrap successful.'
 
@@ -135,8 +135,8 @@ class Messages(StrEnum):
     )
 
     DEBUGGING_INIT = 'Registro de depuración iniciado.'
-    APP_REPOSITORY = Constants.APP_REPOSITORY and f' ({Constants.APP_REPOSITORY})'
-    APP_BANNER = f'{Constants.APP_NAME} versión {Constants.APP_VERSION}{APP_REPOSITORY}'
+    REPOSITORY = Constants.REPOSITORY and f' ({Constants.REPOSITORY})'
+    PROGRAM_BANNER = f'{Constants.PROGRAM_NAME} versión {Constants.VERSION}{REPOSITORY}'
 
     DEPENDENCY_BANNER = 'Usando paquete {}'
     PROCESS_DONE = '\nProceso finalizado.'
@@ -235,7 +235,7 @@ if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
 if sys.stderr and hasattr(sys.stdout, 'reconfigure'):
     cast('TextIOWrapper', sys.stderr).reconfigure(encoding=Constants.UTF8)
 
-logger = get_logger(Constants.APP_NAME)
+logger = get_logger(Constants.PROGRAM_NAME)
 
 
 class BaseCustomError(Exception):
@@ -560,8 +560,8 @@ def loggerize(function: Callable[..., ExitCodes]) -> Callable[..., ExitCodes]:
         logger.config(main_log_output=Constants.MAIN_OUTPUT_PATH, full_log_output=Constants.FULL_OUTPUT_PATH)
 
         logger.debug(Messages.DEBUGGING_INIT)
-        logger.info(Messages.APP_BANNER)
-        for required_package in requires(Constants.APP_NAME) or []:
+        logger.info(Messages.PROGRAM_BANNER)
+        for required_package in requires(Constants.PROGRAM_NAME) or []:
             logger.debug(Messages.DEPENDENCY_BANNER.format(required_package.replace('==', ' v')))
         logger.debug(Constants.USER_AGENT)
 
