@@ -29,13 +29,13 @@ def test_no_arguments(
 
     captured = capsys.readouterr()
 
-    self_version = version(Constants.APP_NAME)
+    self_version = version(Constants.PROGRAM_NAME)
     repository = next(
-        (url for url in metadata(Constants.APP_NAME).get_all('Project-URL', []) if url.startswith('source')),
+        (url for url in metadata(Constants.PROGRAM_NAME).get_all('Project-URL', []) if url.startswith('source')),
         '',
     ).split(', ', maxsplit=1)[1]
 
-    assert captured.out == f'{Constants.APP_NAME} versión {self_version} ({repository})\n\nProceso finalizado.\n'
+    assert captured.out == f'{Constants.PROGRAM_NAME} versión {self_version} ({repository})\n\nProceso finalizado.\n'
 
     heading = '\n*** Error: no se han especificado fuentes de entrada para ser procesadas.'
     message = (

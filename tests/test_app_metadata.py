@@ -31,7 +31,7 @@ VERSION_REGEX = r"""^
     (\+[0-9a-f]{7}(?:\.dirty)?)?           # Local version identifier
 $"""
 
-VERSION = version(Constants.APP_NAME)
+VERSION = version(Constants.PROGRAM_NAME)
 def test_validate_version_string() -> None:  # pylint: disable=unused-variable
     """Test application version string."""
     assert re.fullmatch(VERSION_REGEX, VERSION, re.ASCII|re.VERBOSE) is not None
@@ -39,4 +39,4 @@ def test_validate_version_string() -> None:  # pylint: disable=unused-variable
 
 def test_app_name() -> None:  # pylint: disable=unused-variable
     """Test the hardcorded app name is what it should be."""
-    assert metadata(Constants.APP_NAME)['Name'] ==  Constants.APP_NAME
+    assert metadata(Constants.PROGRAM_NAME)['Name'] ==  Constants.PROGRAM_NAME

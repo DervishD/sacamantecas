@@ -48,13 +48,13 @@ def test_logging_setup(log_paths: LogPaths, monkeypatch: pytest.MonkeyPatch) -> 
     assert log_paths.main.is_file()
     assert log_paths.full.is_file()
 
-    self_version = version(Constants.APP_NAME)
+    self_version = version(Constants.PROGRAM_NAME)
     repository = next(
-        (url for url in metadata(Constants.APP_NAME).get_all('Project-URL', []) if url.startswith('source')),
+        (url for url in metadata(Constants.PROGRAM_NAME).get_all('Project-URL', []) if url.startswith('source')),
         '',
     ).split(', ', maxsplit=1)[1]
     platform_string = f'(Windows {platform.version()};{platform.architecture()[0]};{platform.machine()})'
-    required_packages = [f'{pkg.replace('==', ' v')}' for pkg in requires(Constants.APP_NAME) or []]
+    required_packages = [f'{pkg.replace('==', ' v')}' for pkg in requires(Constants.PROGRAM_NAME) or []]
     required_packages = [f'        DEBUG    | loggerize_wrapper() Usando paquete {pkg}' for pkg in required_packages]
 
     expected_full_log = dedent(f"""

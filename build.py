@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 VENV_DIRNAME = '.venv'
 BUILD_DIRNAME = 'build'
-BUNDLE_VERSION = Constants.APP_VERSION.split('+', maxsplit=1)[0]
+BUNDLE_VERSION = Constants.VERSION.split('+', maxsplit=1)[0]
 BUNDLE_SUFFIX = 'zip'
 
 PROJECT_ROOT = Path(__file__).parent.resolve()
@@ -151,26 +151,26 @@ def create_bundle(bundle_path: Path, manifest:Iterable[Path]) -> None:
 
 def main() -> int:
     """."""
-    pretty_print(f'Building {Constants.APP_NAME} {Constants.APP_VERSION}')
+    pretty_print(f'Building {Constants.PROGRAM_NAME} {Constants.VERSION}')
 
     venv_path = PROJECT_ROOT / VENV_DIRNAME
     progress(f'Checking virtual environment: {venv_path}')
     if not is_venv_ready(venv_path):
         return 1
 
-    required_packages = get_required_packages(Constants.APP_NAME)
+    required_packages = get_required_packages(Constants.PROGRAM_NAME)
     progress(f'Checking that required packages are installed: {', '.join(required_packages)}')
     if not are_required_packages_installed(required_packages):
         return 1
 
     # The virtual environment is guaranteed to work from this point on.
 
-    frozen_exe_path = (PROJECT_ROOT / BUILD_DIRNAME / Constants.APP_NAME).with_suffix('.exe')
+    frozen_exe_path = (PROJECT_ROOT / BUILD_DIRNAME / Constants.PROGRAM_NAME).with_suffix('.exe')
     progress(f'Building frozen executable: {frozen_exe_path}')
     if not build_frozen_executable(frozen_exe_path):
         return 1
 
-    bundle_path = PROJECT_ROOT / f'{Constants.APP_NAME}_v{BUNDLE_VERSION}.{BUNDLE_SUFFIX}'
+    bundle_path = PROJECT_ROOT / f'{Constants.PROGRAM_NAME}_v{BUNDLE_VERSION}.{BUNDLE_SUFFIX}'
     progress(f'Building distributable bundle: {bundle_path}')
     manifest = (frozen_exe_path, *PACKAGE_DATAFILES)
     create_bundle(bundle_path, manifest)
