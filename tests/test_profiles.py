@@ -4,6 +4,7 @@ from contextlib import AbstractContextManager, nullcontext
 from html.parser import HTMLParser
 from pathlib import Path
 import re
+from textwrap import dedent
 from typing import ClassVar
 
 import pytest
@@ -111,50 +112,52 @@ def test_profiles_syntax_errors(tmp_path: Path, text: str, error: str) -> None: 
     path.unlink()
 
 
-INIFILE_CONTENTS = """
-[profile_baratz]
-url = profile1.domain.tld
-m_tag = tag
-m_attr = attr
-m_value = value
-
-[profile_old_regime]
-url = profile2.domain.tld
-k_class = key_class
-v_class = value_class
-"""
-EXPECTED_PROFILES = {
-    'profile_baratz': Profile(
-        url_pattern = re.compile(r'profile1.domain.tld', re.IGNORECASE),
-        parser = BaratzParser(),
-        parser_config = {
-            'm_tag': re.compile(r'tag', re.IGNORECASE),
-            'm_attr': re.compile(r'attr', re.IGNORECASE),
-            'm_value': re.compile(r'value', re.IGNORECASE),
-        },
-    ),
-    'profile_old_regime': Profile(
-        url_pattern = re.compile(r'profile2.domain.tld', re.IGNORECASE),
-        parser = OldRegimeParser(),
-        parser_config = {
-            'k_class': re.compile(r'key_class', re.IGNORECASE),
-            'v_class': re.compile(r'value_class', re.IGNORECASE),
-        },
-    ),
-}
 def test_profiles_parsing(tmp_path: Path) -> None:   # pylint: disable=unused-variable
     """Test full profile loading."""
+    inifile_contents = dedent("""
+        [profile_baratz]
+        url = profile1.domain.tld
+        m_tag = tag
+        m_attr = attr
+        m_value = value
+
+        [profile_old_regime]
+        url = profile2.domain.tld
+        k_class = key_class
+        v_class = value_class
+    """)
+
+    expected_profiles = {
+        'profile_baratz': Profile(
+            url_pattern = re.compile(r'profile1.domain.tld', re.IGNORECASE),
+            parser = BaratzParser(),
+            parser_config = {
+                'm_tag': re.compile(r'tag', re.IGNORECASE),
+                'm_attr': re.compile(r'attr', re.IGNORECASE),
+                'm_value': re.compile(r'value', re.IGNORECASE),
+            },
+        ),
+        'profile_old_regime': Profile(
+            url_pattern = re.compile(r'profile2.domain.tld', re.IGNORECASE),
+            parser = OldRegimeParser(),
+            parser_config = {
+                'k_class': re.compile(r'key_class', re.IGNORECASE),
+                'v_class': re.compile(r'value_class', re.IGNORECASE),
+            },
+        ),
+    }
+
     path = tmp_path / 'profiles.ini'
-    path.write_text(INIFILE_CONTENTS)
+    path.write_text(inifile_contents)
 
     profiles = load_profiles(path)
 
     path.unlink()
 
-    assert profiles.keys() == EXPECTED_PROFILES.keys()
+    assert profiles.keys() == expected_profiles.keys()
 
     for profile_name, result_profile in profiles.items():
-        expected_profile = EXPECTED_PROFILES[profile_name]
+        expected_profile = expected_profiles[profile_name]
         assert result_profile.url_pattern == expected_profile.url_pattern
         assert result_profile.parser_config == expected_profile.parser_config
         # pylint: disable-next=unidiomatic-typecheck
@@ -238,8 +241,6 @@ PROFILES = {
         },
     ),
 }
-
-
 @pytest.mark.parametrize(('url', 'expected'), [
     pytest.param(
         'http://profile1.tld',

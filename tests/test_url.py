@@ -84,9 +84,6 @@ def test_url_charset_detection(contents: str, expected: str) -> None:  # pylint:
     assert result == expected
 
 
-MOCK_HOST = 'localhost'
-SERVER_ROOT = Path(__file__).resolve().parent
-SAMPLE_FILE_PATH = SERVER_ROOT / 'utf-8.html'
 def test_url_retrieve_utf8_data() -> None:  # pylint: disable=unused-variable
     """Test full URL retrieval of UTF-8 encoded data.
 
@@ -95,23 +92,27 @@ def test_url_retrieve_utf8_data() -> None:  # pylint: disable=unused-variable
     The first one, against a live server returning a UTF-8 encoded body.
     The second, using a temporary file with fake contents.
     """
-    expected_contents = SAMPLE_FILE_PATH.read_text(encoding='utf-8')
+    mock_hostname = 'localhost'
+    server_root_path = Path(__file__).resolve().parent
+    sample_file_path = server_root_path / 'utf-8.html'
+
+    expected_contents = sample_file_path.read_text(encoding='utf-8')
 
     previous_cwd = Path.cwd()
-    chdir(SERVER_ROOT)
+    chdir(server_root_path)
 
-    http_server = HTTPServer((MOCK_HOST, 0), SimpleHTTPRequestHandler)
+    http_server = HTTPServer((mock_hostname, 0), SimpleHTTPRequestHandler)
     thread = threading.Thread(target=http_server.serve_forever, daemon=True)
 
     try:
         thread.start()
 
-        url = f'http://{MOCK_HOST}:{http_server.server_port}/{SAMPLE_FILE_PATH.name}'
+        url = f'http://{mock_hostname}:{http_server.server_port}/{sample_file_path.name}'
         contents, encoding = retrieve_url(url)
         assert encoding.lower() == 'utf-8'
         assert contents.decode(encoding) == expected_contents
 
-        url = f'file:///{SAMPLE_FILE_PATH}'
+        url = f'file:///{sample_file_path}'
         contents, encoding = retrieve_url(url)
         assert encoding.lower() == 'utf-8'
         assert contents.decode(encoding) == expected_contents

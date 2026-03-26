@@ -15,50 +15,46 @@ from sacamantecas import (
     OldRegimeParser,
 )
 
-K = 'key'
-V = 'value'
 
-SPACE = 0x20
-LF = 0x0A
-CR = 0x0D
-NBSP = 0xA0
-ALLOWED_CONTROLS = [chr(cp) for cp in (SPACE, LF, CR, NBSP)]
-
-START_CODEPOINT = 0x0000
-END_CODEPOINT = 0x024F
-LETTERS = 'L'
-NUMBERS = 'N'
-PUNCTUATIONS = 'P'
-SYMBOLS = 'S'
-ALLOWED_PRINTABLES = [
-    chr(cp) for cp in range(START_CODEPOINT, END_CODEPOINT+1)
-        if category(chr(cp)).startswith((LETTERS, NUMBERS, PUNCTUATIONS, SYMBOLS))
-]
-
-ALLOWED_CHARS = ALLOWED_CONTROLS + ALLOWED_PRINTABLES
-
-MIN_LENGTH = 1
-MAX_LENGTH = 42
 def generate_random_string() -> str:
     """Generate a random string.
 
-    Generate a random string with `MIN_LENGTH <= length <= MAX_LENGTH`.
+    Generate a random string with random length between certain limits..
     Only characters from the `ALLOWED_*` sets are used.
     """
-    return escape(''.join(randchoices(ALLOWED_CHARS, k=randint(MIN_LENGTH, MAX_LENGTH))))  # noqa: S311
+    space_codepoint = 0x20
+    lf_codepoint = 0x0A
+    cr_codepoint = 0x0D
+    nbsp_codepoint = 0xA0
+    letter_category = 'L'
+    number_category = 'N'
+    puntuations_category = 'P'
+    symbols_category = 'S'
+    printables_start_codepoint = 0x0000
+    printables_end_codepoint = 0x024F
+    allowed_control_chars = [chr(cp) for cp in (space_codepoint, lf_codepoint, cr_codepoint, nbsp_codepoint)]
+    allowed_printable_chars = [
+        chr(cp) for cp in range(printables_start_codepoint, printables_end_codepoint+1)
+        if category(chr(cp)).startswith((letter_category, number_category, puntuations_category, symbols_category))
+    ]
+    allowed_chars = allowed_control_chars + allowed_printable_chars
+    min_len = 1
+    max_len = 42
+    return escape(''.join(randchoices(allowed_chars, k=randint(min_len, max_len))))  # noqa: S311
 
 
-MAX_RANDOM_STRINGS_TO_FEED = 2 ** 10
-FEEDS_PER_RANDOM_STRING = 10
 def test_random_data_parsing() -> None:  # pylint: disable=unused-variable
     """Test parser behavior against random data."""
+    max_random_strings_to_feed = 2 ** 10
+    feeds_per_random_string = 10
+
     parser = BaseParser()
 
     fed_random_strings = 0
-    while fed_random_strings < MAX_RANDOM_STRINGS_TO_FEED:
+    while fed_random_strings < max_random_strings_to_feed:
         random_string = generate_random_string()
 
-        for _ in range(FEEDS_PER_RANDOM_STRING):
+        for _ in range(feeds_per_random_string):
             parser.within_k = randchoice([True, False])  # noqa: S311
             parser.within_v = randchoice([True, False])  # noqa: S311
             parser.feed(random_string)
@@ -72,11 +68,12 @@ def test_random_data_parsing() -> None:  # pylint: disable=unused-variable
     parser.close()
 
 
+K, V = 'key', 'value'
 def test_parser_reset() -> None:  # pylint: disable=unused-variable
     """Test parser state after a reset."""
     parser = BaseParser()
 
-    k, v = 'key', 'value'
+    k, v = K, V
 
     parser.within_k = True
     parser.feed(k)
@@ -142,10 +139,8 @@ def test_medatata_storage(caplog: pytest.LogCaptureFixture, k: str, v: str, expe
     assert parser.current_v == parser.DEFAULT_V
 
 
-SINGLE_K = 'single_key'
-SINGLE_V = ['single_value']
-MULTIPLE_K = 'multiple_key'
-MULTIPLE_V = ['multiple_value1', 'multiple_value2', 'multiple_value3']
+SINGLE_K, SINGLE_V = 'single_key', ['single_value']
+MULTIPLE_K, MULTIPLE_V = 'multiple_key', ['multiple_value1', 'multiple_value2', 'multiple_value3']
 @pytest.mark.parametrize(('metadata', 'expected'), [
     pytest.param(
         {SINGLE_K: SINGLE_V},
@@ -168,10 +163,10 @@ def test_metadata_retrieval(metadata: dict[str, list[str]], expected: dict[str, 
     assert parser.get_metadata() == expected
 
 
-EMPTY = ' '
-WS_NL = '  {}\n   whitespaced     \n       and\t\n    newlined   '
-# In the baseline test below, EMPTY means that parser.feed() gets empty data,
-# and None that parser.feed() is not even called for that particular item.
+EMPTY_DATA = ' '
+WS_NL_DATA = '  {}\n   whitespaced     \n       and\t\n    newlined   '
+# In the baseline test below, EMPTY means that parser.feed() gets empty
+# data, and None that parser.feed() is not even called for that item.
 @pytest.mark.parametrize(('contents', 'expected'), [
     # Normal metadata.
     pytest.param(
@@ -185,21 +180,21 @@ WS_NL = '  {}\n   whitespaced     \n       and\t\n    newlined   '
         id='test_parser_baseline_key_with_separator',
     ),
     pytest.param(
-        (WS_NL.format(K), WS_NL.format(V)),
-        {' '.join(WS_NL.split()).format(K): ' '.join(WS_NL.split()).format(V)},
+        (WS_NL_DATA.format(K), WS_NL_DATA.format(V)),
+        {' '.join(WS_NL_DATA.split()).format(K): ' '.join(WS_NL_DATA.split()).format(V)},
         id='test_parser_baseline_whitespaced_data',
     ),
 
     # Incomplete metadata, missing value.
-    pytest.param((K, EMPTY), {}, id='test_parser_baseline_empty_value'),
+    pytest.param((K, EMPTY_DATA), {}, id='test_parser_baseline_empty_value'),
     pytest.param((K, None), {}, id='test_parser_baseline_none_value'),
 
     # Incomplete metadata, missing key.
-    pytest.param((EMPTY, V), {BaseParser.EMPTY_KEY_PLACEHOLDER: V}, id='test_parser_baseline_empty_key'),
+    pytest.param((EMPTY_DATA, V), {BaseParser.EMPTY_KEY_PLACEHOLDER: V}, id='test_parser_baseline_empty_key'),
     pytest.param((None, V), {BaseParser.EMPTY_KEY_PLACEHOLDER: V}, id='test_parser_baseline_none_key'),
 
     # Empty metadata.
-    pytest.param((EMPTY, EMPTY), {}, id='test_parser_baseline_missing_data'),
+    pytest.param((EMPTY_DATA, EMPTY_DATA), {}, id='test_parser_baseline_missing_data'),
 ])
 # pylint: disable-next=unused-variable
 def test_parser_baseline(contents: tuple[str | None, str | None], expected: dict[str, str]) -> None:
@@ -226,7 +221,6 @@ def test_parser_baseline(contents: tuple[str | None, str | None], expected: dict
     assert result == expected
 
 
-MULTIVALUES = [f'value_{n}' for n in range(9)]
 @pytest.mark.parametrize(('multikeys', 'separator'), [
     pytest.param(
         False,
@@ -241,7 +235,8 @@ MULTIVALUES = [f'value_{n}' for n in range(9)]
 ])
 def test_parser_multivalues(multikeys: bool, separator: str) -> None:  # pylint: disable=unused-variable  # noqa: FBT001
     """Test parsing of multiple values per key."""
-    key = 'key'
+    key = K
+    multivalues = [f'value_{n}' for n in range(9)]
 
     parser = BaseParser()
 
@@ -249,7 +244,7 @@ def test_parser_multivalues(multikeys: bool, separator: str) -> None:  # pylint:
     parser.feed(key)
     parser.within_k = False
 
-    for value in MULTIVALUES:
+    for value in multivalues:
         parser.within_v = True
         parser.feed(value)
         parser.within_v = False
@@ -262,21 +257,18 @@ def test_parser_multivalues(multikeys: bool, separator: str) -> None:  # pylint:
     parser.close()
 
     result = parser.get_metadata()
-    expected = {key: separator.join(MULTIVALUES)}
+    expected = {key: separator.join(multivalues)}
 
     assert result == expected
 
 
-ELEMENT_B = '<{TAG} class="{MARKER}_suffix">'
-ELEMENT_E = '</{TAG}>'
+ELEMENT_B, ELEMENT_E = '<{TAG} class="{MARKER}_suffix">', '</{TAG}>'
 
-K_CLASS = 'k_marker'
-V_CLASS = 'v_marker'
-K_CLASS_RE = re_compile(f'{K_CLASS}.*')
-V_CLASS_RE =  re_compile(f'{V_CLASS}.*')
+
+K_CLASS, V_CLASS = 'k_marker', 'v_marker'
+K_CLASS_RE, V_CLASS_RE = re_compile(f'{K_CLASS}.*'), re_compile(f'{V_CLASS}.*')
 TAG = 'div'
-OP_KB = ELEMENT_B.format(TAG=TAG, MARKER=K_CLASS)
-OP_VB = ELEMENT_B.format(TAG=TAG, MARKER=V_CLASS)
+OP_KB, OP_VB = ELEMENT_B.format(TAG=TAG, MARKER=K_CLASS), ELEMENT_B.format(TAG=TAG, MARKER=V_CLASS)
 OP_EE = ELEMENT_E.format(TAG=TAG)
 @pytest.mark.parametrize(('contents', 'expected'), [
     # Normal metadata.
@@ -367,18 +359,11 @@ def test_old_regime_parser(contents: str, expected: tuple[str, str]) -> None:  #
     assert result == expected_dict
 
 
-M_TAG = 'dl'
-M_TAG_RE = re_compile(f'{M_TAG}.*')
-M_ATTR = 'class'
-M_ATTR_RE = re_compile(f'{M_ATTR}.*')
-M_VALUE = 'meta_marker'
-M_VALUE_RE = re_compile(f'{M_VALUE}.*')
-BP_MB = ELEMENT_B.format(TAG=M_TAG, MARKER=M_VALUE)
-BP_ME = ELEMENT_E.format(TAG=M_TAG)
-BP_KB = ELEMENT_B.format(TAG=BaratzParser.K_TAG, MARKER='')
-BP_KE = ELEMENT_E.format(TAG=BaratzParser.K_TAG)
-BP_VB = ELEMENT_B.format(TAG=BaratzParser.V_TAG, MARKER='')
-BP_VE = ELEMENT_E.format(TAG=BaratzParser.V_TAG)
+M_TAG, M_ATTR, M_VALUE = 'dl', 'class', 'meta_marker'
+M_TAG_RE, M_ATTR_RE, M_VALUE_RE = re_compile(f'{M_TAG}.*'), re_compile(f'{M_ATTR}.*'), re_compile(f'{M_VALUE}.*')
+BP_MB, BP_ME = ELEMENT_B.format(TAG=M_TAG, MARKER=M_VALUE), ELEMENT_E.format(TAG=M_TAG)
+BP_KB, BP_KE = ELEMENT_B.format(TAG=BaratzParser.K_TAG, MARKER=''), ELEMENT_E.format(TAG=BaratzParser.K_TAG)
+BP_VB, BP_VE = ELEMENT_B.format(TAG=BaratzParser.V_TAG, MARKER=''), ELEMENT_E.format(TAG=BaratzParser.V_TAG)
 @pytest.mark.parametrize(('contents', 'expected'), [
     # Normal metadata.
     pytest.param(f'{BP_MB}{BP_KB}{{K}}{BP_KE}{BP_VB}{{V}}{BP_VE}{BP_ME}', ('{K}', '{V}'), id='test_baratz_parser_ok_1'),
