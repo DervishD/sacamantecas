@@ -23,7 +23,7 @@ from sacamantecas import (
 
 
 # pylint: disable-next=unused-variable
-def test_missing_ini_file(
+def test_profiles_missing_ini_file(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
@@ -49,36 +49,12 @@ def test_missing_ini_file(
     assert result == expected
 
 
-# pylint: disable-next=unused-variable
-def test_ini_syntax_error(
-    monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    """Test for syntax errors in INI file."""
-    monkeypatch.setattr(Constants, 'MAIN_OUTPUT_PATH', None)
-    monkeypatch.setattr(Constants, 'FULL_OUTPUT_PATH', None)
-
-    path = tmp_path / 'profiles_syntax_error.ini'
-    path.write_text('o')
-    monkeypatch.setattr(Constants, 'INIFILE_PATH', path)
-
-    assert main('') == ExitCodes.ERROR
-
-    result = '\n'.join(capsys.readouterr().err.split('\n')[0:2])
-    expected = '\n*** Error: error de sintaxis «MissingSectionHeader» leyendo el fichero de perfiles.'
-
-    assert result == expected
-
-    path.unlink()
-
-
 @pytest.mark.parametrize('unreadable_path', [
     Path('unreadable_profiles.ini'),
 ], ids=[
-    'test_unreadable_ini_file',
+    'test_profiles_unreadable_ini_file',
 ], indirect=True)
-def test_unreadable_ini_file(unreadable_path: Path) -> None:  # pylint: disable=unused-variable
+def test_profiles_unreadable_ini_file(unreadable_path: Path) -> None:  # pylint: disable=unused-variable
     """Test for unreadable profiles configuration file."""
     with pytest.raises(ProfilesError) as excinfo:
         load_profiles(unreadable_path)
@@ -87,10 +63,10 @@ def test_unreadable_ini_file(unreadable_path: Path) -> None:  # pylint: disable=
 
 
 @pytest.mark.parametrize('text', [
-    pytest.param('', id='test_totally_empty_ini_file'),
-    pytest.param('[s]', id='test_section_empty_ini_file'),
+    pytest.param('', id='test_profiles_empty_ini_file_empty_contents'),
+    pytest.param('[s]', id='test_profiles_empty_ini_file_empty_section'),
 ])
-def test_empty(tmp_path: Path, text: str) -> None:  # pylint: disable=unused-variable
+def test_profiles_empty_ini_file(tmp_path: Path, text: str) -> None:  # pylint: disable=unused-variable
     """Test for empty profiles configuration file."""
     path = tmp_path / 'profiles_empty.ini'
     path.write_text(text)
@@ -105,25 +81,25 @@ def test_empty(tmp_path: Path, text: str) -> None:  # pylint: disable=unused-var
     pytest.param(
         'o',
         'MissingSectionHeader',
-        id='test_ini_file_missing_section_header_error',
+        id='test_profiles_syntax_errors_missing_section_header',
     ),
     pytest.param(
         '[s]\no',
         'Parsing',
-        id='test_ini_file_parsing_error',
+        id='test_profiles_syntax_errors_parsing',
     ),
     pytest.param(
         '[s]\no = v\no = v',
         'DuplicateOption',
-        id='test_ini_file_duplicate_option_error',
+        id='test_profiles_syntax_errors_duplicate_option',
     ),
     pytest.param(
         '[s]\no = (',
         'BadRegex',
-        id='test_ini_file_bad_regex_error',
+        id='test_profiles_syntax_errors_bad_regex',
     ),
 ])
-def test_syntax_errors(tmp_path: Path, text: str, error: str) -> None:  # pylint: disable=unused-variable
+def test_profiles_syntax_errors(tmp_path: Path, text: str, error: str) -> None:  # pylint: disable=unused-variable
     """Test for syntax errors in profiles configuration file."""
     path = tmp_path / 'profiles_syntax_error.ini'
     path.write_text(text)
@@ -166,7 +142,7 @@ EXPECTED_PROFILES = {
         },
     ),
 }
-def test_profile_loading(tmp_path: Path) -> None:   # pylint: disable=unused-variable
+def test_profiles_parsing(tmp_path: Path) -> None:   # pylint: disable=unused-variable
     """Test full profile loading."""
     path = tmp_path / 'profiles.ini'
     path.write_text(INIFILE_CONTENTS)
@@ -196,34 +172,34 @@ class BParser(MockBaseParser):  # pylint: disable=unused-variable
     PARAMETERS = MockBaseParser.PARAMETERS | {'bkey_1', 'bkey_2', 'bkey_3'}
 @pytest.mark.parametrize(('inifile_contents', 'context_manager'), [
     pytest.param(
-        '[ok_a]\nurl=v\nakey_1=v\nakey_2=v\nakey_3=v\n',
-        nullcontext(),
-        id='test_extra_keys_profile',
+        '[bad_extra_keys]\nurl=v\nakey_1=v\nakey_2=v\nakey_3=v\nk=v\n',
+        pytest.raises(ProfilesError),
+        id='test_profile_validation_ok_A_parser',
     ),
     pytest.param(
         '[ok_b]\nurl=v\nbkey_1=v\nbkey_2=v\nbkey_3=v\n',
         nullcontext(),
-        id='test_ok_B_parser_profile',
+        id='test_profile_validation_ok_B_parser',
     ),
     pytest.param(
-        '[bad_extra_keys]\nurl=v\nakey_1=v\nakey_2=v\nakey_3=v\nk=v\n',
-        pytest.raises(ProfilesError),
-        id='test_ok_A_parser_profile',
+        '[ok_a]\nurl=v\nakey_1=v\nakey_2=v\nakey_3=v\n',
+        nullcontext(),
+        id='test_profile_validation_extra_keys',
     ),
     pytest.param(
         '[bad_missing_keys]\nurl=url\nbkey_1=v\nbkey_2=v\n',
         pytest.raises(ProfilesError),
-        id='test_missing_keys_profile',
+        id='test_profile_validation_missing_keys',
     ),
     pytest.param(
         '[bad_empty_keys]\nurl=url\nbkey_1=v\nbkey_2=v\nbkey= ',
         pytest.raises(ProfilesError),
-        id='test_empty_keys_profile',
+        id='test_profile_validation_empty_keys',
     ),
     pytest.param(
         '[bad_different]\nkey_1=url\nkey_2=v\nkey_3=v\n',
         pytest.raises(ProfilesError),
-        id='test_wrong_keys_profile',
+        id='test_profile_validation_wrong_keys',
     ),
 ])
 # pylint: disable-next=unused-variable
@@ -268,25 +244,25 @@ PROFILES = {
     pytest.param(
         'http://profile1.tld',
         PROFILES['profile_baratz'].parser,
-        id='test_get_parser_base_url',
+        id='test_get_parser_for_url_base',
     ),
     pytest.param(
         'http://optional.profile1.tld',
         PROFILES['profile_baratz'].parser,
-        id='test_get_parser_url_with_optional',
+        id='test_get_parser_for_url_optional_subdomain',
     ),
     pytest.param(
         'http://mandatory.profile2.tld',
         PROFILES['profile_old_regime'].parser,
-        id='test_get_parser_url_with_mandatory',
+        id='test_get_parser_for_url_mandatory_subdomain',
     ),
     pytest.param(
         'http://optional.mandatory.profile2.tld',
         PROFILES['profile_old_regime'].parser,
-        id='test_get_parser_url_with_both',
+        id='test_get_parser_for_url_full_subdomains',
     ),
 ])
-def test_get_url_parser(url: str, expected: Profile) -> None:  # pylint: disable=unused-variable
+def test_get_parser_for_url(url: str, expected: Profile) -> None:  # pylint: disable=unused-variable
     """Test finding parser for *url*."""
     result = get_parser(url, PROFILES)
 
@@ -294,8 +270,8 @@ def test_get_url_parser(url: str, expected: Profile) -> None:  # pylint: disable
 
 
 @pytest.mark.parametrize('url', [
-    pytest.param('http://profile2.tld', id='test_no_profile_base_url'),
-    pytest.param('http://optional.forbidden.profile1.tld', id='test_no_profile_url_with_forbidden'),
+    pytest.param('http://profile2.tld', id='test_no_matching_profile_normal_url'),
+    pytest.param('http://optional.forbidden.profile1.tld', id='test_no_matching_profile_forbidden_url'),
 ])
 def test_no_matching_profile(url: str) -> None:  # pylint: disable=unused-variable
     """Test *url* with no matching profile (no parser)."""

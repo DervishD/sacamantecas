@@ -50,7 +50,7 @@ def generate_random_string() -> str:
 
 MAX_RANDOM_STRINGS_TO_FEED = 2 ** 10
 FEEDS_PER_RANDOM_STRING = 10
-def test_random_feed() -> None:  # pylint: disable=unused-variable
+def test_random_data_parsing() -> None:  # pylint: disable=unused-variable
     """Test parser behavior against random data."""
     parser = BaseParser()
 
@@ -103,25 +103,25 @@ def test_parser_reset() -> None:  # pylint: disable=unused-variable
         None,
         None,
         'Metadato vacío.',
-        id='test_metadata_empty',
+        id='test_store_metadata_empty_metadata',
     ),
     pytest.param(
         K,
         None,
         f'Metadato «{K}» incompleto, ignorando.',
-        id='test_metadata_missing_value',
+        id='test_store_metadata_missing_value',
     ),
     pytest.param(
         None,
         V,
         f'No se encontró una clave, usando «{BaseParser.EMPTY_KEY_PLACEHOLDER}».',
-        id='test_metadata_missing_key',
+        id='test_store_metadata_missing_key',
     ),
     pytest.param(
         K,
         V,
         f'Metadato correcto «{K}: {V}».',
-        id='test_metadata_ok',
+        id='test_store_metadata_valid_full_metadata',
     ),
 ])
 # pylint: disable-next=unused-variable
@@ -150,12 +150,12 @@ MULTIPLE_V = ['multiple_value1', 'multiple_value2', 'multiple_value3']
     pytest.param(
         {SINGLE_K: SINGLE_V},
         {SINGLE_K: SINGLE_V[0]},
-        id='test_metadata_single_value',
+        id='test_retrieve_metadata_single_data',
     ),
     pytest.param(
         {MULTIPLE_K: MULTIPLE_V},
         {MULTIPLE_K: BaseParser.MULTIVALUE_SEPARATOR.join(MULTIPLE_V)},
-        id='test_metadata_multiple_value',
+        id='test_retrieve_metadata_multiple_data',
     ),
 ])
 # pylint: disable-next=unused-variable
@@ -177,29 +177,29 @@ WS_NL = '  {}\n   whitespaced     \n       and\t\n    newlined   '
     pytest.param(
         (K, V),
         {K: V},
-        id='test_parser_baseline_k_v',
+        id='test_parser_baseline_normal_data',
     ),
     pytest.param(
         (f'{K}:', V),
         {K: V},
-        id='test_parser_baseline_k_v_with_sep',
+        id='test_parser_baseline_key_with_separator',
     ),
     pytest.param(
         (WS_NL.format(K), WS_NL.format(V)),
         {' '.join(WS_NL.split()).format(K): ' '.join(WS_NL.split()).format(V)},
-        id='test_parser_baseline_k_v_whitespaced',
+        id='test_parser_baseline_whitespaced_data',
     ),
 
     # Incomplete metadata, missing value.
-    pytest.param((K, EMPTY), {}, id='test_parser_baseline_missing_value_empty'),
-    pytest.param((K, None), {}, id='test_parser_baseline_missing_value_none'),
+    pytest.param((K, EMPTY), {}, id='test_parser_baseline_empty_value'),
+    pytest.param((K, None), {}, id='test_parser_baseline_none_value'),
 
     # Incomplete metadata, missing key.
-    pytest.param((EMPTY, V), {BaseParser.EMPTY_KEY_PLACEHOLDER: V}, id='test_parser_baseline_missing_key_empty'),
-    pytest.param((None, V), {BaseParser.EMPTY_KEY_PLACEHOLDER: V}, id='test_parser_baseline_missing_key_none'),
+    pytest.param((EMPTY, V), {BaseParser.EMPTY_KEY_PLACEHOLDER: V}, id='test_parser_baseline_empty_key'),
+    pytest.param((None, V), {BaseParser.EMPTY_KEY_PLACEHOLDER: V}, id='test_parser_baseline_none_key'),
 
     # Empty metadata.
-    pytest.param((EMPTY, EMPTY), {}, id='test_parser_baseline_missing_metadata'),
+    pytest.param((EMPTY, EMPTY), {}, id='test_parser_baseline_missing_data'),
 ])
 # pylint: disable-next=unused-variable
 def test_parser_baseline(contents: tuple[str | None, str | None], expected: dict[str, str]) -> None:
@@ -229,14 +229,14 @@ def test_parser_baseline(contents: tuple[str | None, str | None], expected: dict
 MULTIVALUES = [f'value_{n}' for n in range(9)]
 @pytest.mark.parametrize(('multikeys', 'separator'), [
     pytest.param(
-        True,
-        BaseParser.MULTIVALUE_SEPARATOR,
-        id='test_metadata_multivalues_multikeys',
-    ),
-    pytest.param(
         False,
         BaseParser.MULTIDATA_SEPARATOR,
-        id='test_metadata_multivalues',
+        id='test_metadata_multiple_values_single_key',
+    ),
+    pytest.param(
+        True,
+        BaseParser.MULTIVALUE_SEPARATOR,
+        id='test_metadata_multiple_values_multiple_keys',
     ),
 ])
 def test_parser_multivalues(multikeys: bool, separator: str) -> None:  # pylint: disable=unused-variable  # noqa: FBT001

@@ -30,7 +30,7 @@ SAMPLE_URLS = [f'{choice(('https', 'http', 'file'))}://subdomain{i}.domain.tld' 
 EXPECTED_METADATA = {u: {h: new_hash(h, u.encode('utf-8')).hexdigest() for h in HASHES} for u in SAMPLE_URLS}
 
 
-def test_single_url_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:  # pylint: disable=unused-variable
+def test_handler_single_url(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:  # pylint: disable=unused-variable
     """Test single URLs."""
     single_url = url_to_path('url://subdomain.domain.toplevel/path?param1=value1&param2=value2')
     expected = Path('url___subdomain_domain_toplevel_path_param1_value1_param2_value2')
@@ -69,7 +69,7 @@ def test_single_url_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> 
     assert result == EXPECTED_METADATA[urls[0]]
 
 
-def test_textfile_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:  # pylint: disable=unused-variable
+def test_handler_textfile(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:  # pylint: disable=unused-variable
     """Test textfile handler."""
     sourcefile_path = tmp_path / 'urls.txt'
     sourcefile_path.write_text('\n'.join(SAMPLE_URLS), encoding='utf-8')
@@ -109,12 +109,12 @@ def test_textfile_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> No
     assert result == EXPECTED_METADATA
 
 
-FAKE_METADATA_COLUMNS = 10
 # pylint: disable-next=unused-variable,too-many-locals
-def test_spreadsheet_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_handler_spreadsheet(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """Test spreadsheet handler."""
+    fake_metadata_columns = 10
     sourcefile_path = tmp_path / 'urls.xlsx'
-    headings = [f'Heading_{i}' for i in range(FAKE_METADATA_COLUMNS)]
+    headings = [f'Heading_{i}' for i in range(fake_metadata_columns)]
 
     workbook = Workbook()
     sheet = workbook.active
@@ -124,11 +124,11 @@ def test_spreadsheet_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) ->
 
     sheet.append(headings)
 
-    for column in range(FAKE_METADATA_COLUMNS):
+    for column in range(fake_metadata_columns):
         sheet.column_dimensions[get_column_letter(column + 1)].width = 33
 
     for url in SAMPLE_URLS:
-        row = [uuid4().hex[:randrange(5, 20)] for _ in range(FAKE_METADATA_COLUMNS)]  # noqa: S311
+        row = [uuid4().hex[:randrange(5, 20)] for _ in range(fake_metadata_columns)]  # noqa: S311
         row.insert(randrange(len(row)), url)  # noqa: S311
         sheet.append(row)
 
@@ -182,11 +182,11 @@ def test_spreadsheet_handler(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) ->
 
 
 @pytest.mark.parametrize(('unreadable_path', 'handler_factory'), [
-    pytest.param('unreadable_textfile.txt', textfile_handler, id='test_txt_input_no_permission'),
-    pytest.param('unreadable_spreadsheet.xlsx', spreadsheet_handler, id='test_xlsx_input_no_permission'),
+    pytest.param('unreadable_textfile.txt', textfile_handler, id='test_unreadable_txt_input'),
+    pytest.param('unreadable_spreadsheet.xlsx', spreadsheet_handler, id='test_unreadable_xlsx_input'),
 ], indirect=['unreadable_path'])
 # pylint: disable-next=unused-variable
-def test_input_no_permission(unreadable_path: Path, handler_factory: Callable[[Path], Handler]) -> None:
+def test_unreadable_input_file(unreadable_path: Path, handler_factory: Callable[[Path], Handler]) -> None:
     """Test handling of unreadable files."""
     handler = handler_factory(unreadable_path)
 
@@ -201,23 +201,23 @@ def test_input_no_permission(unreadable_path: Path, handler_factory: Callable[[P
         'http://s.url',
         'unwritable_single_url_out.txt',
         single_url_handler,
-        id='test_url_output_no_permission',
+        id='test_unwritable_output_file_single_url',
     ),
     pytest.param(
         's.txt',
         'unwritable_textfile_out.txt',
         textfile_handler,
-        id='test_txt_output_no_permission',
+        id='test_unwritable_output_file_txt_file',
     ),
     pytest.param(
         's.xlsx',
         'unwritable_spreadsheet_out.xlsx',
         spreadsheet_handler,
-        id='test_xlsx_output_no_permission',
+        id='test_unwritable_output_file_xlsx_file',
     ),
 ], indirect=['unwritable_path'])
 # pylint: disable-next=unused-variable
-def test_output_no_permission(
+def test_unwritable_output_file(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     source_stem: str,

@@ -6,7 +6,7 @@ from inspect import getsource
 
 import sacamantecas
 
-ALLOWED_STRINGS = (
+ALLOWED_UNREFACTORED_STRINGS = (
     # Early platform check.
     'win32', '\nThis program is compatible only with the Win32 platform.\n',
     # Python well-known strings.
@@ -22,7 +22,7 @@ class UnrefactoredStringsFinderVisitor(ast.NodeVisitor):
 
     def __init__(self) -> None:
         """Initialize."""
-        self.dangling_strings: list[str] = list(ALLOWED_STRINGS)
+        self.dangling_strings: list[str] = list(ALLOWED_UNREFACTORED_STRINGS)
         self.ignored_strings: list[str | bytes] = []
         self.unrefactored_strings: list[tuple[int, str]] = []
 
@@ -69,7 +69,7 @@ class UnrefactoredStringsFinderVisitor(ast.NodeVisitor):
         if node.value in self.ignored_strings:
             self.ignored_strings.remove(node.value)
             return
-        if node.value in ALLOWED_STRINGS:
+        if node.value in ALLOWED_UNREFACTORED_STRINGS:
             with suppress(ValueError):
                 self.dangling_strings.remove(node.value)
             return
@@ -77,7 +77,7 @@ class UnrefactoredStringsFinderVisitor(ast.NodeVisitor):
             self.unrefactored_strings.append((node.lineno, repr(node.value)))
 
 
-def test_strings() -> None:  # pylint: disable=unused-variable
+def test_unrefactored_strings() -> None:  # pylint: disable=unused-variable
     """Test for non-refactored strings."""
     visitor = UnrefactoredStringsFinderVisitor()
     visitor.visit(ast.parse(getsource(sacamantecas)))

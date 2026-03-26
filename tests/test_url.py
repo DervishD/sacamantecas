@@ -54,15 +54,15 @@ BASE_URL = f'{SCHEME}{NETLOC}{PATH}{EXTRA}'
 @pytest.mark.parametrize('delay', [
     pytest.param('0; ', id='0_delay'),
     pytest.param('1234; ', id='1234_delay'),
-    pytest.param('', id='no_delay'),
+    pytest.param('', id='without_delay'),
 ])
 @pytest.mark.parametrize('extra', [
-    pytest.param(REXTRA, id='extra'),
-    pytest.param('', id='no_extra'),
+    pytest.param(REXTRA, id='with_extra'),
+    pytest.param('', id='without_extra'),
 ])
 @pytest.mark.parametrize(('url', 'expected'), [
-    pytest.param(f'{RSCHEME}{RNETLOC}{RPATH}', f'{RSCHEME}{RNETLOC}{RPATH}', id='test_full_url_redirection'),
-    pytest.param(f'{RPATH}', f'{SCHEME}{NETLOC}{RPATH}', id='test_partial_url_redirection'),
+    pytest.param(f'{RSCHEME}{RNETLOC}{RPATH}', f'{RSCHEME}{RNETLOC}{RPATH}', id='test_url_redirection_full'),
+    pytest.param(f'{RPATH}', f'{SCHEME}{NETLOC}{RPATH}', id='test_url_redirection_partial'),
 ])
 def test_url_redirection(delay: str, url: str, extra: str, expected: str) -> None:  # pylint: disable=unused-variable
     """Test *url* redirections using *delay* and *extra* fields."""
@@ -73,13 +73,13 @@ def test_url_redirection(delay: str, url: str, extra: str, expected: str) -> Non
 
 
 @pytest.mark.parametrize(('contents', 'expected'), [
-    pytest.param('<meta http-equiv="content-type" charset="{}">', 'cp1252', id='test_cp1252_charset_detection'),
-    pytest.param('<meta charset="{}">', 'cp850', id='test_cp850_charset_detection'),
-    pytest.param('{}', 'ISO-8859-1', id='test_ISO-8859-1_charset_detection'),
+    pytest.param('<meta http-equiv="content-type" charset="{}">', 'cp1252', id='test_url_charset_detection_cp1252'),
+    pytest.param('<meta charset="{}">', 'cp850', id='test_url_charset_detection_cp850'),
+    pytest.param('{}', 'iso-8859-1', id='test_url_charset_detection_iso-8859-1'),
 ])
-def test_charset_detection(contents: str, expected: str) -> None:  # pylint: disable=unused-variable
+def test_url_charset_detection(contents: str, expected: str) -> None:  # pylint: disable=unused-variable
     """Test different ways of detecting the *contents* charset."""
-    result = detect_html_charset(contents.format(expected).encode('ascii'))
+    result = detect_html_charset(contents.format(expected).encode('ascii')).lower()
 
     assert result == expected
 
@@ -87,7 +87,7 @@ def test_charset_detection(contents: str, expected: str) -> None:  # pylint: dis
 MOCK_HOST = 'localhost'
 SERVER_ROOT = Path(__file__).resolve().parent
 SAMPLE_FILE_PATH = SERVER_ROOT / 'utf-8.html'
-def test_utf8_url_retrieval() -> None:  # pylint: disable=unused-variable
+def test_url_retrieve_utf8_data() -> None:  # pylint: disable=unused-variable
     """Test full URL retrieval of UTF-8 encoded data.
 
     Both `https:` and `file:` URL schemes are tested.

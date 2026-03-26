@@ -32,11 +32,11 @@ VERSION_REGEX = r"""^
 $"""
 
 VERSION = version(Constants.PROGRAM_NAME)
-def test_validate_version_string() -> None:  # pylint: disable=unused-variable
+def test_version_matches_pypa_spec() -> None:  # pylint: disable=unused-variable
     """Test application version string."""
     assert re.fullmatch(VERSION_REGEX, VERSION, re.ASCII|re.VERBOSE) is not None
 
 
-def test_app_name() -> None:  # pylint: disable=unused-variable
+def test_program_name_matches_metadata() -> None:  # pylint: disable=unused-variable
     """Test the hardcorded app name is what it should be."""
     assert metadata(Constants.PROGRAM_NAME)['Name'] ==  Constants.PROGRAM_NAME

@@ -37,10 +37,10 @@ def test_unsupported_source() -> None:  # pylint: disable=unused-variable
 
 
 @pytest.mark.parametrize(('sources', 'expected'), [
-    pytest.param('http://source', single_url_handler, id='test_http_source_identification'),
-    pytest.param('file://source', single_url_handler, id='test_file_source_identification'),
-    pytest.param('source.txt', textfile_handler, id='test_txt_source_identification'),
-    pytest.param('source.xlsx', spreadsheet_handler, id='test_xlsx_source_identification'),
+    pytest.param('http://source', single_url_handler, id='test_source_identification_http_url'),
+    pytest.param('file://source', single_url_handler, id='test_source_identification_file_url'),
+    pytest.param('source.txt', textfile_handler, id='test_source_identification_txt_file'),
+    pytest.param('source.xlsx', spreadsheet_handler, id='test_source_identification_xlsx_file'),
 ])
 def test_source_identification(sources: str, expected: Handler) -> None:  # pylint: disable=unused-variable
     """Test identification of different *sources*."""
@@ -53,8 +53,8 @@ def test_source_identification(sources: str, expected: Handler) -> None:  # pyli
 
 
 @pytest.mark.parametrize(('suffix', 'handler_factory'), [
-    pytest.param('.txt', textfile_handler, id='test_missing_txt_source'),
-    pytest.param('.xlsx', spreadsheet_handler, id='test_missing_xlsx_source'),
+    pytest.param('.txt', textfile_handler, id='test_missing_source_txt_file'),
+    pytest.param('.xlsx', spreadsheet_handler, id='test_missing_source_xlsx_file'),
 ])
 # pylint: disable-next=unused-variable
 def test_missing_source(tmp_path: Path, suffix: str, handler_factory: Callable[[Path], Handler]) -> None:
