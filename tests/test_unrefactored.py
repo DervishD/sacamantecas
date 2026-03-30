@@ -14,6 +14,8 @@ ALLOWED_UNREFACTORED_STRINGS = (
     'frozen', '__main__', 'w', '%s',
     # For typing hints.
     'TextIOWrapper',
+    # Allowed empty or whitespace strings.
+    ' ', '', b'',
     # Miscellaneous strings.
     'Project-URL', ', ', 'source', 'reconfigure', '.post', '==', ' v',
 )
@@ -75,7 +77,7 @@ class UnrefactoredStringsAuditor(ast.NodeVisitor):
             with suppress(ValueError):
                 self.stale_allowed_strings.remove(node.value)
             return
-        if isinstance(node.value, str | bytes) and node.value.strip():
+        if isinstance(node.value, str | bytes):
             self.unrefactored_strings.append((node.lineno, repr(node.value)))
 
 
