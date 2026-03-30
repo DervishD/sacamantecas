@@ -16,6 +16,7 @@ freeze = [
 ]
 tests = [
     "pytest==9.0.2",
+    "pytest-cov==7.1.0",
 ]
 lint = [
     "pylint",
@@ -47,3 +48,8 @@ issues = "https://github.com/DervishD/sacamantecas/issues"
 dirty = "{base_version}+{rev}.dirty"
 distance = "{next_version}.post{distance}+{rev}"
 distance-dirty = "{next_version}.post{distance}+{rev}.dirty"
+
+[tool.coverage.run]
+omit = [
+    "build.py"
+]
