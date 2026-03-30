@@ -64,3 +64,9 @@ def test_missing_source(tmp_path: Path, suffix: str, handler_factory: Callable[[
         bootstrap(handler)
 
     assert str(excinfo.value).startswith('No se encontró el fichero de entrada.')
+
+
+def test_parse_arguments_no_args() -> None:
+    """Test handling of missing argument list."""
+    with pytest.raises(StopIteration):
+        next(parse_arguments())
