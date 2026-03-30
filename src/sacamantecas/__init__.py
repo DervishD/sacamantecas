@@ -232,7 +232,7 @@ class ExitCodes(IntEnum):
 # they are redirected to a file when running the program from a shell.
 if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
     cast('TextIOWrapper', sys.stdout).reconfigure(encoding=Constants.UTF8)
-if sys.stderr and hasattr(sys.stdout, 'reconfigure'):
+if sys.stderr and hasattr(sys.stderr, 'reconfigure'):
     cast('TextIOWrapper', sys.stderr).reconfigure(encoding=Constants.UTF8)
 
 logger = get_logger(Constants.PROGRAM_NAME)
