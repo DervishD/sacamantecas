@@ -11,9 +11,16 @@ import pytest
 from sacamantecas import (
     detect_html_charset,
     get_redirected_url,
+    is_accepted_url,
     resolve_file_url,
     retrieve_url,
 )
+
+
+def test_invalid_url() -> None:
+    """Test handling of invalid URLs."""
+    assert not is_accepted_url('http://[')
+
 
 
 @pytest.mark.parametrize(('netloc', 'base', 'extra'), [
