@@ -2,20 +2,20 @@
 """Test suite for unused constants and messages."""
 import ast
 import inspect
+from typing import cast
 
 import pytest
 
 import sacamantecas
 
 
-class UsageTrackerVisitor(ast.NodeVisitor):
-    """Simple visitor for checking if all class attributes are used."""
+class UsageTrackerAuditor(ast.NodeVisitor):
+    """Simple auditor for checking if all class attributes are used."""
 
     def __init__(self, class_name: str) -> None:
         """Initialize visitor with class name."""
         self.class_name = class_name
         self.within_classdef = False
-        self.within_methoddef = False
         self.within_attributedef = False
         self.unused_attributes: set[str] = set()
 
@@ -26,20 +26,11 @@ class UsageTrackerVisitor(ast.NodeVisitor):
         self.generic_visit(node)
         self.within_classdef = False
 
-    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:  # pylint: disable=invalid-name
-        """Mark function definitions within a class for further processing."""
-        if self.within_classdef:
-            self.within_methoddef = True
-        self.generic_visit(node)
-        self.within_methoddef = False
-
     def visit_Assign(self, node: ast.Assign) -> None:  # pylint: disable=invalid-name
         """Mark class attribute definitions for further processing."""
-        if self.within_classdef and not self.within_methoddef:
+        if self.within_classdef:
             for target in node.targets:
-                if not isinstance(target, ast.Name):
-                    continue
-                self.unused_attributes.add(target.id)
+                self.unused_attributes.add(cast('ast.Name', target).id)
             self.within_attributedef = True
             self.generic_visit(node.value)
             self.within_attributedef = False
@@ -75,7 +66,7 @@ def codetree() -> ast.Module:
 ])
 def test_no_unused_class_attributes(classname: str, codetree: ast.Module) -> None:
     """Test that all attributes in classname are used."""
-    visitor = UsageTrackerVisitor(classname)
-    visitor.visit(codetree)
+    auditor = UsageTrackerAuditor(classname)
+    auditor.visit(codetree)
 
-    assert visitor.unused_attributes == set()
+    assert auditor.unused_attributes == set()
