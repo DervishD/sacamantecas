@@ -230,9 +230,9 @@ class ExitCodes(IntEnum):
 
 # Reconfigure standard output streams so they use UTF-8 encoding even if
 # they are redirected to a file when running the program from a shell.
-if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
+if sys.stdout and hasattr(sys.stdout, 'reconfigure'):  # pragma: no branch
     cast('TextIOWrapper', sys.stdout).reconfigure(encoding=Constants.UTF8)
-if sys.stderr and hasattr(sys.stderr, 'reconfigure'):
+if sys.stderr and hasattr(sys.stderr, 'reconfigure'):  # pragma: no branch
     cast('TextIOWrapper', sys.stderr).reconfigure(encoding=Constants.UTF8)
 
 logger = get_logger(Constants.PROGRAM_NAME)
