@@ -120,6 +120,21 @@ def test_handler_textfile(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> No
 
     assert result == EXPECTED_METADATA
 
+    sourcefile_path.write_text('mock://', encoding='utf-8')
+    handler = textfile_handler(sourcefile_path)
+    bootstrap(handler)
+    with pytest.raises(StopIteration):
+        next(handler)
+
+    sourcefile_path.write_text(SAMPLE_URLS[0], encoding='utf-8')
+    handler = textfile_handler(sourcefile_path)
+    bootstrap(handler)
+    url = next(handler)
+    assert url == SAMPLE_URLS[0]
+    handler.send({})
+    with pytest.raises(StopIteration):
+        next(handler)
+
 
 # pylint: disable-next=too-many-locals
 def test_handler_spreadsheet(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
