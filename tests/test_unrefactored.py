@@ -5,6 +5,8 @@ from contextlib import suppress
 from inspect import getsource
 from typing import NamedTuple
 
+import pytest
+
 import sacamantecas
 
 ALLOWED_UNREFACTORED_STRINGS = (
@@ -100,6 +102,120 @@ def audit(source: str) -> AuditReport:
     )
 
 
+@pytest.mark.parametrize(('allowed_strings', 'dangling_strings', 'sourcelines', 'expected_report'), [
+    pytest.param(
+        [], [],
+        ['x = "first_string"', 'y = "second_string"'],
+        AuditReport(
+            unrefactored_strings = [(1, repr('first_string')), (2, repr('second_string'))],
+            stale_allowed_strings = [],
+            ignored_strings = [],
+        ),
+        id='test_auditor_unrefactored_strings_detected',
+    ),
+    pytest.param(
+        [], [],
+        ['x = b"byte_string"'],
+        AuditReport(
+            unrefactored_strings = [(1, repr(b'byte_string'))],
+            stale_allowed_strings = [],
+            ignored_strings = [],
+        ),
+        id='test_auditor_unrefactored_bytes_detected',
+    ),
+    pytest.param(
+        [], [],
+        [f'x = "{' ' * 42}"'],
+        AuditReport(
+            unrefactored_strings = [(1, repr(' ' * 42))],
+            stale_allowed_strings = [],
+            ignored_strings = [],
+        ),
+        id='test_auditor_unrefactored_whitespace_detected',
+    ),
+    pytest.param(
+        [], [],
+        ['x = f"prefix_{i}_suffix"'],
+        AuditReport(
+            unrefactored_strings = [],
+            stale_allowed_strings = [],
+            ignored_strings = [],
+        ),
+        id='test_auditor_unrefactored_f_strings_ignored',
+    ),
+    pytest.param(
+        [], [],
+        ['"""Module docstring."""'],
+        AuditReport(
+            unrefactored_strings = [],
+            stale_allowed_strings = [],
+            ignored_strings = [],
+        ),
+        id='test_auditor_module_docstring_ignored',
+    ),
+    pytest.param(
+        [], [],
+        ['class Mock:\n    """Class *Mock* docstring."""'],
+        AuditReport(
+            unrefactored_strings = [],
+            stale_allowed_strings = [],
+            ignored_strings = [],
+        ),
+        id='test_auditor_class_docstring_ignored',
+    ),
+    pytest.param(
+        [], [],
+        ['def mock():\n    """Function *mock()* docstring."""'],
+        AuditReport(
+            unrefactored_strings = [],
+            stale_allowed_strings = [],
+            ignored_strings = [],
+        ),
+        id='test_auditor_function_docstring_ignored',
+    ),
+    pytest.param(
+        [], [],
+        ['class Mock:\n    MOCK = "mock_string"\n    MOCKS = ("mock_string_x", "mock_string_y")'],
+        AuditReport(
+            unrefactored_strings = [],
+            stale_allowed_strings = [],
+            ignored_strings = [],
+        ),
+        id='test_auditor_class_level_constant_ignored',
+    ),
+    pytest.param(
+        ['allowed_string_x'], ['allowed_string_y'],
+        ['x = "allowed_string_x"', 'y = "allowed_string_y"'],
+        AuditReport(
+            unrefactored_strings = [],
+            stale_allowed_strings = [],
+            ignored_strings = [],
+        ),
+        id='test_auditor_allowed_strings_ignored',
+    ),
+    pytest.param(
+        ['allowed_string'], ['dangling_string'],
+        ['x = "allowed_string"'],
+        AuditReport(
+            unrefactored_strings = [],
+            stale_allowed_strings = ['dangling_string'],
+            ignored_strings = [],
+        ),
+        id='test_auditor_dangling_strings_detected',
+    ),
+])
+def test_auditor_itself(
+    monkeypatch: pytest.MonkeyPatch,
+    allowed_strings: list[str | bytes],
+    dangling_strings: list[str | bytes],
+    sourcelines: list[str],
+    expected_report: list[tuple[int, str | bytes]]) -> None:
+    """Self-test auditor."""
+    monkeypatch.setitem(globals(), 'ALLOWED_UNREFACTORED_STRINGS', (allowed_strings + dangling_strings))
+
+    report = audit('\n'.join(sourcelines))
+
+    assert report == expected_report
 
 
 def test_unrefactored_strings() -> None:
