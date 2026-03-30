@@ -3,6 +3,7 @@
 import ast
 from contextlib import suppress
 from inspect import getsource
+from typing import NamedTuple
 
 import sacamantecas
 
@@ -17,14 +18,15 @@ ALLOWED_UNREFACTORED_STRINGS = (
     'Project-URL', ', ', 'source', 'reconfigure', '.post', '==', ' v',
 )
 
-class UnrefactoredStringsFinderVisitor(ast.NodeVisitor):
-    """Simple visitor to find non-refactored literal strings."""
+
+class UnrefactoredStringsAuditor(ast.NodeVisitor):
+    """Simple auditor to find non-refactored literal strings."""
 
     def __init__(self) -> None:
         """Initialize."""
-        self.dangling_strings: list[str] = list(ALLOWED_UNREFACTORED_STRINGS)
+        self.stale_allowed_strings: list[str | bytes] = list(ALLOWED_UNREFACTORED_STRINGS)
+        self.unrefactored_strings: list[tuple[int, str | bytes]] = []
         self.ignored_strings: list[str | bytes] = []
-        self.unrefactored_strings: list[tuple[int, str]] = []
 
     def ignore_docstring(self, node: ast.AsyncFunctionDef | ast.FunctionDef | ast.ClassDef | ast.Module) -> None:
         """Ignore docstring string constants for node."""
@@ -71,17 +73,37 @@ class UnrefactoredStringsFinderVisitor(ast.NodeVisitor):
             return
         if node.value in ALLOWED_UNREFACTORED_STRINGS:
             with suppress(ValueError):
-                self.dangling_strings.remove(node.value)
+                self.stale_allowed_strings.remove(node.value)
             return
         if isinstance(node.value, str | bytes) and node.value.strip():
             self.unrefactored_strings.append((node.lineno, repr(node.value)))
 
 
+class AuditReport(NamedTuple):
+    """Encapsulate a non-refactored strings auditing report."""
+
+    stale_allowed_strings: list[str | bytes]
+    unrefactored_strings: list[tuple[int, str | bytes]]
+    ignored_strings: list[str | bytes]
+
+
+def audit(source: str) -> AuditReport:
+    """Audit *source*, returning the auditor."""
+    auditor = UnrefactoredStringsAuditor()
+    auditor.visit(ast.parse(source))
+    return AuditReport(
+        unrefactored_strings=auditor.unrefactored_strings,
+        stale_allowed_strings=auditor.stale_allowed_strings,
+        ignored_strings=auditor.ignored_strings,
+    )
+
+
+
+
 def test_unrefactored_strings() -> None:
     """Test for non-refactored strings."""
-    visitor = UnrefactoredStringsFinderVisitor()
-    visitor.visit(ast.parse(getsource(sacamantecas)))
+    report = audit(getsource(sacamantecas))
 
-    assert not visitor.dangling_strings
-    assert not visitor.ignored_strings
-    assert not visitor.unrefactored_strings
+    assert not report.stale_allowed_strings
+    assert not report.unrefactored_strings
+    assert not report.ignored_strings
