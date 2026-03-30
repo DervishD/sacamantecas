@@ -136,6 +136,12 @@ def test_medatata_storage(caplog: pytest.LogCaptureFixture, k: str, v: str, expe
     parser.store_metadata()
 
     assert caplog.records[0].message == expected
+
+    if k and v:  # Test that duplicates are not stored.
+        parser.current_k = k
+        parser.current_v = v
+        parser.store_metadata()
+
     assert parser.current_k == parser.DEFAULT_K
     assert parser.current_v == parser.DEFAULT_V
 
@@ -332,6 +338,15 @@ OP_EE = ELEMENT_E.format(TAG=TAG)
     pytest.param(f'{OP_KB}{{K}}{OP_VB}', (), id='test_old_regime_parser_no_closing_tags_2'),
     pytest.param(f'{OP_KB}{OP_VB}{{V}}', (), id='test_old_regime_parser_no_closing_tags_3'),
     pytest.param(f'{OP_KB}{OP_VB}', (), id='test_old_regime_parser_no_closing_tags_4'),
+
+    # Ill-formed, no class attribute in marker tag.
+    pytest.param(f'<{TAG}></{TAG}>', (), id='test_old_regime_parser_no_class_in_marker_tag'),
+
+    # Ill-formed, empty class attribute in marker tag.
+    pytest.param(f'<{TAG} class></{TAG}>', (), id='test_old_regime_parser_empty_class_in_marker_tag'),
+
+    # Ill-formed, wrong attribute in marker tag.
+    pytest.param(f'<{TAG} wrong="wrong"></{TAG}>', (), id='test_old_regime_parser_wrong_attribute_in_marker_tag'),
 ])
 def test_old_regime_parser(contents: str, expected: tuple[str, str]) -> None:
     """Test *Old Regime* parser."""
@@ -371,6 +386,9 @@ BP_VB, BP_VE = ELEMENT_B.format(TAG=BaratzParser.V_TAG, MARKER=''), ELEMENT_E.fo
     # No metadata marker.
     pytest.param(f'{BP_KB}{{K}}{BP_KE}{BP_VB}{{V}}{BP_VE}{BP_ME}', (), id='test_baratz_parser_no_marker_1'),
     pytest.param(f'{BP_KB}{{K}}{BP_KE}{BP_VB}{{V}}{BP_VE}', (), id='test_baratz_parser_no_marker_2'),
+
+    # Missing metadata.
+    pytest.param(f'{BP_MB}<wrong></wrong>{BP_ME}', (), id='test_baratz_parser_missing_metadata'),
 
     # Incomplete metadata, missing value.
     pytest.param(f'{BP_MB}{BP_KB}{{K}}{BP_KE}{BP_VB}{{V}}', (), id='test_baratz_parser_missing_value_1'),
@@ -439,6 +457,15 @@ BP_VB, BP_VE = ELEMENT_B.format(TAG=BaratzParser.V_TAG, MARKER=''), ELEMENT_E.fo
     pytest.param(f'{BP_MB}{BP_KB}{{K}}{BP_VB}', (), id='test_baratz_parser_no_closing_tags_2'),
     pytest.param(f'{BP_MB}{BP_KB}{BP_VB}{{V}}', (), id='test_baratz_parser_no_closing_tags_3'),
     pytest.param(f'{BP_MB}{BP_KB}{BP_VB}', (), id='test_baratz_parser_no_closing_tags_4'),
+
+    # Ill-formed, no class attribute in marker tag.
+    pytest.param(f'<{M_TAG}></{M_TAG}>', (), id='test_baratz_parser_no_class_in_marker_tag'),
+
+    # Ill-formed, empty class attribute in marker tag.
+    pytest.param(f'<{M_TAG} class></{M_TAG}>', (), id='test_baratz_parser_empty_class_in_marker_tag'),
+
+    # Ill-formed, wrong attribute in marker tag.
+    pytest.param(f'<{M_TAG} wrong="wrong"></{M_TAG}>', (), id='test_baratz_parser_wrong_attribute_in_marker_tag'),
 ])
 def test_baratz_parser(contents: str, expected: tuple[str, str]) -> None:
     """Test *Baratz* parser."""
