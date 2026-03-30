@@ -55,7 +55,6 @@ def test_handler_single_url(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> 
 
         urls.append(url)
 
-
     assert sinkfile_path.is_file()
     assert len(urls) == 1
     assert urls[0] == SAMPLE_URLS[0]
@@ -67,6 +66,20 @@ def test_handler_single_url(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> 
     result = dict(line.strip().split(': ') for line in result[1:])
 
     assert result == EXPECTED_METADATA[urls[0]]
+
+    handler = single_url_handler('mock://')
+    bootstrap(handler)
+    with pytest.raises(StopIteration):
+        next(handler)
+
+    handler = single_url_handler(SAMPLE_URLS[0])
+    bootstrap(handler)
+    url = next(handler)
+    assert url == SAMPLE_URLS[0]
+    handler.send({})
+    with pytest.raises(StopIteration):
+        next(handler)
+
 
 def test_handler_textfile(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """Test textfile handler."""
