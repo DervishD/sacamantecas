@@ -2,10 +2,9 @@
 """Test suite for `main()` function."""
 from importlib.metadata import metadata, version
 import logging
-from typing import NoReturn
+from typing import NoReturn, TYPE_CHECKING
 
 from legion import format_message
-import pytest
 
 from sacamantecas import (
     Constants,
@@ -14,6 +13,9 @@ from sacamantecas import (
     logger,
     main,
 )
+
+if TYPE_CHECKING:
+    import pytest
 
 
 def test_no_arguments(
@@ -56,10 +58,7 @@ def test_keyboard_interrupt_handler(capsys: pytest.CaptureFixture[str]) -> None:
     """Test the `keyboard_interrupt_handler()` decorator."""
     logger.config(main_log_output=None, full_log_output=None)
 
-    try:
-        interrupted_function()
-    except KeyboardInterrupt as exc:
-        pytest.fail(f'Unexpected exception «{type(exc).__name__}{exc.args}»', pytrace=False)
+    interrupted_function()
 
     logging.shutdown()
 
