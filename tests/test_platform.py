@@ -22,8 +22,8 @@ def test_rejects_non_windows(monkeypatch: pytest.MonkeyPatch, capsys: pytest.Cap
     """Test that SystemExit is raised on non-win32 platforms."""
     monkeypatch.setattr('sys.platform', 'linux')
 
-    with pytest.raises(SystemExit) as exc:
+    with pytest.raises(SystemExit) as excinfo:
         importlib.import_module(SACAMANTECAS)
 
-    assert exc.value.code is None
+    assert excinfo.value.code is None
     assert capsys.readouterr().out == '\nThis program is compatible only with the Win32 platform.\n'
