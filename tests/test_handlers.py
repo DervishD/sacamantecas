@@ -1,9 +1,10 @@
 #! /usr/bin/env python3
 """Test suite for the different handlers of sources and sinks."""
+from collections import defaultdict
+from collections.abc import Callable
 from hashlib import algorithms_available, new as new_hash
 from pathlib import Path
 from random import choice, randrange
-from typing import TYPE_CHECKING
 from uuid import uuid4
 
 from openpyxl import load_workbook, Workbook
@@ -22,26 +23,33 @@ from sacamantecas import (
     url_to_path,
 )
 
-if TYPE_CHECKING:
-    from collections.abc import Callable
-
 HASHES = [hash_function for hash_function in algorithms_available if not hash_function.startswith('shake')]
 SAMPLE_URLS = [f'{choice(('https', 'http', 'file'))}://subdomain{i}.domain.tld' for i in range(10)]  # noqa: S311
 EXPECTED_METADATA = {u: {h: new_hash(h, u.encode('utf-8')).hexdigest() for h in HASHES} for u in SAMPLE_URLS}
 
 
-def test_handler_single_url(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    """Test single URLs."""
+SinkFileFactory = Callable[[str], Path]
+
+@pytest.fixture
+def sinkfile_factory(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> SinkFileFactory:
+    """Fixture to mock the sink file path generation."""
+    def factory(suffix: str) -> Path:
+        def patched_generate_sinkfile_path(_: Path) -> Path:
+            return sinkfile_path
+        sinkfile_path = tmp_path / f'testsink_out.{suffix}'
+        monkeypatch.setitem(single_url_handler.__globals__, 'generate_sinkfile_path', patched_generate_sinkfile_path)
+        return sinkfile_path
+    return factory
+
+
+def test_handler_single_url(sinkfile_factory: SinkFileFactory) -> None:
+    """Test single URL handler."""
     single_url = url_to_path('url://subdomain.domain.toplevel/path?param1=value1&param2=value2')
     expected = Path('url___subdomain_domain_toplevel_path_param1_value1_param2_value2')
 
     assert single_url == expected
 
-    sinkfile_path = tmp_path / 'testsink_out.txt'
-    def patched_generate_sinkfile_path(_: Path) -> Path:
-        return sinkfile_path
-
-    monkeypatch.setitem(single_url_handler.__globals__, 'generate_sinkfile_path', patched_generate_sinkfile_path)
+    sinkfile_path = sinkfile_factory('txt')
 
     handler = single_url_handler(SAMPLE_URLS[0])
     bootstrap(handler)
@@ -67,12 +75,24 @@ def test_handler_single_url(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> 
 
     assert result == EXPECTED_METADATA[urls[0]]
 
+
+def test_handler_single_url_unsupported_url(sinkfile_factory: SinkFileFactory) -> None:
+    """Test single URL handler with unsupported URL scheme."""
+    sinkfile_path = sinkfile_factory('txt')
     handler = single_url_handler('mock://')
+
     bootstrap(handler)
     with pytest.raises(StopIteration):
         next(handler)
 
+    assert sinkfile_path.read_text(encoding='utf-8') == ''
+
+
+def test_handler_single_url_no_metadata(sinkfile_factory: SinkFileFactory) -> None:
+    """Test single URL handler with no metadata."""
+    sinkfile_path = sinkfile_factory('txt')
     handler = single_url_handler(SAMPLE_URLS[0])
+
     bootstrap(handler)
     url = next(handler)
     assert url == SAMPLE_URLS[0]
@@ -80,16 +100,14 @@ def test_handler_single_url(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> 
     with pytest.raises(StopIteration):
         next(handler)
 
+    assert sinkfile_path.read_text(encoding='utf-8') == ''
 
-def test_handler_textfile(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+
+def test_handler_textfile(tmp_path: Path, sinkfile_factory: SinkFileFactory) -> None:
     """Test textfile handler."""
     sourcefile_path = tmp_path / 'urls.txt'
     sourcefile_path.write_text('\n'.join(SAMPLE_URLS), encoding='utf-8')
-    sinkfile_path = tmp_path / 'testsink_out.txt'
-    def patched_generate_sinkfile_path(_: Path) -> Path:
-        return sinkfile_path
-
-    monkeypatch.setitem(textfile_handler.__globals__, 'generate_sinkfile_path', patched_generate_sinkfile_path)
+    sinkfile_path = sinkfile_factory('txt')
 
     handler = textfile_handler(sourcefile_path)
     bootstrap(handler)
@@ -120,35 +138,50 @@ def test_handler_textfile(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> No
 
     assert result == EXPECTED_METADATA
 
+
+def test_handler_textfile_unsupported_url(tmp_path: Path, sinkfile_factory: SinkFileFactory) -> None:
+    """Test textfile handler with unsupported URL scheme."""
+    sourcefile_path = tmp_path / 'urls.txt'
     sourcefile_path.write_text('mock://', encoding='utf-8')
+    sinkfile_path = sinkfile_factory('txt')
+
     handler = textfile_handler(sourcefile_path)
     bootstrap(handler)
+
     with pytest.raises(StopIteration):
         next(handler)
 
+    assert sinkfile_path.read_text(encoding='utf-8') == ''
+
+
+def test_handler_textfile_no_metadata(tmp_path: Path, sinkfile_factory: SinkFileFactory) -> None:
+    """Test textfile handler with no metadata."""
+    sourcefile_path = tmp_path / 'urls.txt'
     sourcefile_path.write_text(SAMPLE_URLS[0], encoding='utf-8')
+    sinkfile_path = sinkfile_factory('txt')
+
     handler = textfile_handler(sourcefile_path)
     bootstrap(handler)
     url = next(handler)
-    assert url == SAMPLE_URLS[0]
     handler.send({})
+
     with pytest.raises(StopIteration):
         next(handler)
 
+    assert url == SAMPLE_URLS[0]
+    assert sinkfile_path.read_text(encoding='utf-8') == ''
 
-# pylint: disable-next=too-many-locals
-def test_handler_spreadsheet(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    """Test spreadsheet handler."""
+
+
+def create_mock_spreadsheet(spreadsheet_path: Path) -> None:
+    """Create a mock spreadsheet file."""
     fake_metadata_columns = 10
-    sourcefile_path = tmp_path / 'urls.xlsx'
     headings = [f'Heading_{i}' for i in range(fake_metadata_columns)]
 
     workbook = Workbook()
     sheet = workbook.active
 
     assert sheet is not None
-    assert isinstance(sheet, Worksheet)
-
     sheet.append(headings)
 
     for column in range(fake_metadata_columns):
@@ -158,15 +191,32 @@ def test_handler_spreadsheet(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) ->
         row = [uuid4().hex[:randrange(5, 20)] for _ in range(fake_metadata_columns)]  # noqa: S311
         row.insert(randrange(len(row)), url)  # noqa: S311
         sheet.append(row)
-
-    workbook.save(sourcefile_path)
+    workbook.save(spreadsheet_path)
     workbook.close()
 
-    sinkfile_path = tmp_path / 'testsink_out.xlsx'
-    def patched_generate_sinkfile_path(_: Path) -> Path:
-        return sinkfile_path
 
-    monkeypatch.setitem(spreadsheet_handler.__globals__, 'generate_sinkfile_path', patched_generate_sinkfile_path)
+@pytest.mark.parametrize(('metadata', 'expected'), [
+    pytest.param(
+        EXPECTED_METADATA,
+        EXPECTED_METADATA,
+        id='test_handler_spreadsheet_with_metadata',
+    ),
+    pytest.param(
+        defaultdict[str, dict[str, str]](dict),
+        {url: dict[str, str]() for url in SAMPLE_URLS},
+        id='test_handler_spreadsheet_without_metadata',
+    ),
+])
+def test_handler_spreadsheet(
+    tmp_path: Path,
+    sinkfile_factory: SinkFileFactory,
+    metadata: dict[str, dict[str, str]],
+    expected: dict[str, dict[str, str]],
+) -> None:
+    """Test spreadsheet handler."""
+    sourcefile_path = tmp_path / 'urls.xlsx'
+    create_mock_spreadsheet(sourcefile_path)
+    sinkfile_path = sinkfile_factory('xlsx')
 
     handler = spreadsheet_handler(sourcefile_path)
     bootstrap(handler)
@@ -175,7 +225,7 @@ def test_handler_spreadsheet(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) ->
     for url in handler:
         assert isinstance(url, str)
 
-        handler.send(EXPECTED_METADATA[url])
+        handler.send(metadata[url])
 
         urls.append(url)
 
@@ -205,7 +255,26 @@ def test_handler_spreadsheet(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) ->
         result[url] = {k: sheet.cell(row[0].row, column).value for column, k in headers.items()}
     workbook.close()
 
-    assert result == EXPECTED_METADATA
+    assert result == expected
+
+
+@pytest.mark.parametrize(('contents'), [
+    pytest.param(b'mock contents' , id='test_handler_spreadsheet_invalid_input_bad_zip'),
+    pytest.param(b'PK\x05\x06' + b'\x00' * 18 , id='test_handler_spreadsheet_invalid_input_bad_xlxs'),
+])
+def test_handler_spreadsheet_invalid_input(tmp_path: Path, sinkfile_factory: SinkFileFactory, contents: bytes) -> None:
+    """Test spreadsheet handler with an invalid XLSX input file."""
+    sourcefile_path = tmp_path / 'invalid.xlsx'
+    sourcefile_path.write_bytes(contents)
+    sinkfile_path = sinkfile_factory('xlsx')
+
+    handler = spreadsheet_handler(sourcefile_path)
+    with pytest.raises(SourceError) as excinfo:
+        bootstrap(handler)
+
+    assert excinfo.type == SourceError
+    assert str(excinfo.value).startswith('La hoja de entrada es inválida')
+    assert sinkfile_path.read_bytes() == contents
 
 
 @pytest.mark.parametrize(('unreadable_path', 'handler_factory'), [
