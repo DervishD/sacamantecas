@@ -874,8 +874,6 @@ def store_metadata_in_sheet(
     # trick for simulating static variables in functions is using a fake
     # default parameter and using 'SimpleNamespace':
     # https://stackoverflow.com/a/51437838
-    if not new_metadata:
-        return
     for key, value in new_metadata.items():
         if key not in static.known_metadata:
             column_header = Constants.SPREADSHEET_METADATA_COLUMN_TITLE.format(key)
