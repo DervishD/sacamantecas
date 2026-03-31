@@ -31,7 +31,12 @@ def unreadable_path(tmp_path: Path, request: pytest.FixtureRequest) -> Generator
     path = tmp_path / request.param
     path.write_text('')
 
-    subprocess.run(['icacls', str(path), '/inheritance:r'], check=True)  # noqa: S603, S607
+    subprocess.run(  # noqa: S603
+        ['icacls', str(path), '/inheritance:r'],  # noqa: S607
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
     yield path
 
     path.unlink()
@@ -43,8 +48,18 @@ def unwritable_path(tmp_path: Path, request: pytest.FixtureRequest) -> Generator
     path = tmp_path / request.param
     path.write_text('')
 
-    subprocess.run(['icacls', str(path), '/deny', f'{os.environ["USERNAME"]}:W'], check=True)  # noqa: S603, S607
+    subprocess.run(  # noqa: S603
+        ['icacls', str(path), '/deny', f'{os.environ["USERNAME"]}:W'],  # noqa:  S607
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
     yield path
-    subprocess.run(['icacls', str(path), '/grant', f'{os.environ["USERNAME"]}:W'], check=True)  # noqa: S603, S607
+    subprocess.run(  # noqa: S603
+        ['icacls', str(path), '/grant', f'{os.environ["USERNAME"]}:W'],  # noqa: S607
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
 
     path.unlink()
