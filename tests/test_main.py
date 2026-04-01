@@ -100,6 +100,11 @@ def test_main_exceptions(
         raise exception(error_message)
     monkeypatch.setitem(main.__globals__, mocked_entry_point_name, mock_entry_point)
 
+    def patched_generate_sinkfile_path(_: Path) -> Path:
+        return sinkfile_path
+    sinkfile_path = tmp_path / 'testsink_out.txt'
+    monkeypatch.setitem(main.__globals__, 'generate_sinkfile_path', patched_generate_sinkfile_path)
+
     exitcode = main('https://localhost')
     captured = capsys.readouterr()
 
@@ -122,6 +127,11 @@ def test_main_full_invocation(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, l
     def mock_saca_las_mantecas(_u: str, _p: BaseParser) -> dict[str, str]:
         return {'mock_key' : 'mock_value'}
     monkeypatch.setitem(main.__globals__, 'saca_las_mantecas', mock_saca_las_mantecas)
+
+    def patched_generate_sinkfile_path(_: Path) -> Path:
+        return sinkfile_path
+    sinkfile_path = tmp_path / 'testsink_out.txt'
+    monkeypatch.setitem(main.__globals__, 'generate_sinkfile_path', patched_generate_sinkfile_path)
 
     exitcode = main('https://localhost')
     assert exitcode == ExitCodes.SUCCESS
