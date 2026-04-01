@@ -8,13 +8,12 @@ if sys.platform != 'win32':
     sys.exit(None)
 
 # pylint: disable=wrong-import-position
-import atexit
 from collections.abc import Callable, Generator
 import configparser
 import contextlib
 from enum import IntEnum, StrEnum
 import errno
-from functools import partial, wraps
+from functools import wraps
 from html.parser import HTMLParser
 from http.client import HTTPException
 from importlib.metadata import metadata, requires, version
@@ -31,7 +30,7 @@ from urllib.parse import quote, unquote, urlparse, urlunparse
 from urllib.request import Request, urlopen
 from zipfile import BadZipFile
 
-from legion import excepthook, format_message, get_logger, wait_for_keypress
+from legion import format_message, get_logger
 from openpyxl import load_workbook
 from openpyxl.cell.cell import Cell, MergedCell, TYPE_STRING as CELLTYPE_STRING
 from openpyxl.styles import Font, PatternFill
@@ -1169,9 +1168,3 @@ def main(*args: str) -> ExitCodes:
         logger.dedent()
     logger.dedent()
     return exitcode
-
-
-if __name__ == '__main__':
-    atexit.register(partial(wait_for_keypress, Messages.PRESS_ANY_KEY))
-    sys.excepthook = partial(excepthook, heading=Messages.UNHANDLED_EXCEPTION)
-    sys.exit(main(*sys.argv[1:]))
