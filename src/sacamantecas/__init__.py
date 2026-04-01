@@ -175,7 +175,7 @@ class Messages(StrEnum):
     GENERIC_URLERROR = 'Error de URL{}: {}.'
     URL_ACCESS_ERROR = 'No resultó posible acceder a la dirección especificada.'
     HTTP_RETRIEVAL_ERROR = 'No se obtuvieron contenidos.'
-    CONNECTION_ERROR = 'Se produjo un error de conexión «{}» accediendo al URL.'
+    CONNECTION_ERROR = 'Se produjo un error de conexión {} accediendo al URL.'
     NO_CONTENTS_ERROR = 'No se recibieron contenidos del URL.'
 
     CHARSET_NOT_IN_HEADERS = 'Charset no detectado en las cabeceras.'
