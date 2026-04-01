@@ -4,6 +4,7 @@ from http.server import HTTPServer, SimpleHTTPRequestHandler
 from os import chdir
 from pathlib import Path
 import threading
+from typing import Self
 from urllib.parse import quote
 
 import pytest
@@ -79,15 +80,57 @@ def test_url_redirection(delay: str, url: str, extra: str, expected: str) -> Non
 
 
 @pytest.mark.parametrize(('contents', 'expected'), [
-    pytest.param('<meta http-equiv="content-type" charset="{}">', 'cp1252', id='test_url_charset_detection_cp1252'),
-    pytest.param('<meta charset="{}">', 'cp850', id='test_url_charset_detection_cp850'),
-    pytest.param('{}', 'iso-8859-1', id='test_url_charset_detection_iso-8859-1'),
+    pytest.param(
+        '<meta http-equiv="content-type" charset="{}">',
+        'cp1252',
+        id='test_url_charset_detection_content_type',
+    ),
+    pytest.param(
+        '<meta charset="{}">',
+        'cp850',
+        id='test_url_charset_detection_meta_charset',
+    ),
+    pytest.param(
+        '{}',
+        'iso-8859-1',
+        id='test_url_charset_detection_fallback'),
 ])
-def test_url_charset_detection(contents: str, expected: str) -> None:
-    """Test different ways of detecting the *contents* charset."""
+def test_url_charset_detection_in_contents(contents: str, expected: str) -> None:
+    """Test URL *contents* charset detection in HTML metadata."""
     result = detect_html_charset(contents.format(expected).encode('ascii')).lower()
 
     assert result == expected
+
+
+def test_retrieve_url_charset_in_headers(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test URL contents charset detection in headers."""
+    class FakeResponse:
+        FAKE_RESPONSE_HTML = b'<html></html>'
+        FAKE_RESPONSE_CHARSET = 'utf-8'
+        def read(self) -> bytes:
+            return self.FAKE_RESPONSE_HTML
+
+        def __enter__(self) -> Self:
+            return self
+
+        def __exit__(self, *args: object) -> bool:
+            return False
+
+        class headers:  # noqa: N801
+            @staticmethod
+            def get_content_charset() -> str:
+                return FakeResponse.FAKE_RESPONSE_CHARSET
+
+    monkeypatch.setitem(
+        retrieve_url.__globals__,
+        'urlopen',
+        lambda _: FakeResponse(),  # pyright: ignore[reportUnknownLambdaType, reportUnknownArgumentType]
+    )
+
+    contents, charset = retrieve_url('http://mock_url')
+
+    assert charset == FakeResponse.FAKE_RESPONSE_CHARSET
+    assert contents == FakeResponse.FAKE_RESPONSE_HTML
 
 
 def test_url_retrieve_utf8_data() -> None:
