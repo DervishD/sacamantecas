@@ -93,7 +93,7 @@ HTTP_RETRIEVAL_ERROR_MESSAGE = 'No se obtuvieron contenidos.'
 def test_skimming_url_retrieval_errors(
     monkeypatch: pytest.MonkeyPatch,
     url: str,
-    mock_exception: Exception,
+    mock_exception: type[Exception],
     error_message: tuple[str, str],
 ) -> None:
     """Test *url* retrieval errors."""
