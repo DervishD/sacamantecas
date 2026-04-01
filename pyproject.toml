@@ -50,6 +50,13 @@ distance = "{next_version}.post{distance}+{rev}"
 distance-dirty = "{next_version}.post{distance}+{rev}.dirty"
 
 [tool.coverage.run]
+branch = true
 omit = [
     "build.py"
 ]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+format = "markdown"
+precision = 2
