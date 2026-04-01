@@ -5,17 +5,24 @@ import logging
 from typing import NoReturn, TYPE_CHECKING
 
 from legion import format_message
+import pytest
 
 from sacamantecas import (
+    BaseParser,
     Constants,
     ExitCodes,
     keyboard_interrupt_handler,
     logger,
     main,
+    SkimmingError,
+    SourceError,
 )
+from tests.test_logging import get_clean_logfile_contents
 
 if TYPE_CHECKING:
-    import pytest
+    from pathlib import Path
+
+    from helpers import LogPaths
 
 
 def test_no_arguments(
@@ -67,3 +74,66 @@ def test_keyboard_interrupt_handler(capsys: pytest.CaptureFixture[str]) -> None:
     expected = f'* Aviso: {message}'
 
     assert result == expected
+
+
+@pytest.mark.parametrize(('exception', 'mocked_entry_point_name'), [
+    pytest.param(SourceError, 'bootstrap', id='test_main_source_error_handling'),
+    pytest.param(SkimmingError, 'saca_las_mantecas', id='test_main_skimming_error_handling'),
+])
+def test_main_exceptions(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    exception: type[Exception],
+    mocked_entry_point_name: str,
+) -> None:
+    """Test main loop exception handling in `main()`."""
+    monkeypatch.setattr(Constants, 'MAIN_OUTPUT_PATH', None)
+    monkeypatch.setattr(Constants, 'FULL_OUTPUT_PATH', None)
+
+    inifile_path = tmp_path / 'profiles.ini'
+    monkeypatch.setattr(Constants, 'INIFILE_PATH', inifile_path)
+    inifile_path.write_text('[mock_section]\nurl = .*\nmock_key = mock_value\n')
+
+    error_message = 'mock_error_message'
+    def mock_entry_point(*_: object) -> None:
+        raise exception(error_message)
+    monkeypatch.setitem(main.__globals__, mocked_entry_point_name, mock_entry_point)
+
+    exitcode = main('https://localhost')
+    captured = capsys.readouterr()
+
+    assert exitcode == ExitCodes.WARNING
+    assert captured.err.strip() == f'* Aviso: {error_message}'
+
+
+class MockParser(BaseParser):
+    """Mock parser."""  # noqa: D204
+    PARAMETERS = BaseParser.PARAMETERS | {'mock_key'}
+def test_main_full_invocation(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, log_paths: LogPaths) -> None:
+    """Test full invocation of `main()` function."""
+    monkeypatch.setattr(Constants, 'MAIN_OUTPUT_PATH', log_paths.main)
+    monkeypatch.setattr(Constants, 'FULL_OUTPUT_PATH', log_paths.full)
+
+    inifile_path = tmp_path / 'profiles.ini'
+    monkeypatch.setattr(Constants, 'INIFILE_PATH', inifile_path)
+    inifile_path.write_text('[mock_section]\nurl = .*\nmock_key = mock_value\n')
+
+    def mock_saca_las_mantecas(_u: str, _p: BaseParser) -> dict[str, str]:
+        return {'mock_key' : 'mock_value'}
+    monkeypatch.setitem(main.__globals__, 'saca_las_mantecas', mock_saca_las_mantecas)
+
+    exitcode = main('https://localhost')
+    assert exitcode == ExitCodes.SUCCESS
+
+    main_log_contents = get_clean_logfile_contents(log_paths.main)
+    full_log_contents = get_clean_logfile_contents(log_paths.full)
+
+    assert log_paths.main.is_file()
+    assert log_paths.full.is_file()
+    assert 'Registro de depuración iniciado.' in full_log_contents[0]
+    assert 'sacamantecas versión' in full_log_contents[1]
+    assert 'sacamantecas versión' in main_log_contents[0]
+    assert 'Proceso finalizado.' in main_log_contents[-1]
+    assert 'Proceso finalizado.' in full_log_contents[-2]
+    assert 'Registro de depuración finalizado.' in full_log_contents[-1]
