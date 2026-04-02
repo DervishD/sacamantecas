@@ -16,7 +16,6 @@ from sacamantecas import (
     SkimmingError,
     SourceError,
 )
-from tests.test_logging import get_clean_logfile_contents
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -135,8 +134,8 @@ def test_main_full_invocation(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, l
     exitcode = main('https://localhost')
     assert exitcode == ExitCodes.SUCCESS
 
-    main_log_contents = get_clean_logfile_contents(log_paths.main)
-    full_log_contents = get_clean_logfile_contents(log_paths.full)
+    main_log_contents = log_paths.main.read_text().splitlines()
+    full_log_contents = log_paths.full.read_text().splitlines()
 
     assert log_paths.main.is_file()
     assert log_paths.full.is_file()
