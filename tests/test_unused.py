@@ -57,7 +57,8 @@ class UsageTrackerAuditor(ast.NodeVisitor):
 @pytest.fixture(scope='module')
 def codetrees() -> list[ast.Module]:
     """Fixture to get the parsed code trees of the package."""
-    package_name = sacamantecas.__package__ or ''
+    package_name = sacamantecas.__package__
+    assert package_name is not None
     package_entry_point_name = f'{package_name}.__main__'
 
     codetrees: list[ast.Module] = []
