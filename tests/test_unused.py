@@ -1,4 +1,3 @@
-#! /usr/bin/env python3
 """Test suite for unused constants and messages."""
 import ast
 import importlib.util

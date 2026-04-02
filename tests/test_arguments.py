@@ -1,4 +1,3 @@
-#! /usr/bin/env python3
 """Test suite for argument handling."""
 import inspect
 from typing import TYPE_CHECKING

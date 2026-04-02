@@ -1,4 +1,3 @@
-#! /usr/bin/env python3
 """Test suite for the logging system."""
 from importlib.metadata import metadata, requires, version
 import logging

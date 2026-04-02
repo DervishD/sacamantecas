@@ -1,4 +1,3 @@
-#! /usr/bin/env python3
 """Test suite for all URL handling functions."""
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from os import chdir

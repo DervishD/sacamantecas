@@ -1,4 +1,3 @@
-#! /usr/bin/env python3
 """Test suite for the skimming process (sacar las mantecas)."""
 from errno import errorcode
 from http.client import HTTPException, HTTPMessage

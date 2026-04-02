@@ -1,4 +1,3 @@
-#! /usr/bin/env python
 """See 'README.md' for details."""
 import sys
 

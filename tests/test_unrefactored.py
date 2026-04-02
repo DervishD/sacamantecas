@@ -1,4 +1,3 @@
-#! /usr/bin/env python3
 """Test suite for non-refactored code strings."""
 import ast
 from contextlib import suppress

@@ -1,4 +1,3 @@
-#! /usr/bin/env python3
 """Test suite for profiles handling."""
 from contextlib import AbstractContextManager, nullcontext
 from html.parser import HTMLParser

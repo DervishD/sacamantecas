@@ -1,4 +1,3 @@
-#! /usr/bin/env python3
 """Test suite for metadata parsers."""
 from html import escape
 import logging

@@ -1,4 +1,3 @@
-#! /usr/bin/env python
 """Dump contents of provided URL to text file. Crudely."""
 import logging
 import sys

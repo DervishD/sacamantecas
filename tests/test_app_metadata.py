@@ -1,4 +1,3 @@
-#! /usr/bin/env python3
 """Test suite for validating application metadata."""
 from importlib.metadata import metadata, version
 import re

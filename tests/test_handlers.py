@@ -1,4 +1,3 @@
-#! /usr/bin/env python3
 """Test suite for the different handlers of sources and sinks."""
 from collections import defaultdict
 from collections.abc import Callable
