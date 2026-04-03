@@ -45,9 +45,25 @@ source = "https://github.com/DervishD/sacamantecas"
 issues = "https://github.com/DervishD/sacamantecas/issues"
 
 [tool.versioningit.format]
-dirty = "{base_version}+{rev}.dirty"
-distance = "{next_version}.post{distance}+{rev}"
-distance-dirty = "{next_version}.post{distance}+{rev}.dirty"
+
+[tool.ruff]
+line-length = 120
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = ["D203", "D210", "D213"]
+
+[tool.ruff.lint.extend-per-file-ignores]
+"tests/**/*.py" = ["S101"]
+
+[tool.ruff.lint.flake8-quotes]
+inline-quotes = "single"
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+force-sort-within-sections = true
+order-by-type = false
 
 [tool.coverage.run]
 branch = true
