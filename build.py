@@ -4,30 +4,34 @@ Build application executable for `Win32` in a virtual environment and
 pack it together with the corresponding `.ini` file in a `.zip` file for
 distribution.
 """
-from importlib.metadata import requires
 import os
 from pathlib import Path
 from subprocess import CalledProcessError, CompletedProcess, run
 import sys
+import tomllib
 from typing import cast, TextIO, TYPE_CHECKING
 from zipfile import ZIP_DEFLATED, ZipFile
-
-from sacamantecas import Constants
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
     from io import TextIOWrapper
 
+PROJECT_ROOT = Path(__file__).parent.resolve()
+sys.path.insert(0, str(PROJECT_ROOT / 'src'))
+from sacamantecas.about import DEPENDENCIES, PROGRAM_NAME, VERSION  # noqa: E402
 
-VENV_DIRNAME = '.venv'
-BUILD_DIRNAME = 'build'
-BUNDLE_VERSION = Constants.VERSION.split('+', maxsplit=1)[0]
+PROJECT_METADATA = tomllib.loads((PROJECT_ROOT / 'pyproject.toml').read_text(encoding='utf-8'))
+
+VENV_DIRNAME = Path(PROJECT_METADATA['tool']['local']['venv_dirname']).resolve()
+BUILD_DIRNAME = Path(PROJECT_METADATA['tool']['local']['build_dirname']).resolve()
+SOURCES_PATH = Path(PROJECT_METADATA['tool']['local']['sources_root']).resolve() / PROGRAM_NAME
+
+BUNDLE_VERSION = VERSION.split('+', maxsplit=1)[0]
 BUNDLE_SUFFIX = 'zip'
 
-PROJECT_ROOT = Path(__file__).parent.resolve()
-
-PACKAGE_DATAFILES = (
-    Constants.INIFILE_PATH,
+SCRIPT_PATH = SOURCES_PATH / '__main__.py'
+BUNDLE_ASSETS = (
+    SOURCES_PATH / f'{PROGRAM_NAME}.ini',
     PROJECT_ROOT / 'README.md',
     PROJECT_ROOT / 'CHANGELOG.md',
 )
@@ -39,9 +43,9 @@ PROGRESS_MARKER = '  ▶ '
 # Reconfigure standard output streams so they use UTF-8 encoding even if
 # they are redirected to a file when running the program from a shell.
 if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
-    cast('TextIOWrapper', sys.stdout).reconfigure(encoding=Constants.UTF8)
+    cast('TextIOWrapper', sys.stdout).reconfigure(encoding='utf-8')
 if sys.stderr and hasattr(sys.stdout, 'reconfigure'):
-    cast('TextIOWrapper', sys.stderr).reconfigure(encoding=Constants.UTF8)
+    cast('TextIOWrapper', sys.stderr).reconfigure(encoding='utf-8')
 
 
 def pretty_print(message: str, *, marker: str = '', header: str = '', stream: TextIO = sys.stdout) -> None:
@@ -78,7 +82,7 @@ def progress(message: str) -> None:
 def run_command(command: Sequence[str]) -> CompletedProcess[str]:
     """Run *command*, capturing its output."""
     try:
-        return run(command, check=True, capture_output=True, encoding=Constants.UTF8, text=True)  # noqa: S603
+        return run(command, check=True, capture_output=True, encoding='utf-8', text=True)  # noqa: S603
     except FileNotFoundError as exc:
         raise CalledProcessError(0, command, None, f"Command '{command[0]}' not found.\n") from exc
 
@@ -101,17 +105,12 @@ def is_venv_ready(venv_path: Path) -> bool:
     return True
 
 
-def get_required_packages(distribution: str) -> set[str]:
-    """Get the set of required packages for *distribution*."""
-    return set(requires(distribution) or {})
-
-
-def are_required_packages_installed(required_packages: set[str]) -> bool:
+def are_required_packages_installed(required_packages: list[str]) -> bool:
     """Check that *required_packages* are installed."""
     pip_list = ['pip', 'list', '--local', '--format=freeze', '--not-required', '--exclude=pip', '--exclude-editable']
     installed_packages = {line.strip() for line in run_command(pip_list).stdout.splitlines()}
 
-    if diff := required_packages - installed_packages:
+    if diff := set(required_packages) - installed_packages:
         diff = '\n'.join(diff)
         error(f'missing packages:\n{diff}\n')
         return False
@@ -119,11 +118,10 @@ def are_required_packages_installed(required_packages: set[str]) -> bool:
     return True
 
 
-def build_frozen_executable(frozen_exe_path: Path) -> bool:
-    """Build frozen executable at *frozen_exe_path*."""
+def build_frozen_executable(script_path: Path, frozen_exe_path: Path) -> bool:
+    """Build *frozen_exe_path* from *script_path*."""
     app_name = frozen_exe_path.stem
     build_path = frozen_exe_path.parent
-    script_path = Path(getattr(sys.modules.get(app_name), '__file__', '')).resolve()
 
     if frozen_exe_path.exists():
         frozen_exe_path.unlink()
@@ -131,7 +129,7 @@ def build_frozen_executable(frozen_exe_path: Path) -> bool:
     cmd = ['pyinstaller']
     cmd.append('--log-level=WARN')
     cmd.extend([f'--workpath={build_path}', f'--specpath={build_path}', f'--distpath={build_path}'])
-    cmd.extend(['--copy-metadata', app_name, '--onefile', '--name', app_name])
+    cmd.extend(['--onefile', '--name', app_name])
     cmd.append(str(script_path))
     try:
         run_command(cmd)
@@ -151,28 +149,27 @@ def create_bundle(bundle_path: Path, manifest:Iterable[Path]) -> None:
 
 def main() -> int:
     """."""
-    pretty_print(f'Building {Constants.PROGRAM_NAME} {Constants.VERSION}')
+    pretty_print(f'Building {PROGRAM_NAME} {VERSION}')
 
     venv_path = PROJECT_ROOT / VENV_DIRNAME
     progress(f'Checking virtual environment: {venv_path}')
     if not is_venv_ready(venv_path):
         return 1
 
-    required_packages = get_required_packages(Constants.PROGRAM_NAME)
+    required_packages = DEPENDENCIES
     progress(f'Checking that required packages are installed: {', '.join(required_packages)}')
     if not are_required_packages_installed(required_packages):
         return 1
 
     # The virtual environment is guaranteed to work from this point on.
-
-    frozen_exe_path = (PROJECT_ROOT / BUILD_DIRNAME / Constants.PROGRAM_NAME).with_suffix('.exe')
+    frozen_exe_path = (PROJECT_ROOT / BUILD_DIRNAME / PROGRAM_NAME).with_suffix('.exe')
     progress(f'Building frozen executable: {frozen_exe_path}')
-    if not build_frozen_executable(frozen_exe_path):
+    if not build_frozen_executable(SCRIPT_PATH, frozen_exe_path):
         return 1
 
-    bundle_path = PROJECT_ROOT / f'{Constants.PROGRAM_NAME}_v{BUNDLE_VERSION}.{BUNDLE_SUFFIX}'
+    bundle_path = PROJECT_ROOT / f'{PROGRAM_NAME}_v{BUNDLE_VERSION}.{BUNDLE_SUFFIX}'
     progress(f'Building distributable bundle: {bundle_path}')
-    manifest = (frozen_exe_path, *PACKAGE_DATAFILES)
+    manifest = (frozen_exe_path, *BUNDLE_ASSETS)
     create_bundle(bundle_path, manifest)
 
     pretty_print('\nApplication built successfully!')

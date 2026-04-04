@@ -15,7 +15,6 @@ import errno
 from functools import wraps
 from html.parser import HTMLParser
 from http.client import HTTPException
-from importlib.metadata import metadata, requires, version
 import logging
 from pathlib import Path
 import platform
@@ -35,6 +34,8 @@ from openpyxl.cell.cell import Cell, MergedCell, TYPE_STRING as CELLTYPE_STRING
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils.cell import get_column_letter
 
+from .about import DEPENDENCIES, PROGRAM_NAME, REPOSITORY, VERSION
+
 if TYPE_CHECKING:
     from io import TextIOWrapper
 
@@ -47,12 +48,6 @@ type Handler = Generator[str, dict[str, str] | None]
 class Constants:  # pylint: disable=too-few-public-methods
     """Program configuration values."""
 
-    PROGRAM_NAME = 'sacamantecas'
-    VERSION = version(PROGRAM_NAME)
-    REPOSITORY = next(
-        (url for url in metadata(PROGRAM_NAME).get_all('Project-URL', []) if url.startswith('source')),
-        '',
-    ).split(', ', maxsplit=1)[1]
     PLATFORM = f'Windows {platform.version()};{platform.architecture()[0]};{platform.machine()}'
 
     DEVELOPMENT_MODE = '.post' in VERSION
@@ -133,8 +128,7 @@ class Messages(StrEnum):
     )
 
     DEBUGGING_INIT = 'Registro de depuración iniciado.'
-    REPOSITORY = Constants.REPOSITORY and f' ({Constants.REPOSITORY})'
-    PROGRAM_BANNER = f'{Constants.PROGRAM_NAME} versión {Constants.VERSION}{REPOSITORY}'
+    PROGRAM_BANNER = f'{PROGRAM_NAME} versión {VERSION} ({REPOSITORY})'
 
     DEPENDENCY_BANNER = 'Usando paquete {}'
     PROCESS_DONE = '\nProceso finalizado.'
@@ -233,7 +227,7 @@ if sys.stdout and hasattr(sys.stdout, 'reconfigure'):  # pragma: no branch
 if sys.stderr and hasattr(sys.stderr, 'reconfigure'):  # pragma: no branch
     cast('TextIOWrapper', sys.stderr).reconfigure(encoding=Constants.UTF8)
 
-logger = get_logger(Constants.PROGRAM_NAME)
+logger = get_logger(PROGRAM_NAME)
 
 
 class BaseCustomError(Exception):
@@ -561,7 +555,7 @@ def loggerize(function: Callable[..., ExitCodes]) -> Callable[..., ExitCodes]:
 
         logger.debug(Messages.DEBUGGING_INIT)
         logger.info(Messages.PROGRAM_BANNER)
-        for required_package in requires(Constants.PROGRAM_NAME) or []:
+        for required_package in DEPENDENCIES:
             logger.debug(Messages.DEPENDENCY_BANNER.format(required_package.replace('==', ' v')))
         logger.debug(Constants.USER_AGENT)
 

@@ -18,7 +18,7 @@ ALLOWED_UNREFACTORED_STRINGS = (
     # Allowed empty or whitespace strings.
     ' ', '', b'',
     # Miscellaneous strings.
-    'Project-URL', ', ', 'source', 'reconfigure', '.post', '==', ' v',
+    'reconfigure', '.post', '==', ' v',
 )
 
 

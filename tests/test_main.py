@@ -1,5 +1,4 @@
 """Test suite for `main()` function."""
-from importlib.metadata import metadata, version
 import logging
 from typing import NoReturn, TYPE_CHECKING
 
@@ -16,6 +15,7 @@ from sacamantecas import (
     SkimmingError,
     SourceError,
 )
+from sacamantecas.about import PROGRAM_NAME, REPOSITORY, VERSION
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -35,13 +35,7 @@ def test_no_arguments(
 
     captured = capsys.readouterr()
 
-    self_version = version(Constants.PROGRAM_NAME)
-    repository = next(
-        (url for url in metadata(Constants.PROGRAM_NAME).get_all('Project-URL', []) if url.startswith('source')),
-        '',
-    ).split(', ', maxsplit=1)[1]
-
-    assert captured.out == f'{Constants.PROGRAM_NAME} versión {self_version} ({repository})\n\nProceso finalizado.\n'
+    assert captured.out == f'{PROGRAM_NAME} versión {VERSION} ({REPOSITORY})\n\nProceso finalizado.\n'
 
     heading = '\n*** Error: no se han especificado fuentes de entrada para ser procesadas.'
     message = (

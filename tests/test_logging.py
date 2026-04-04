@@ -1,5 +1,4 @@
 """Test suite for the logging system."""
-from importlib.metadata import metadata, requires, version
 import logging
 import platform
 from textwrap import dedent
@@ -15,6 +14,7 @@ from sacamantecas import (
     loggerize,
     warning,
 )
+from sacamantecas.about import DEPENDENCIES, PROGRAM_NAME, REPOSITORY, VERSION
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -29,7 +29,7 @@ def get_clean_logfile_contents (logfile: Path) -> list[str]:
     return [' '.join(line.split(' ')[1:]) for line in logfile.read_text(encoding='utf-8').splitlines()]
 
 
-def test_logging_setup(log_paths: LogPaths, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_logging_setup(monkeypatch: pytest.MonkeyPatch, log_paths: LogPaths) -> None:
     """Test that the logging system is properly set-up."""
     monkeypatch.setattr(Constants, 'MAIN_OUTPUT_PATH', log_paths.main)
     monkeypatch.setattr(Constants, 'FULL_OUTPUT_PATH', log_paths.full)
@@ -47,20 +47,15 @@ def test_logging_setup(log_paths: LogPaths, monkeypatch: pytest.MonkeyPatch) -> 
     assert log_paths.main.is_file()
     assert log_paths.full.is_file()
 
-    self_version = version(Constants.PROGRAM_NAME)
-    repository = next(
-        (url for url in metadata(Constants.PROGRAM_NAME).get_all('Project-URL', []) if url.startswith('source')),
-        '',
-    ).split(', ', maxsplit=1)[1]
     platform_string = f'(Windows {platform.version()};{platform.architecture()[0]};{platform.machine()})'
-    required_packages = [f'{pkg.replace('==', ' v')}' for pkg in requires(Constants.PROGRAM_NAME) or []]
+    required_packages = [pkg.replace('==', ' v') for pkg in DEPENDENCIES]
     required_packages = [f'        DEBUG    | loggerize_wrapper() Usando paquete {pkg}' for pkg in required_packages]
 
     expected_full_log = dedent(f"""
         DEBUG    | loggerize_wrapper() Registro de depuración iniciado.
-        INFO     | loggerize_wrapper() sacamantecas versión {self_version} ({repository})
+        INFO     | loggerize_wrapper() {PROGRAM_NAME} versión {VERSION} ({REPOSITORY})
         {'\n'.join(required_packages).lstrip()}
-        DEBUG    | loggerize_wrapper() sacamantecas/{self_version} +{repository} {platform_string}
+        DEBUG    | loggerize_wrapper() {PROGRAM_NAME}/{VERSION} +{REPOSITORY} {platform_string}
         ERROR    | f() {message}
         INFO     | loggerize_wrapper()
         INFO     | loggerize_wrapper() Proceso finalizado.
@@ -68,7 +63,7 @@ def test_logging_setup(log_paths: LogPaths, monkeypatch: pytest.MonkeyPatch) -> 
     """).lstrip().splitlines()
 
     expected_main_log = dedent(f"""
-        sacamantecas versión {self_version} ({repository})
+        {PROGRAM_NAME} versión {VERSION} ({REPOSITORY})
         {message}
 
         Proceso finalizado.
