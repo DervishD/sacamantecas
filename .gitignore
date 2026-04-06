@@ -1,4 +1,4 @@
-.pytest_cache
+.coverage
 *.egg-info
 about.py
 sacamantecas_v*.zip
