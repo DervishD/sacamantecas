@@ -29,6 +29,7 @@ def get_clean_logfile_contents (logfile: Path) -> list[str]:
     return [' '.join(line.split(' ')[1:]) for line in logfile.read_text(encoding='utf-8').splitlines()]
 
 
+# pylint: disable-next=unused-variable
 def test_logging_setup(monkeypatch: pytest.MonkeyPatch, log_paths: LogPaths) -> None:
     """Test that the logging system is properly set-up."""
     monkeypatch.setattr(Constants, 'MAIN_OUTPUT_PATH', log_paths.main)
@@ -73,6 +74,7 @@ def test_logging_setup(monkeypatch: pytest.MonkeyPatch, log_paths: LogPaths) -> 
     assert get_clean_logfile_contents(log_paths.main) == expected_main_log
 
 
+# pylint: disable-next=unused-variable
 def test_logging_helpers(capsys: pytest.CaptureFixture[str]) -> None:
     """Test logging helper functions."""
     message = 'Test message 1\n\nTest message 2\n\n'

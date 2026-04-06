@@ -1103,7 +1103,7 @@ def detect_html_charset(contents: bytes) -> str:
 
 @loggerize
 @keyboard_interrupt_handler
-def main(*args: str) -> ExitCodes:
+def main(*args: str) -> ExitCodes:  # pylint: disable=unused-variable
     """."""
     exitcode = ExitCodes.SUCCESS
 

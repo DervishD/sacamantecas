@@ -30,6 +30,7 @@ EXPECTED_METADATA = {u: {h: new_hash(h, u.encode('utf-8')).hexdigest() for h in 
 SinkFileFactory = Callable[[str], Path]
 
 @pytest.fixture
+# pylint: disable-next=unused-variable
 def sinkfile_factory(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> SinkFileFactory:
     """Fixture to mock the sink file path generation."""
     def factory(suffix: str) -> Path:
@@ -41,6 +42,7 @@ def sinkfile_factory(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> SinkFil
     return factory
 
 
+# pylint: disable-next=unused-variable,redefined-outer-name
 def test_handler_single_url(sinkfile_factory: SinkFileFactory) -> None:
     """Test single URL handler."""
     single_url = url_to_path('url://subdomain.domain.toplevel/path?param1=value1&param2=value2')
@@ -75,6 +77,7 @@ def test_handler_single_url(sinkfile_factory: SinkFileFactory) -> None:
     assert result == EXPECTED_METADATA[urls[0]]
 
 
+# pylint: disable-next=unused-variable,redefined-outer-name
 def test_handler_single_url_unsupported_url(sinkfile_factory: SinkFileFactory) -> None:
     """Test single URL handler with unsupported URL scheme."""
     sinkfile_path = sinkfile_factory('txt')
@@ -84,9 +87,10 @@ def test_handler_single_url_unsupported_url(sinkfile_factory: SinkFileFactory) -
     with pytest.raises(StopIteration):
         next(handler)
 
-    assert sinkfile_path.read_text(encoding='utf-8') == ''
+    assert not sinkfile_path.read_text(encoding='utf-8')
 
 
+# pylint: disable-next=unused-variable,redefined-outer-name
 def test_handler_single_url_no_metadata(sinkfile_factory: SinkFileFactory) -> None:
     """Test single URL handler with no metadata."""
     sinkfile_path = sinkfile_factory('txt')
@@ -99,9 +103,10 @@ def test_handler_single_url_no_metadata(sinkfile_factory: SinkFileFactory) -> No
     with pytest.raises(StopIteration):
         next(handler)
 
-    assert sinkfile_path.read_text(encoding='utf-8') == ''
+    assert not sinkfile_path.read_text(encoding='utf-8')
 
 
+# pylint: disable-next=unused-variable,redefined-outer-name
 def test_handler_textfile(tmp_path: Path, sinkfile_factory: SinkFileFactory) -> None:
     """Test textfile handler."""
     sourcefile_path = tmp_path / 'urls.txt'
@@ -138,6 +143,7 @@ def test_handler_textfile(tmp_path: Path, sinkfile_factory: SinkFileFactory) -> 
     assert result == EXPECTED_METADATA
 
 
+# pylint: disable-next=unused-variable,redefined-outer-name
 def test_handler_textfile_unsupported_url(tmp_path: Path, sinkfile_factory: SinkFileFactory) -> None:
     """Test textfile handler with unsupported URL scheme."""
     sourcefile_path = tmp_path / 'urls.txt'
@@ -150,9 +156,10 @@ def test_handler_textfile_unsupported_url(tmp_path: Path, sinkfile_factory: Sink
     with pytest.raises(StopIteration):
         next(handler)
 
-    assert sinkfile_path.read_text(encoding='utf-8') == ''
+    assert not sinkfile_path.read_text(encoding='utf-8')
 
 
+# pylint: disable-next=unused-variable,redefined-outer-name
 def test_handler_textfile_no_metadata(tmp_path: Path, sinkfile_factory: SinkFileFactory) -> None:
     """Test textfile handler with no metadata."""
     sourcefile_path = tmp_path / 'urls.txt'
@@ -168,8 +175,7 @@ def test_handler_textfile_no_metadata(tmp_path: Path, sinkfile_factory: SinkFile
         next(handler)
 
     assert url == SAMPLE_URLS[0]
-    assert sinkfile_path.read_text(encoding='utf-8') == ''
-
+    assert not sinkfile_path.read_text(encoding='utf-8')
 
 
 def create_mock_spreadsheet(spreadsheet_path: Path) -> None:
@@ -206,9 +212,10 @@ def create_mock_spreadsheet(spreadsheet_path: Path) -> None:
         id='test_handler_spreadsheet_without_metadata',
     ),
 ])
+# pylint: disable-next=unused-variable,too-many-locals
 def test_handler_spreadsheet(
     tmp_path: Path,
-    sinkfile_factory: SinkFileFactory,
+    sinkfile_factory: SinkFileFactory,  # pylint: disable=redefined-outer-name
     metadata: dict[str, dict[str, str]],
     expected: dict[str, dict[str, str]],
 ) -> None:
@@ -261,6 +268,7 @@ def test_handler_spreadsheet(
     pytest.param(b'mock contents' , id='test_handler_spreadsheet_invalid_input_bad_zip'),
     pytest.param(b'PK\x05\x06' + b'\x00' * 18 , id='test_handler_spreadsheet_invalid_input_bad_xlxs'),
 ])
+# pylint: disable-next=unused-variable,redefined-outer-name
 def test_handler_spreadsheet_invalid_input(tmp_path: Path, sinkfile_factory: SinkFileFactory, contents: bytes) -> None:
     """Test spreadsheet handler with an invalid XLSX input file."""
     sourcefile_path = tmp_path / 'invalid.xlsx'
@@ -280,6 +288,7 @@ def test_handler_spreadsheet_invalid_input(tmp_path: Path, sinkfile_factory: Sin
     pytest.param('unreadable_textfile.txt', textfile_handler, id='test_unreadable_txt_input'),
     pytest.param('unreadable_spreadsheet.xlsx', spreadsheet_handler, id='test_unreadable_xlsx_input'),
 ], indirect=['unreadable_path'])
+# pylint: disable-next=unused-variable
 def test_unreadable_input_file(unreadable_path: Path, handler_factory: Callable[[Path], Handler]) -> None:
     """Test handling of unreadable files."""
     handler = handler_factory(unreadable_path)
@@ -310,6 +319,7 @@ def test_unreadable_input_file(unreadable_path: Path, handler_factory: Callable[
         id='test_unwritable_output_file_xlsx_file',
     ),
 ], indirect=['unwritable_path'])
+# pylint: disable-next=unused-variable
 def test_unwritable_output_file(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

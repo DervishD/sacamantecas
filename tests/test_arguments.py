@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
+# pylint: disable-next=unused-variable
 def test_unsupported_source() -> None:
     """Test unsupported source."""
     sources = 'source'
@@ -41,6 +42,7 @@ def test_unsupported_source() -> None:
     pytest.param('source.txt', textfile_handler, id='test_source_identification_txt_file'),
     pytest.param('source.xlsx', spreadsheet_handler, id='test_source_identification_xlsx_file'),
 ])
+# pylint: disable-next=unused-variable
 def test_source_identification(sources: str, expected: Handler) -> None:
     """Test identification of different *sources*."""
     source, handler = next(parse_arguments(sources))
@@ -55,6 +57,7 @@ def test_source_identification(sources: str, expected: Handler) -> None:
     pytest.param('.txt', textfile_handler, id='test_missing_source_txt_file'),
     pytest.param('.xlsx', spreadsheet_handler, id='test_missing_source_xlsx_file'),
 ])
+# pylint: disable-next=unused-variable
 def test_missing_source(tmp_path: Path, suffix: str, handler_factory: Callable[[Path], Handler]) -> None:
     """Test handling of missing sources."""
     handler = handler_factory(tmp_path / f'non_existent{suffix}')
@@ -65,6 +68,7 @@ def test_missing_source(tmp_path: Path, suffix: str, handler_factory: Callable[[
     assert str(excinfo.value).startswith('No se encontró el fichero de entrada.')
 
 
+# pylint: disable-next=unused-variable
 def test_parse_arguments_no_args() -> None:
     """Test handling of missing argument list."""
     with pytest.raises(StopIteration):

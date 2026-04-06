@@ -55,20 +55,21 @@ class UsageTrackerAuditor(ast.NodeVisitor):
 
 
 @pytest.fixture(scope='module')
+# pylint: disable-next=unused-variable
 def codetrees() -> list[ast.Module]:
     """Fixture to get the parsed code trees of the package."""
     package_name = sacamantecas.__package__
     assert package_name is not None
     package_entry_point_name = f'{package_name}.__main__'
 
-    codetrees: list[ast.Module] = []
+    trees: list[ast.Module] = []
     for name in package_name, package_entry_point_name:
         spec = importlib.util.find_spec(name)
         assert spec is not None
         assert spec.origin is not None
-        codetrees.append(ast.parse(Path(spec.origin).read_text(encoding='utf-8')))
+        trees.append(ast.parse(Path(spec.origin).read_text(encoding='utf-8')))
 
-    return codetrees
+    return trees
 
 
 @pytest.mark.parametrize('classname', [
@@ -76,6 +77,7 @@ def codetrees() -> list[ast.Module]:
     pytest.param(sacamantecas.Messages.__name__, id='test_no_unused_Messages_attributes'),
     pytest.param(sacamantecas.ExitCodes.__name__, id='test_no_unused_ExitCodes_attributes'),
 ])
+# pylint: disable-next=unused-variable,redefined-outer-name
 def test_no_unused_class_attributes(classname: str, codetrees: list[ast.Module]) -> None:
     """Test that all attributes in classname are used."""
     auditor = UsageTrackerAuditor(classname)

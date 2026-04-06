@@ -24,6 +24,7 @@ PROJECT_ROOT = Path(run(
 ).resolve()
 PACKAGE_DIR = PROJECT_ROOT / 'src'
 sys.path.insert(0, str(PACKAGE_DIR))
+# pylint: disable-next=wrong-import-position
 from sacamantecas.about import DEPENDENCIES, PROGRAM_NAME, VERSION  # noqa: E402
 
 VENV_PATH = PROJECT_ROOT / '.venv'

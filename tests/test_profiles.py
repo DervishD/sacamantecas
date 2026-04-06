@@ -22,6 +22,7 @@ from sacamantecas import (
 )
 
 
+# pylint: disable-next=unused-variable
 def test_profiles_missing_ini_file(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -53,6 +54,7 @@ def test_profiles_missing_ini_file(
 ], ids=[
     'test_profiles_unreadable_ini_file',
 ], indirect=True)
+# pylint: disable-next=unused-variable
 def test_profiles_unreadable_ini_file(unreadable_path: Path) -> None:
     """Test for unreadable profiles configuration file."""
     with pytest.raises(ProfilesError) as excinfo:
@@ -65,6 +67,7 @@ def test_profiles_unreadable_ini_file(unreadable_path: Path) -> None:
     pytest.param('', id='test_profiles_empty_ini_file_empty_contents'),
     pytest.param('[s]', id='test_profiles_empty_ini_file_empty_section'),
 ])
+# pylint: disable-next=unused-variable
 def test_profiles_empty_ini_file(tmp_path: Path, text: str) -> None:
     """Test for empty profiles configuration file."""
     path = tmp_path / 'profiles_empty.ini'
@@ -98,6 +101,7 @@ def test_profiles_empty_ini_file(tmp_path: Path, text: str) -> None:
         id='test_profiles_syntax_errors_bad_regex',
     ),
 ])
+# pylint: disable-next=unused-variable
 def test_profiles_syntax_errors(tmp_path: Path, text: str, error: str) -> None:
     """Test for syntax errors in profiles configuration file."""
     path = tmp_path / 'profiles_syntax_error.ini'
@@ -110,6 +114,7 @@ def test_profiles_syntax_errors(tmp_path: Path, text: str, error: str) -> None:
     path.unlink()
 
 
+# pylint: disable-next=unused-variable
 def test_profiles_parsing(tmp_path: Path) -> None:
     """Test full profile loading."""
     inifile_contents = dedent("""
@@ -158,17 +163,16 @@ def test_profiles_parsing(tmp_path: Path) -> None:
         expected_profile = expected_profiles[profile_name]
         assert result_profile.url_pattern == expected_profile.url_pattern
         assert result_profile.parser_config == expected_profile.parser_config
-        # pylint: disable-next=unidiomatic-typecheck
-        assert type(result_profile.parser) == type(expected_profile.parser)  # noqa: E721
+        assert type(result_profile.parser) is type(expected_profile.parser)
 
 
 class MockBaseParser(HTMLParser):
     """Mock base parser."""  # noqa: D204
     PARAMETERS: ClassVar[set[str]] = set()
-class AParser(MockBaseParser):
+class AParser(MockBaseParser):  # pylint: disable=unused-variable
     """Mock `Type A` parser."""  # noqa: D204
     PARAMETERS = MockBaseParser.PARAMETERS | {'akey_1', 'akey_2', 'akey_3'}
-class BParser(MockBaseParser):
+class BParser(MockBaseParser):  # pylint: disable=unused-variable
     """Mock `Type B` parser."""  # noqa: D204
     PARAMETERS = MockBaseParser.PARAMETERS | {'bkey_1', 'bkey_2', 'bkey_3'}
 @pytest.mark.parametrize(('inifile_contents', 'context_manager'), [
@@ -203,6 +207,7 @@ class BParser(MockBaseParser):
         id='test_profile_validation_wrong_keys',
     ),
 ])
+# pylint: disable-next=unused-variable
 def test_profile_validation(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -260,6 +265,7 @@ PROFILES = {
         id='test_get_parser_for_url_full_subdomains',
     ),
 ])
+# pylint: disable-next=unused-variable
 def test_get_parser_for_url(url: str, expected: Profile) -> None:
     """Test finding parser for *url*."""
     result = get_parser(url, PROFILES)
@@ -271,6 +277,7 @@ def test_get_parser_for_url(url: str, expected: Profile) -> None:
     pytest.param('http://profile2.tld', id='test_no_matching_profile_normal_url'),
     pytest.param('http://optional.forbidden.profile1.tld', id='test_no_matching_profile_forbidden_url'),
 ])
+# pylint: disable-next=unused-variable
 def test_no_matching_profile(url: str) -> None:
     """Test *url* with no matching profile (no parser)."""
     with pytest.raises(SkimmingError) as excinfo:

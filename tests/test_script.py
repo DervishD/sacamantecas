@@ -8,6 +8,7 @@ import pytest
 from sacamantecas import Constants, ExitCodes
 
 
+# pylint: disable-next=unused-variable
 def test_script_run(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
     """Test running the module instead of importing it."""
     monkeypatch.setattr(Constants, 'MAIN_OUTPUT_PATH', None)

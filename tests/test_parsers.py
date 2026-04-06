@@ -42,6 +42,7 @@ def generate_random_string() -> str:
     return escape(''.join(randchoices(allowed_chars, k=randint(min_len, max_len))))  # noqa: S311
 
 
+# pylint: disable-next=unused-variable
 def test_random_data_parsing() -> None:
     """Test parser behavior against random data."""
     max_random_strings_to_feed = 2 ** 10
@@ -70,6 +71,7 @@ def test_random_data_parsing() -> None:
 K, V = 'key', 'value'
 
 
+# pylint: disable-next=unused-variable
 def test_parser_reset() -> None:
     """Test parser state after a reset."""
     parser = BaseParser()
@@ -122,6 +124,7 @@ def test_parser_reset() -> None:
         id='test_store_metadata_valid_full_metadata',
     ),
 ])
+# pylint: disable-next=unused-variable
 def test_medatata_storage(caplog: pytest.LogCaptureFixture, k: str, v: str, expected: str) -> None:
     """Test `store_metadata()` branches."""
     logger.propagate = True
@@ -159,6 +162,7 @@ MULTIPLE_K, MULTIPLE_V = 'multiple_key', ['multiple_value1', 'multiple_value2', 
         id='test_retrieve_metadata_multiple_data',
     ),
 ])
+# pylint: disable-next=unused-variable
 def test_metadata_retrieval(metadata: dict[str, list[str]], expected: dict[str, str]) -> None:
     """Test `get_metadata()`."""
     parser = BaseParser()
@@ -201,6 +205,7 @@ WS_NL_DATA = '  {}\n   whitespaced     \n       and\t\n    newlined   '
     # Empty metadata.
     pytest.param((EMPTY_DATA, EMPTY_DATA), {}, id='test_parser_baseline_missing_data'),
 ])
+# pylint: disable-next=unused-variable
 def test_parser_baseline(contents: tuple[str | None, str | None], expected: dict[str, str]) -> None:
     """Test the basic functionality of parsers."""
     parser = BaseParser()
@@ -237,6 +242,7 @@ def test_parser_baseline(contents: tuple[str | None, str | None], expected: dict
         id='test_metadata_multiple_values_multiple_keys',
     ),
 ])
+# pylint: disable-next=unused-variable
 def test_parser_multivalues(multikeys: bool, separator: str) -> None: # noqa: FBT001
     """Test parsing of multiple values per key."""
     key = K
@@ -347,6 +353,7 @@ OP_EE = ELEMENT_E.format(TAG=TAG)
     # Ill-formed, wrong attribute in marker tag.
     pytest.param(f'<{TAG} wrong="wrong"></{TAG}>', (), id='test_old_regime_parser_wrong_attribute_in_marker_tag'),
 ])
+# pylint: disable-next=unused-variable
 def test_old_regime_parser(contents: str, expected: tuple[str, str]) -> None:
     """Test *Old Regime* parser."""
     k_data = generate_random_string()
@@ -466,6 +473,7 @@ BP_VB, BP_VE = ELEMENT_B.format(TAG=BaratzParser.V_TAG, MARKER=''), ELEMENT_E.fo
     # Ill-formed, wrong attribute in marker tag.
     pytest.param(f'<{M_TAG} wrong="wrong"></{M_TAG}>', (), id='test_baratz_parser_wrong_attribute_in_marker_tag'),
 ])
+# pylint: disable-next=unused-variable
 def test_baratz_parser(contents: str, expected: tuple[str, str]) -> None:
     """Test *Baratz* parser."""
     k_data = generate_random_string()

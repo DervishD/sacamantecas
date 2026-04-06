@@ -203,6 +203,7 @@ def audit(source: str) -> AuditReport:
         id='test_auditor_dangling_strings_detected',
     ),
 ])
+# pylint: disable-next=unused-variable
 def test_auditor_itself(
     monkeypatch: pytest.MonkeyPatch,
     allowed_strings: list[str | bytes],
@@ -217,6 +218,7 @@ def test_auditor_itself(
     assert report == expected_report
 
 
+# pylint: disable-next=unused-variable
 def test_unrefactored_strings() -> None:
     """Test for non-refactored strings."""
     report = audit(getsource(sacamantecas))

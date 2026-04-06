@@ -17,10 +17,10 @@ from sacamantecas import (
 )
 
 
+# pylint: disable-next=unused-variable
 def test_invalid_url() -> None:
     """Test handling of invalid URLs."""
     assert not is_accepted_url('http://[')
-
 
 
 @pytest.mark.parametrize(('netloc', 'base', 'extra'), [
@@ -33,6 +33,7 @@ def test_invalid_url() -> None:
     pytest.param('', '/./relpath', '?query#fragment', id='test_file_url_resolution_relpath_query'),
     pytest.param('netloc.url', '/./relpath', '?query#fragment', id='test_file_url_resolution_netloc_relpath_query'),
 ])
+# pylint: disable-next=unused-variable
 def test_file_url_resolution(request: pytest.FixtureRequest, netloc:str, base:str, extra:str) -> None:
     """Test resolution of `file:` URLs."""
     rootpath = Path(request.config.rootpath).as_posix()
@@ -70,6 +71,7 @@ BASE_URL = f'{SCHEME}{NETLOC}{PATH}{EXTRA}'
     pytest.param(f'{RSCHEME}{RNETLOC}{RPATH}', f'{RSCHEME}{RNETLOC}{RPATH}', id='test_url_redirection_full'),
     pytest.param(f'{RPATH}', f'{SCHEME}{NETLOC}{RPATH}', id='test_url_redirection_partial'),
 ])
+# pylint: disable-next=unused-variable
 def test_url_redirection(delay: str, url: str, extra: str, expected: str) -> None:
     """Test *url* redirections using *delay* and *extra* fields."""
     contents = fr'<meta http-equiv="refresh" content="{delay}url={url}{extra}"'.encode()
@@ -94,6 +96,7 @@ def test_url_redirection(delay: str, url: str, extra: str, expected: str) -> Non
         'iso-8859-1',
         id='test_url_charset_detection_fallback'),
 ])
+# pylint: disable-next=unused-variable
 def test_url_charset_detection_in_contents(contents: str, expected: str) -> None:
     """Test URL *contents* charset detection in HTML metadata."""
     result = detect_html_charset(contents.format(expected).encode('ascii')).lower()
@@ -101,12 +104,13 @@ def test_url_charset_detection_in_contents(contents: str, expected: str) -> None
     assert result == expected
 
 
+# pylint: disable-next=unused-variable
 def test_retrieve_url_charset_in_headers(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test URL contents charset detection in headers."""
-    class FakeResponse:
+    class FakeResponse:  # pylint: disable=missing-class-docstring
         FAKE_RESPONSE_HTML = b'<html></html>'
         FAKE_RESPONSE_CHARSET = 'utf-8'
-        def read(self) -> bytes:
+        def read(self) -> bytes:  # pylint: disable=missing-function-docstring
             return self.FAKE_RESPONSE_HTML
 
         def __enter__(self) -> Self:
@@ -115,15 +119,15 @@ def test_retrieve_url_charset_in_headers(monkeypatch: pytest.MonkeyPatch) -> Non
         def __exit__(self, *args: object) -> bool:
             return False
 
-        class headers:  # noqa: N801
+        class headers:  # noqa: N801  # pylint: disable=invalid-name
             @staticmethod
-            def get_content_charset() -> str:
+            def get_content_charset() -> str:  # pylint: disable=missing-function-docstring
                 return FakeResponse.FAKE_RESPONSE_CHARSET
 
     monkeypatch.setitem(
         retrieve_url.__globals__,
         'urlopen',
-        lambda _: FakeResponse(),  # pyright: ignore[reportUnknownLambdaType, reportUnknownArgumentType]
+        lambda _: FakeResponse(),  # pyright: ignore[reportUnknownLambdaType,reportUnknownArgumentType]
     )
 
     contents, charset = retrieve_url('http://mock_url')
@@ -132,6 +136,7 @@ def test_retrieve_url_charset_in_headers(monkeypatch: pytest.MonkeyPatch) -> Non
     assert contents == FakeResponse.FAKE_RESPONSE_HTML
 
 
+# pylint: disable-next=unused-variable
 def test_url_retrieve_utf8_data() -> None:
     """Test full URL retrieval of UTF-8 encoded data.
 

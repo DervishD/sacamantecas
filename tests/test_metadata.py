@@ -33,6 +33,8 @@ PROJECT_ROOT = Path(subprocess.run(
 # dirty, that is, current working copy has uncommitted changes. As such,
 # the regex used to validate the version string has been adapted from
 # the one provided in 'PyPA' documentation.
+
+# pylint: disable-next=unused-variable
 def test_version_matches_pypa_spec() -> None:
     """Test program version string against PyPA spec."""
     pypa_spec_compliant_version_regex = r"""^
@@ -43,11 +45,13 @@ def test_version_matches_pypa_spec() -> None:
     assert re.fullmatch(pypa_spec_compliant_version_regex, VERSION, re.ASCII|re.VERBOSE) is not None
 
 
+# pylint: disable-next=unused-variable
 def test_project_root() -> None:
     """Test the project root for the program is coherent."""
     assert Path(__file__).parent.parent == PROJECT_ROOT
 
 
+# pylint: disable-next=unused-variable
 def test_program_name_matches_metadata() -> None:
     """Test the hardcorded program name is what it should be."""
     live_program_name = tomllib.loads((PROJECT_ROOT / 'pyproject.toml').read_text(encoding='utf-8'))['project']['name']

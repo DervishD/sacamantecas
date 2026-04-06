@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from helpers import LogPaths
 
 
+# pylint: disable-next=unused-variable
 def test_no_arguments(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
@@ -53,13 +54,14 @@ def interrupted_function() -> NoReturn:
     raise KeyboardInterrupt
 
 
+# pylint: disable-next=unused-variable
 def test_keyboard_interrupt_handler(capsys: pytest.CaptureFixture[str]) -> None:
     """Test the `keyboard_interrupt_handler()` decorator."""
     logger.config(main_log_output=None, full_log_output=None)
 
     interrupted_function()
 
-    logging.shutdown()
+    logging.shutdown()  # pylint: disable=unreachable
 
     result = capsys.readouterr().err.rstrip()
     message = 'el usuario interrumpió la operación de la aplicación.'
@@ -72,6 +74,7 @@ def test_keyboard_interrupt_handler(capsys: pytest.CaptureFixture[str]) -> None:
     pytest.param(SourceError, 'bootstrap', id='test_main_source_error_handling'),
     pytest.param(SkimmingError, 'saca_las_mantecas', id='test_main_skimming_error_handling'),
 ])
+# pylint: disable-next=unused-variable
 def test_main_exceptions(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -104,9 +107,11 @@ def test_main_exceptions(
     assert captured.err.strip() == f'* Aviso: {error_message}'
 
 
+# pylint: disable-next=unused-variable
 class MockParser(BaseParser):
     """Mock parser."""  # noqa: D204
     PARAMETERS = BaseParser.PARAMETERS | {'mock_key'}
+# pylint: disable-next=unused-variable
 def test_main_full_invocation(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, log_paths: LogPaths) -> None:
     """Test full invocation of `main()` function."""
     monkeypatch.setattr(Constants, 'MAIN_OUTPUT_PATH', log_paths.main)

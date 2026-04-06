@@ -89,6 +89,7 @@ HTTP_RETRIEVAL_ERROR_MESSAGE = 'No se obtuvieron contenidos.'
         id='test_skimming_connection_error_empty_exception',
     ),
 ])
+# pylint: disable-next=unused-variable
 def test_skimming_url_retrieval_errors(
     monkeypatch: pytest.MonkeyPatch,
     url: str,
@@ -107,6 +108,7 @@ def test_skimming_url_retrieval_errors(
     assert (str(excinfo.value), excinfo.value.details) == error_message
 
 
+# pylint: disable-next=unused-variable
 def test_skimming_no_contents(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test retrieving no contents from the URL."""
     def mock_retrieve_url(_: str) -> tuple[None, None]:
@@ -120,6 +122,7 @@ def test_skimming_no_contents(monkeypatch: pytest.MonkeyPatch) -> None:
     assert str(excinfo.value) == 'No se recibieron contenidos del URL.'
 
 
+# pylint: disable-next=unused-variable
 def test_skimming_no_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test retrieving no metadata from the URL."""
     def mock_retrieve_url(_: str) -> tuple[bytes, str]:
@@ -133,6 +136,7 @@ def test_skimming_no_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
     assert str(excinfo.value) == 'No se obtuvieron metadatos.'
 
 
+# pylint: disable-next=unused-variable
 def test_skimming_proper_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test retrieving proper metadata from the URL."""
     expected_metadata = {'mock_key' : 'mock_value'}
