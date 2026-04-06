@@ -1,9 +1,6 @@
 """Configuration file for pytest."""
 import os
-from pathlib import Path
 import subprocess
-from textwrap import dedent
-import tomllib
 from typing import TYPE_CHECKING
 
 import pytest
@@ -12,25 +9,7 @@ from .helpers import LogPaths
 
 if TYPE_CHECKING:
     from collections.abc import Generator
-
-METADATA_GENERATOR_SCRIPT = Path('tools', 'generate_metadata.py')
-MISSING_PROJECT_METADATA_MODULE_ERROR = dedent(f"""
-    Missing project metadata module '{{}}'.
-    Run '{METADATA_GENERATOR_SCRIPT}' to generate the module.
-""").strip()
-def pytest_configure(config: pytest.Config) -> None:  # noqa: ARG001
-    """Preliminary assertions."""
-    project_root = Path(subprocess.run(
-        ['git', 'rev-parse', '--show-toplevel'],  # noqa: S607
-        encoding='utf-8',
-        capture_output=True,
-        check=True,
-    ).stdout.strip())
-    metadata = tomllib.loads((project_root / 'pyproject.toml').read_text(encoding='utf-8'))
-    about_path = Path(metadata['tool']['local']['sources_root']).resolve() / metadata['project']['name'] / 'about.py'
-
-    if not about_path.is_file():
-        raise RuntimeError(MISSING_PROJECT_METADATA_MODULE_ERROR.format(about_path))
+    from pathlib import Path
 
 
 @pytest.fixture
