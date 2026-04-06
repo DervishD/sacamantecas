@@ -10,7 +10,6 @@ from legion import run
 
 BRANCH_NAME_FOR_DETACHED_HEAD = 'DETACHED.HEAD'
 
-
 def get_project_root() -> Path | None:
     """Get the root directory for current project."""
     project_root = None
@@ -72,7 +71,7 @@ def main() -> int:
         DEPENDENCIES = [{', '.join([f"'{dependency}'" for dependency in package_metadata['project']['dependencies']])}]
     ''').lstrip()
 
-    about_path = Path(package_metadata['tool']['local']['sources_root']).resolve() / name/ 'about.py'
+    about_path = project_root / 'src' / name / 'about.py'
     with contextlib.suppress(PermissionError, FileNotFoundError):
         about_path.write_text(about_contents, encoding='utf-8')
         return STATUS_SUCCESS

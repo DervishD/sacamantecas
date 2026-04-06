@@ -6,9 +6,9 @@ it, together with the corresponding `.ini` file and other assets, in a
 """  # noqa: INP001
 import os
 from pathlib import Path
+import shutil
 from subprocess import CalledProcessError, CompletedProcess, run
 import sys
-import tomllib
 from typing import cast, TextIO, TYPE_CHECKING
 from zipfile import ZIP_DEFLATED, ZipFile
 
@@ -22,21 +22,17 @@ PROJECT_ROOT = Path(run(
     capture_output=True,
     check=True).stdout.strip(),
 ).resolve()
-sys.path.insert(0, str(PROJECT_ROOT / 'src'))
+PACKAGE_DIR = PROJECT_ROOT / 'src'
+sys.path.insert(0, str(PACKAGE_DIR))
 from sacamantecas.about import DEPENDENCIES, PROGRAM_NAME, VERSION  # noqa: E402
 
-PROJECT_METADATA = tomllib.loads((PROJECT_ROOT / 'pyproject.toml').read_text(encoding='utf-8'))
+VENV_PATH = PROJECT_ROOT / '.venv'
+BUILD_PATH = PROJECT_ROOT / 'build'
+PACKAGE_ROOT = PACKAGE_DIR / PROGRAM_NAME
 
-VENV_PATH = PROJECT_ROOT / PROJECT_METADATA['tool']['local']['venv_dirname']
-BUILD_PATH = PROJECT_ROOT / PROJECT_METADATA['tool']['local']['build_dirname']
-SOURCES_PATH = Path(PROJECT_METADATA['tool']['local']['sources_root']).resolve() / PROGRAM_NAME
-SCRIPT_PATH = SOURCES_PATH / '__main__.py'
-
-BUNDLE_VERSION = VERSION.split('+', maxsplit=1)[0]
-BUNDLE_SUFFIX = 'zip'
-
+ENTRY_POINT = PACKAGE_ROOT / '__main__.py'
 BUNDLE_ASSETS = (
-    SOURCES_PATH / f'{PROGRAM_NAME}.ini',
+    PACKAGE_ROOT / f'{PROGRAM_NAME}.ini',
     PROJECT_ROOT / 'README.md',
     PROJECT_ROOT / 'CHANGELOG.md',
 )
@@ -115,6 +111,7 @@ def are_required_packages_installed(required_packages: list[str]) -> bool:
     pip_list = ['pip', 'list', '--local', '--format=freeze', '--not-required', '--exclude=pip', '--exclude-editable']
     installed_packages = {line.strip() for line in run_command(pip_list).stdout.splitlines()}
     installed_packages.add('legion')  # TODO: remove when legion is no longer an editable install.
+
     if diff := set(required_packages) - installed_packages:
         diff = '\n'.join(diff)
         error(f'missing packages:\n{diff}\n')
@@ -123,9 +120,26 @@ def are_required_packages_installed(required_packages: list[str]) -> bool:
     return True
 
 
+def prepare_build_directory(build_path: Path) -> bool:
+    """Prepare the *build_path* build directory."""
+    # Create the directory if it does not already exist.
+    # Create the .gitignore file.
+    # Remove current contents except .gitignore file.
+    error_message = 'last build leftovers cannot be removed.'
+    try:
+        shutil.rmtree(build_path)
+        error_message = 'build directory cannot be created'
+        build_path.mkdir()
+        error_message = 'the .gitignore file cannot be created'
+        (build_path / '.gitignore').write_text(f'# Created by {Path(__file__).name}\n*\n', encoding='utf-8')
+    except PermissionError:
+        error(error_message)
+        return False
+    return True
+
+
 def build_frozen_executable(script_path: Path, frozen_exe_path: Path) -> bool:
     """Build *frozen_exe_path* from *script_path*."""
-    app_name = frozen_exe_path.stem
     build_path = frozen_exe_path.parent
 
     if frozen_exe_path.exists():
@@ -134,7 +148,7 @@ def build_frozen_executable(script_path: Path, frozen_exe_path: Path) -> bool:
     cmd = ['pyinstaller']
     cmd.append('--log-level=WARN')
     cmd.extend([f'--workpath={build_path}', f'--specpath={build_path}', f'--distpath={build_path}'])
-    cmd.extend(['--onefile', '--name', app_name])
+    cmd.extend(['--onefile', '--name', frozen_exe_path.stem])
     cmd.append(str(script_path))
     try:
         run_command(cmd)
@@ -165,13 +179,18 @@ def main() -> int:
     if not are_required_packages_installed(required_packages):
         return 1
 
+    # CLEAN THE OLD BUILDING LEFTOVERS
+    progress(f'Preparing build directory: {BUILD_PATH}')
+    if not prepare_build_directory(BUILD_PATH):
+        return 1
+
     # The virtual environment is guaranteed to work from this point on.
     frozen_exe_path = (BUILD_PATH / PROGRAM_NAME).with_suffix('.exe')
     progress(f'Building frozen executable: {frozen_exe_path}')
-    if not build_frozen_executable(SCRIPT_PATH, frozen_exe_path):
+    if not build_frozen_executable(ENTRY_POINT, frozen_exe_path):
         return 1
 
-    bundle_path = PROJECT_ROOT / f'{PROGRAM_NAME}_v{BUNDLE_VERSION}.{BUNDLE_SUFFIX}'
+    bundle_path = PROJECT_ROOT / f'{PROGRAM_NAME}_v{VERSION.split('+', maxsplit=1)[0]}.zip'
     progress(f'Building distributable bundle: {bundle_path}')
     manifest = (frozen_exe_path, *BUNDLE_ASSETS)
     create_bundle(bundle_path, manifest)

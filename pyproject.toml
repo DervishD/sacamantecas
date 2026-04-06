@@ -41,12 +41,6 @@ dependencies = [
 source = "https://github.com/DervishD/sacamantecas"
 issues = "https://github.com/DervishD/sacamantecas/issues"
 
-[tool.local]
-venv_dirname = ".venv"
-build_dirname = "build"
-sources_root = "src"
-changelog = "CHANGELOG.md"
-
 [tool.setuptools.dynamic]
 version = {attr = "sacamantecas.about.VERSION"}
 
