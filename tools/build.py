@@ -1,9 +1,9 @@
 """Building script.
 
-Build application executable for `Win32` in a virtual environment and
-pack it together with the corresponding `.ini` file in a `.zip` file for
-distribution.
-"""
+Build program executable for `Win32` in a virtual environment and pack
+it, together with the corresponding `.ini` file and other assets, in a
+`.zip` bundle for distribution.
+"""  # noqa: INP001
 import os
 from pathlib import Path
 from subprocess import CalledProcessError, CompletedProcess, run
@@ -16,20 +16,25 @@ if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
     from io import TextIOWrapper
 
-PROJECT_ROOT = Path(__file__).parent.resolve()
+PROJECT_ROOT = Path(run(
+    ['git', 'rev-parse', '--show-toplevel'],  # noqa: S607
+    encoding='utf-8',
+    capture_output=True,
+    check=True).stdout.strip(),
+).resolve()
 sys.path.insert(0, str(PROJECT_ROOT / 'src'))
 from sacamantecas.about import DEPENDENCIES, PROGRAM_NAME, VERSION  # noqa: E402
 
 PROJECT_METADATA = tomllib.loads((PROJECT_ROOT / 'pyproject.toml').read_text(encoding='utf-8'))
 
-VENV_DIRNAME = Path(PROJECT_METADATA['tool']['local']['venv_dirname']).resolve()
-BUILD_DIRNAME = Path(PROJECT_METADATA['tool']['local']['build_dirname']).resolve()
+VENV_PATH = PROJECT_ROOT / PROJECT_METADATA['tool']['local']['venv_dirname']
+BUILD_PATH = PROJECT_ROOT / PROJECT_METADATA['tool']['local']['build_dirname']
 SOURCES_PATH = Path(PROJECT_METADATA['tool']['local']['sources_root']).resolve() / PROGRAM_NAME
+SCRIPT_PATH = SOURCES_PATH / '__main__.py'
 
 BUNDLE_VERSION = VERSION.split('+', maxsplit=1)[0]
 BUNDLE_SUFFIX = 'zip'
 
-SCRIPT_PATH = SOURCES_PATH / '__main__.py'
 BUNDLE_ASSETS = (
     SOURCES_PATH / f'{PROGRAM_NAME}.ini',
     PROJECT_ROOT / 'README.md',
@@ -109,7 +114,7 @@ def are_required_packages_installed(required_packages: list[str]) -> bool:
     """Check that *required_packages* are installed."""
     pip_list = ['pip', 'list', '--local', '--format=freeze', '--not-required', '--exclude=pip', '--exclude-editable']
     installed_packages = {line.strip() for line in run_command(pip_list).stdout.splitlines()}
-
+    installed_packages.add('legion')  # TODO: remove when legion is no longer an editable install.
     if diff := set(required_packages) - installed_packages:
         diff = '\n'.join(diff)
         error(f'missing packages:\n{diff}\n')
@@ -151,9 +156,8 @@ def main() -> int:
     """."""
     pretty_print(f'Building {PROGRAM_NAME} {VERSION}')
 
-    venv_path = PROJECT_ROOT / VENV_DIRNAME
-    progress(f'Checking virtual environment: {venv_path}')
-    if not is_venv_ready(venv_path):
+    progress(f'Checking virtual environment: {VENV_PATH}')
+    if not is_venv_ready(VENV_PATH):
         return 1
 
     required_packages = DEPENDENCIES
@@ -162,7 +166,7 @@ def main() -> int:
         return 1
 
     # The virtual environment is guaranteed to work from this point on.
-    frozen_exe_path = (PROJECT_ROOT / BUILD_DIRNAME / PROGRAM_NAME).with_suffix('.exe')
+    frozen_exe_path = (BUILD_PATH / PROGRAM_NAME).with_suffix('.exe')
     progress(f'Building frozen executable: {frozen_exe_path}')
     if not build_frozen_executable(SCRIPT_PATH, frozen_exe_path):
         return 1

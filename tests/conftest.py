@@ -13,7 +13,7 @@ from .helpers import LogPaths
 if TYPE_CHECKING:
     from collections.abc import Generator
 
-METADATA_GENERATOR_SCRIPT = Path('scripts', 'generate_metadata.py')
+METADATA_GENERATOR_SCRIPT = Path('tools', 'generate_metadata.py')
 MISSING_PROJECT_METADATA_MODULE_ERROR = dedent(f"""
     Missing project metadata module '{{}}'.
     Run '{METADATA_GENERATOR_SCRIPT}' to generate the module.
