@@ -52,11 +52,6 @@ class Constants:  # pylint: disable=too-few-public-methods
 
     DEVELOPMENT_MODE = '.post' in VERSION
 
-    UTF8 = 'utf-8'
-    ASCII = 'ascii'
-    DOUBLE_QUOTE_CHAR = '"'
-    PERIOD = '.'
-
     OUTPUT_SEPARATOR = ', '
 
     ERROR_MARKER = '*** '
@@ -223,9 +218,9 @@ class ExitCodes(IntEnum):
 # Reconfigure standard output streams so they use UTF-8 encoding even if
 # they are redirected to a file when running the program from a shell.
 if sys.stdout and hasattr(sys.stdout, 'reconfigure'):  # pragma: no branch
-    cast('TextIOWrapper', sys.stdout).reconfigure(encoding=Constants.UTF8)
+    cast('TextIOWrapper', sys.stdout).reconfigure(encoding='utf-8')
 if sys.stderr and hasattr(sys.stderr, 'reconfigure'):  # pragma: no branch
-    cast('TextIOWrapper', sys.stderr).reconfigure(encoding=Constants.UTF8)
+    cast('TextIOWrapper', sys.stderr).reconfigure(encoding='utf-8')
 
 logger = get_logger(PROGRAM_NAME)
 
@@ -601,7 +596,7 @@ def load_profiles(profiles_path: Path) -> dict[str, Profile]:  # noqa: C901
     config = configparser.ConfigParser()
     logger.debug(Messages.LOADING_PROFILES.format(profiles_path))
     try:
-        with profiles_path.open(encoding=Constants.UTF8) as inifile:
+        with profiles_path.open(encoding='utf-8') as inifile:
             config.read_file(inifile)
     except (FileNotFoundError, PermissionError) as exc:
         raise ProfilesError(Messages.MISSING_PROFILES.format(exc.filename)) from exc
@@ -726,7 +721,7 @@ def single_url_handler(url: str) -> Handler:
     The dump output file has UTF-8 encoding.
     """
     sinkfile_path = generate_sinkfile_path(url_to_path(url).with_suffix(Constants.TEXTFILE_SUFFIX))
-    with sinkfile_path.open('w', encoding=Constants.UTF8) as sink:
+    with sinkfile_path.open('w', encoding='utf-8') as sink:
         logger.debug(Messages.DUMPING_METADATA_TO_SINK.format(sinkfile_path))
         yield Constants.HANDLER_BOOTSTRAP_SUCCESS
         if is_accepted_url(url):
@@ -769,7 +764,7 @@ def textfile_handler(source_file: Path) -> Handler:
     All files are assumed to have UTF-8 encoding.
     """
     sinkfile_path = generate_sinkfile_path(source_file)
-    encoding = Constants.UTF8
+    encoding = 'utf-8'
     with source_file.open(encoding=encoding) as source, sinkfile_path.open('w', encoding=encoding) as sink:
         logger.debug(Messages.DUMPING_METADATA_TO_SINK.format(sinkfile_path))
         yield Constants.HANDLER_BOOTSTRAP_SUCCESS
@@ -808,7 +803,7 @@ def spreadsheet_handler(source_file: Path) -> Handler:
     try:
         source_workbook = load_workbook(source_file)
     except (KeyError, BadZipFile) as exc:
-        details = str(exc).strip(Constants.DOUBLE_QUOTE_CHAR)
+        details = str(exc).strip('"')
         details = details[0].lower() + details[1:]
         raise SourceError(Messages.SOURCE_SHEET_IS_INVALID, details) from exc
     sink_workbook = load_workbook(sinkfile_path)
@@ -967,7 +962,7 @@ def saca_las_mantecas(url: str, parser: BaseParser) -> dict[str, str]:  # noqa: 
             error_code = ''
             error_reason = str(exc.reason)
             details = Messages.GENERIC_URLERROR
-        error_reason = (error_reason[0].lower() + error_reason[1:]).rstrip(Constants.PERIOD)
+        error_reason = (error_reason[0].lower() + error_reason[1:]).rstrip('.')
         raise SkimmingError(Messages.URL_ACCESS_ERROR, details.format(error_code, error_reason)) from exc
     # Apparently, 'HTTPException', 'ConnectionError' and the subclasses
     # are masked or wrapped by 'urllib', and documentation is not very
@@ -1058,7 +1053,7 @@ def get_redirected_url(contents: bytes, base_url: str) -> str | None:
     """
     if match := re.search(Constants.META_REFRESH_RE, contents, re.IGNORECASE):
         parsed_url = urlparse(base_url)
-        redirected_url = urlparse(match.group(1).decode(Constants.ASCII))
+        redirected_url = urlparse(match.group(1).decode('ascii'))
         for field in parsed_url._fields:
             value = getattr(parsed_url, field)
             # If not specified in the obtained redirected URL, both the
@@ -1091,11 +1086,11 @@ def detect_html_charset(contents: bytes) -> str:
     if match := re.search(Constants.META_HTTP_EQUIV_CHARSET_RE, contents, re.IGNORECASE):
         # Next best thing, from the meta http-equiv="content-type".
         logger.debug(Messages.CHARSET_FROM_HTTP_EQUIV)
-        charset = match.group(1).decode(Constants.ASCII)
+        charset = match.group(1).decode('ascii')
     elif match := re.search(Constants.META_CHARSET_RE, contents, re.IGNORECASE):
         # Last resort, from some meta charset, if any…
         logger.debug(Messages.CHARSET_FROM_META_CHARSET)
-        charset = match.group(1).decode(Constants.ASCII)
+        charset = match.group(1).decode('ascii')
     else:
         logger.debug(Messages.CHARSET_FROM_DEFAULT)
     return charset

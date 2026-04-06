@@ -18,7 +18,7 @@ ALLOWED_UNREFACTORED_STRINGS = (
     # Allowed empty or whitespace strings.
     ' ', '', b'',
     # Miscellaneous strings.
-    'reconfigure', '.post', '==', ' v',
+    'utf-8', 'ascii', '.', '"', 'reconfigure', '.post', '==', ' v',
 )
 
 
