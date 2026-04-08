@@ -83,5 +83,4 @@ omit = [
 [tool.coverage.report]
 show_missing = true
 skip_empty = true
-format = "markdown"
 precision = 2
