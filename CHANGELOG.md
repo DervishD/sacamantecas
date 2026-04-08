@@ -9,13 +9,13 @@ This project versioning scheme complies with the `Python Packaging Authority` [v
 ## [Development]
 ### Changed
 - Include `CHANGELOG.md` and `README.md` in released ZIP file
-- Improve building system
+- Add `legion` dependency
+- Improve (vastly) program output
 
 
 ## [5.4.0] 2026-02-21
 ### Changed
 - Update documentation
-- Improve building system
 
 ### Added
 - Include a `CHANGELOG.md` file
