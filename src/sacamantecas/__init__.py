@@ -34,7 +34,7 @@ from openpyxl.cell.cell import Cell, MergedCell, TYPE_STRING as CELLTYPE_STRING
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils.cell import get_column_letter
 
-from .about import DEPENDENCIES, PROGRAM_NAME, REPOSITORY, VERSION
+from sacamantecas.about import DEPENDENCIES, PROGRAM_NAME, REPOSITORY, VERSION
 
 if TYPE_CHECKING:
     from io import TextIOWrapper
