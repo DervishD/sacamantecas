@@ -21,22 +21,21 @@ if TYPE_CHECKING:
 
     import pytest
 
-    from tests.helpers import LogPaths
-
-
 def get_clean_logfile_contents (logfile: Path) -> list[str]:
     """Get clean *logfile**. For now, just remove timestamps."""
     return [' '.join(line.split(' ')[1:]) for line in logfile.read_text(encoding='utf-8').splitlines()]
 
 
 # pylint: disable-next=unused-variable
-def test_logging_setup(monkeypatch: pytest.MonkeyPatch, log_paths: LogPaths) -> None:
+def test_logging_setup(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """Test that the logging system is properly set-up."""
-    monkeypatch.setattr(Constants, 'MAIN_OUTPUT_PATH', log_paths.main)
-    monkeypatch.setattr(Constants, 'FULL_OUTPUT_PATH', log_paths.full)
+    main_log_path = tmp_path / Constants.MAIN_OUTPUT_PATH.name
+    full_log_path = tmp_path / Constants.FULL_OUTPUT_PATH.name
+    monkeypatch.setattr(Constants, 'MAIN_OUTPUT_PATH', main_log_path)
+    monkeypatch.setattr(Constants, 'FULL_OUTPUT_PATH', full_log_path)
 
-    assert not log_paths.main.is_file()
-    assert not log_paths.full.is_file()
+    assert not main_log_path.is_file()
+    assert not full_log_path.is_file()
 
     def f(message: str) -> ExitCodes:
         logger.error(message)
@@ -45,8 +44,8 @@ def test_logging_setup(monkeypatch: pytest.MonkeyPatch, log_paths: LogPaths) -> 
     message = 'Test message'
     loggerize(f)(message)
 
-    assert log_paths.main.is_file()
-    assert log_paths.full.is_file()
+    assert main_log_path.is_file()
+    assert full_log_path.is_file()
 
     platform_string = f'(Windows {platform.version()};{platform.architecture()[0]};{platform.machine()})'
     required_packages = [pkg.replace('==', ' v') for pkg in DEPENDENCIES]
@@ -70,8 +69,8 @@ def test_logging_setup(monkeypatch: pytest.MonkeyPatch, log_paths: LogPaths) -> 
         Proceso finalizado.
     """).lstrip().splitlines()
 
-    assert get_clean_logfile_contents(log_paths.full) == expected_full_log
-    assert get_clean_logfile_contents(log_paths.main) == expected_main_log
+    assert get_clean_logfile_contents(full_log_path) == expected_full_log
+    assert get_clean_logfile_contents(main_log_path) == expected_main_log
 
 
 # pylint: disable-next=unused-variable

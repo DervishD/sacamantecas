@@ -26,8 +26,8 @@ HASHES = [hash_function for hash_function in algorithms_available if not hash_fu
 SAMPLE_URLS = [f'{choice(('https', 'http', 'file'))}://subdomain{i}.domain.tld' for i in range(10)]  # noqa: S311
 EXPECTED_METADATA = {u: {h: new_hash(h, u.encode('utf-8')).hexdigest() for h in HASHES} for u in SAMPLE_URLS}
 
-
 SinkFileFactory = Callable[[str], Path]
+
 
 @pytest.fixture
 # pylint: disable-next=unused-variable

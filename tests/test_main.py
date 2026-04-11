@@ -20,9 +20,6 @@ from sacamantecas.about import PROGRAM_NAME, REPOSITORY, VERSION
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from helpers import LogPaths
-
-
 # pylint: disable-next=unused-variable
 def test_no_arguments(
     monkeypatch: pytest.MonkeyPatch,
@@ -70,6 +67,12 @@ def test_keyboard_interrupt_handler(capsys: pytest.CaptureFixture[str]) -> None:
     assert result == expected
 
 
+# pylint: disable-next=unused-variable
+class MockParser(BaseParser):
+    """Mock parser, needed for the test units below."""  # noqa: D204
+    PARAMETERS = BaseParser.PARAMETERS | {'mock_key'}
+
+
 @pytest.mark.parametrize(('exception', 'mocked_entry_point_name'), [
     pytest.param(SourceError, 'bootstrap', id='test_main_source_error_handling'),
     pytest.param(SkimmingError, 'saca_las_mantecas', id='test_main_skimming_error_handling'),
@@ -108,14 +111,12 @@ def test_main_exceptions(
 
 
 # pylint: disable-next=unused-variable
-class MockParser(BaseParser):
-    """Mock parser."""  # noqa: D204
-    PARAMETERS = BaseParser.PARAMETERS | {'mock_key'}
-# pylint: disable-next=unused-variable
-def test_main_full_invocation(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, log_paths: LogPaths) -> None:
+def test_main_full_invocation(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """Test full invocation of `main()` function."""
-    monkeypatch.setattr(Constants, 'MAIN_OUTPUT_PATH', log_paths.main)
-    monkeypatch.setattr(Constants, 'FULL_OUTPUT_PATH', log_paths.full)
+    main_log_path = tmp_path / Constants.MAIN_OUTPUT_PATH.name
+    full_log_path = tmp_path / Constants.FULL_OUTPUT_PATH.name
+    monkeypatch.setattr(Constants, 'MAIN_OUTPUT_PATH', main_log_path)
+    monkeypatch.setattr(Constants, 'FULL_OUTPUT_PATH', full_log_path)
 
     inifile_path = tmp_path / 'profiles.ini'
     monkeypatch.setattr(Constants, 'INIFILE_PATH', inifile_path)
@@ -133,11 +134,9 @@ def test_main_full_invocation(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, l
     exitcode = main('https://localhost')
     assert exitcode == ExitCodes.SUCCESS
 
-    main_log_contents = log_paths.main.read_text().splitlines()
-    full_log_contents = log_paths.full.read_text().splitlines()
+    main_log_contents = main_log_path.read_text().splitlines()
+    full_log_contents = full_log_path.read_text().splitlines()
 
-    assert log_paths.main.is_file()
-    assert log_paths.full.is_file()
     assert 'Registro de depuración iniciado.' in full_log_contents[0]
     assert 'sacamantecas versión' in full_log_contents[1]
     assert 'sacamantecas versión' in main_log_contents[0]
