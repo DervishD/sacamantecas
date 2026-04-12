@@ -26,9 +26,8 @@ HASHES = [hash_function for hash_function in algorithms_available if not hash_fu
 SAMPLE_URLS = [f'{choice(('https', 'http', 'file'))}://subdomain{i}.domain.tld' for i in range(10)]  # noqa: S311
 EXPECTED_METADATA = {u: {h: new_hash(h, u.encode('utf-8')).hexdigest() for h in HASHES} for u in SAMPLE_URLS}
 
+
 SinkFileFactory = Callable[[str], Path]
-
-
 @pytest.fixture
 # pylint: disable-next=unused-variable
 def sinkfile_factory(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> SinkFileFactory:
@@ -178,28 +177,6 @@ def test_handler_textfile_no_metadata(tmp_path: Path, sinkfile_factory: SinkFile
     assert not sinkfile_path.read_text(encoding='utf-8')
 
 
-def create_mock_spreadsheet(spreadsheet_path: Path) -> None:
-    """Create a mock spreadsheet file."""
-    fake_metadata_columns = 10
-    headings = [f'Heading_{i}' for i in range(fake_metadata_columns)]
-
-    workbook = Workbook()
-    sheet = workbook.active
-
-    assert sheet is not None
-    sheet.append(headings)
-
-    for column in range(fake_metadata_columns):
-        sheet.column_dimensions[get_column_letter(column + 1)].width = 33
-
-    for url in SAMPLE_URLS:
-        row = [uuid4().hex[:randrange(5, 20)] for _ in range(fake_metadata_columns)]  # noqa: S311
-        row.insert(randrange(len(row)), url)  # noqa: S311
-        sheet.append(row)
-    workbook.save(spreadsheet_path)
-    workbook.close()
-
-
 @pytest.mark.parametrize(('metadata', 'expected'), [
     pytest.param(
         EXPECTED_METADATA,
@@ -221,8 +198,26 @@ def test_handler_spreadsheet(
 ) -> None:
     """Test spreadsheet handler."""
     sourcefile_path = tmp_path / 'urls.xlsx'
-    create_mock_spreadsheet(sourcefile_path)
     sinkfile_path = sinkfile_factory('xlsx')
+
+    fake_metadata_columns = 10
+    headings = [f'Heading_{i}' for i in range(fake_metadata_columns)]
+
+    workbook = Workbook()
+    sheet = workbook.active
+
+    assert sheet is not None
+    sheet.append(headings)
+
+    for column in range(fake_metadata_columns):
+        sheet.column_dimensions[get_column_letter(column + 1)].width = 33
+
+    for url in SAMPLE_URLS:
+        row = [uuid4().hex[:randrange(5, 20)] for _ in range(fake_metadata_columns)]  # noqa: S311
+        row.insert(randrange(len(row)), url)  # noqa: S311
+        sheet.append(row)
+    workbook.save(sourcefile_path)
+    workbook.close()
 
     handler = spreadsheet_handler(sourcefile_path)
     bootstrap(handler)

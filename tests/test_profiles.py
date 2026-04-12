@@ -50,9 +50,7 @@ def test_profiles_missing_ini_file(
 
 
 @pytest.mark.parametrize('unreadable_path', [
-    Path('unreadable_profiles.ini'),
-], ids=[
-    'test_profiles_unreadable_ini_file',
+    pytest.param(Path('unreadable_profiles.ini'), id='test_profiles_unreadable_ini_file'),
 ], indirect=True)
 # pylint: disable-next=unused-variable
 def test_profiles_unreadable_ini_file(unreadable_path: Path) -> None:
@@ -212,7 +210,7 @@ def test_profile_validation(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
     inifile_contents: str,
-    context_manager: AbstractContextManager[None | Exception],
+    context_manager: AbstractContextManager[None | pytest.ExceptionInfo[ProfilesError]],
 ) -> None:
     """Test profile validation using declared parsers."""
     monkeypatch.setitem(load_profiles.__globals__, 'BaseParser', MockBaseParser)
@@ -224,63 +222,76 @@ def test_profile_validation(
         inifile_path.unlink()
 
 
-PROFILES = {
-    'profile_baratz': Profile(
-        url_pattern = re.compile(r'(optional\.)?(?<!forbidden\.)profile1\.tld', re.IGNORECASE),
-        parser = BaratzParser(),
-        parser_config = {
-            'm_tag': re.compile(r'tag', re.IGNORECASE),
-            'm_attr': re.compile(r'attr', re.IGNORECASE),
-            'm_value': re.compile(r'value', re.IGNORECASE),
-        },
-    ),
-    'profile_old_regime': Profile(
-        url_pattern = re.compile(r'(optional\.)?mandatory\.profile2\.tld', re.IGNORECASE),
-        parser = OldRegimeParser(),
-        parser_config = {
-            'k_class': re.compile(r'key_class', re.IGNORECASE),
-            'v_class': re.compile(r'value_class', re.IGNORECASE),
-        },
-    ),
-}
-@pytest.mark.parametrize(('url', 'expected'), [
+@pytest.mark.parametrize(('url', 'context_manager', 'expected_profile_name'), [
     pytest.param(
         'http://profile1.tld',
-        PROFILES['profile_baratz'].parser,
-        id='test_get_parser_for_url_base',
+        nullcontext(),
+        'profile_baratz',
+        id='test_get_parser_base_url',
     ),
     pytest.param(
         'http://optional.profile1.tld',
-        PROFILES['profile_baratz'].parser,
-        id='test_get_parser_for_url_optional_subdomain',
+        nullcontext(),
+        'profile_baratz',
+        id='test_get_parser_optional_subdomain',
     ),
     pytest.param(
         'http://mandatory.profile2.tld',
-        PROFILES['profile_old_regime'].parser,
-        id='test_get_parser_for_url_mandatory_subdomain',
+        nullcontext(),
+        'profile_old_regime',
+        id='test_get_parser_mandatory_subdomain',
     ),
     pytest.param(
         'http://optional.mandatory.profile2.tld',
-        PROFILES['profile_old_regime'].parser,
-        id='test_get_parser_for_url_full_subdomains',
+        nullcontext(),
+        'profile_old_regime',
+        id='test_get_parser_full_subdomains',
+    ),
+    pytest.param(
+        'http://optional.forbidden.profile1.tld',
+        pytest.raises(SkimmingError),
+        None,
+        id='test_get_parser_forbidden_url',
+    ),
+    pytest.param(
+        'http://profile2.tld',
+        pytest.raises(SkimmingError),
+        None,
+        id='test_get_parser_no_matching_profile',
     ),
 ])
 # pylint: disable-next=unused-variable
-def test_get_parser_for_url(url: str, expected: Profile) -> None:
+def test_get_parser(
+    url: str,
+    context_manager: AbstractContextManager[None | pytest.ExceptionInfo[SkimmingError]],
+    expected_profile_name: str | None,
+) -> None:
     """Test finding parser for *url*."""
-    result = get_parser(url, PROFILES)
+    profiles = {
+        'profile_baratz': Profile(
+            url_pattern = re.compile(r'(optional\.)?(?<!forbidden\.)profile1\.tld', re.IGNORECASE),
+            parser = BaratzParser(),
+            parser_config = {
+                'm_tag': re.compile(r'tag', re.IGNORECASE),
+                'm_attr': re.compile(r'attr', re.IGNORECASE),
+                'm_value': re.compile(r'value', re.IGNORECASE),
+            },
+        ),
+        'profile_old_regime': Profile(
+            url_pattern = re.compile(r'(optional\.)?mandatory\.profile2\.tld', re.IGNORECASE),
+            parser = OldRegimeParser(),
+            parser_config = {
+                'k_class': re.compile(r'key_class', re.IGNORECASE),
+                'v_class': re.compile(r'value_class', re.IGNORECASE),
+            },
+        ),
+    }
 
-    assert type(result) is type(expected)
+    with context_manager as excinfo:
+        result = get_parser(url, profiles)
 
-
-@pytest.mark.parametrize('url', [
-    pytest.param('http://profile2.tld', id='test_no_matching_profile_normal_url'),
-    pytest.param('http://optional.forbidden.profile1.tld', id='test_no_matching_profile_forbidden_url'),
-])
-# pylint: disable-next=unused-variable
-def test_no_matching_profile(url: str) -> None:
-    """Test *url* with no matching profile (no parser)."""
-    with pytest.raises(SkimmingError) as excinfo:
-        get_parser(url, PROFILES)
-
-    assert str(excinfo.value) == 'No se encontró un perfil para procesar el URL.'
+    if excinfo is None:
+        assert expected_profile_name is not None
+        assert type(result) is type(profiles[expected_profile_name].parser)
+    else:
+        assert str(excinfo.value) == 'No se encontró un perfil para procesar el URL.'

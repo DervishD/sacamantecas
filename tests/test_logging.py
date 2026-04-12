@@ -21,14 +21,13 @@ if TYPE_CHECKING:
 
     import pytest
 
-def get_clean_logfile_contents (logfile: Path) -> list[str]:
-    """Get clean *logfile**. For now, just remove timestamps."""
-    return [' '.join(line.split(' ')[1:]) for line in logfile.read_text(encoding='utf-8').splitlines()]
-
 
 # pylint: disable-next=unused-variable
 def test_logging_setup(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """Test that the logging system is properly set-up."""
+    def remove_timestamps (logfile: Path) -> list[str]:
+        return [' '.join(line.split(' ')[1:]) for line in logfile.read_text(encoding='utf-8').splitlines()]
+
     main_log_path = tmp_path / Constants.MAIN_OUTPUT_PATH.name
     full_log_path = tmp_path / Constants.FULL_OUTPUT_PATH.name
     monkeypatch.setattr(Constants, 'MAIN_OUTPUT_PATH', main_log_path)
@@ -69,8 +68,8 @@ def test_logging_setup(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         Proceso finalizado.
     """).lstrip().splitlines()
 
-    assert get_clean_logfile_contents(full_log_path) == expected_full_log
-    assert get_clean_logfile_contents(main_log_path) == expected_main_log
+    assert remove_timestamps(full_log_path) == expected_full_log
+    assert remove_timestamps(main_log_path) == expected_main_log
 
 
 # pylint: disable-next=unused-variable

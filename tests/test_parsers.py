@@ -18,8 +18,7 @@ from sacamantecas import (
 def generate_random_string() -> str:
     """Generate a random string.
 
-    Generate a random string with random length between certain limits..
-    Only characters from the `ALLOWED_*` sets are used.
+    Generate a random string with random length between certain limits.
     """
     space_codepoint = 0x20
     lf_codepoint = 0x0A
@@ -76,7 +75,7 @@ def test_parser_reset() -> None:
     """Test parser state after a reset."""
     parser = BaseParser()
 
-    k, v = K, V
+    k, v = 'sample_key', 'sample_value'
 
     parser.within_k = True
     parser.feed(k)
@@ -125,7 +124,7 @@ def test_parser_reset() -> None:
     ),
 ])
 # pylint: disable-next=unused-variable
-def test_medatata_storage(caplog: pytest.LogCaptureFixture, k: str, v: str, expected: str) -> None:
+def test_metadata_storage(caplog: pytest.LogCaptureFixture, k: str, v: str, expected: str) -> None:
     """Test `store_metadata()` branches."""
     logger.propagate = True
     caplog.set_level(logging.DEBUG)

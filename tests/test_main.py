@@ -45,15 +45,14 @@ def test_no_arguments(
     assert captured.err == expected
 
 
-@keyboard_interrupt_handler
-def interrupted_function() -> NoReturn:
-    """Mock function to be decorated."""
-    raise KeyboardInterrupt
-
-
 # pylint: disable-next=unused-variable
 def test_keyboard_interrupt_handler(capsys: pytest.CaptureFixture[str]) -> None:
     """Test the `keyboard_interrupt_handler()` decorator."""
+    @keyboard_interrupt_handler
+    def interrupted_function() -> NoReturn:
+        """Mock function to be decorated."""
+        raise KeyboardInterrupt
+
     logger.config(main_log_output=None, full_log_output=None)
 
     interrupted_function()

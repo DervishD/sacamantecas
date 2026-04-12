@@ -49,33 +49,33 @@ def test_file_url_resolution(request: pytest.FixtureRequest, netloc:str, base:st
     assert result == expected
 
 
-SCHEME = 'http://'
-RSCHEME = 'https://'
-NETLOC = 'sub.domain.tld:80'
-RNETLOC = 'rsub.rdomain.rtld:8080'
-PATH = '/root/sub/p.html'
-RPATH = '/rroot/rsub/rp.html'
-EXTRA = ';pr?k1=v1&k2=v2#fr'
-REXTRA = ';rpr?rk1=rv1&rk2=rv2#rfr'
-BASE_URL = f'{SCHEME}{NETLOC}{PATH}{EXTRA}'
 @pytest.mark.parametrize('delay', [
     pytest.param('0; ', id='0_delay'),
     pytest.param('1234; ', id='1234_delay'),
     pytest.param('', id='without_delay'),
 ])
 @pytest.mark.parametrize('extra', [
-    pytest.param(REXTRA, id='with_extra'),
+    pytest.param(';rpr?rk1=rv1&rk2=rv2#rfr', id='with_extra'),
     pytest.param('', id='without_extra'),
 ])
 @pytest.mark.parametrize(('url', 'expected'), [
-    pytest.param(f'{RSCHEME}{RNETLOC}{RPATH}', f'{RSCHEME}{RNETLOC}{RPATH}', id='test_url_redirection_full'),
-    pytest.param(f'{RPATH}', f'{SCHEME}{NETLOC}{RPATH}', id='test_url_redirection_partial'),
+    pytest.param(
+        'https://rsub.rdomain.rtld:8080/rroot/rsub/rp.html',
+        'https://rsub.rdomain.rtld:8080/rroot/rsub/rp.html',
+        id='test_url_redirection_full',
+    ),
+    pytest.param(
+        '/rroot/rsub/rp.html',
+        'http://sub.domain.tld:80/rroot/rsub/rp.html',
+        id='test_url_redirection_partial',
+    ),
 ])
 # pylint: disable-next=unused-variable
 def test_url_redirection(delay: str, url: str, extra: str, expected: str) -> None:
     """Test *url* redirections using *delay* and *extra* fields."""
+    base_url = 'http://sub.domain.tld:80/root/sub/p.html;pr?k1=v1&k2=v2#fr'
     contents = fr'<meta http-equiv="refresh" content="{delay}url={url}{extra}"'.encode()
-    result = get_redirected_url(contents, BASE_URL)
+    result = get_redirected_url(contents, base_url)
 
     assert result == expected + extra
 
