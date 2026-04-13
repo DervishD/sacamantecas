@@ -1,6 +1,7 @@
 """Generate project metadata and dump it to `about.py`."""  # noqa: INP001
 import contextlib
 from pathlib import Path
+import re
 import sys
 from textwrap import dedent
 import tomllib
@@ -8,7 +9,8 @@ from typing import Any
 
 from legion import run
 
-BRANCH_NAME_FOR_DETACHED_HEAD = 'DETACHED.HEAD'
+BRANCH_NAME_FOR_DETACHED_HEAD = '<detached head>'
+BRANCH_NAME_ESCAPE_SEQUENCE = 'xxx'
 
 def get_project_root() -> Path | None:
     """Get the root directory for current project."""
@@ -40,6 +42,8 @@ def get_version() -> str | None:
     branch = BRANCH_NAME_FOR_DETACHED_HEAD
     if not (result := run(['git', 'rev-parse', '--abbrev-ref', 'HEAD'])).returncode:
         branch = f'{result.stdout.strip()}'
+
+    branch = re.sub(r'[^a-z0-9]', BRANCH_NAME_ESCAPE_SEQUENCE, branch.lower())
 
     version = tag.removeprefix('v')
     if distance:
