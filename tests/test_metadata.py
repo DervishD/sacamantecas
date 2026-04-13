@@ -16,31 +16,48 @@ PROJECT_ROOT = Path(subprocess.run(
 # This project uses a PyPA compliant versioning scheme, as defined in
 # https://packaging.python.org/en/latest/specifications/version-specifiers/
 #
-# This scheme is partially compliant with 'Semantic Versioning 2.0', as
-# defined in https://semver.org/, for released versions, since they will
-# use a version string in the form of 'MAJOR.MINOR.PATCH'.
+# This scheme is partially compliant with *Semantic Versioning 2.0*, as
+# defined in https://semver.org/, at least for final releases, since it
+# uses a version string in the form of `MAJOR.MINOR.PATCH`.
 #
-# But for development versions, the actual scheme diverges because the
-# 'post' release segment uses a dot and not a hyphen as separator. The
-# local version identifier, however, is actually compliant!
+# For other kind of releases, the scheme diverges because of the syntax
+# of the different segments which can be present in the public version
+# identifier. The local version identifier, however, is fully compliant!
 #
-# The scheme does not make use of all defined segments. To wit, it uses
-# ONLY the 'release' segment, but for development both a 'post' release
-# segment and a local version identifier are added. The 'post' release
-# segment includes the number of commits since the latest tagged commit,
-# and the local local version identifier contains the abbreviated hash
-# of the current commit, and an optional marker if the working copy is
-# dirty, that is, current working copy has uncommitted changes. As such,
-# the regex used to validate the version string has been adapted from
-# the one provided in 'PyPA' documentation.
+# For final releases, only the *release* segment is used, with exactly
+# three components, corresponding to `MAJOR.MINOR.PATCH`.
+#
+# For development releases, instead of using the *developmental release*
+# segment defined by PyPA, a *post release* segment is used, followed by
+# a local version specifier. The reason for avoiding the *developmental
+# release* segment is that these releases are considered preliminary for
+# the next final release, they are ordered **before** that release, but
+# the *release* segment is that of the *next* final release. But in here
+# the term *development* is used differently, for releases **after** the
+# *last* final release that are ordered **after** the last final release
+# without changing the *release* segment at all.
+#
+# The *post-release* segment includes the number of commits made since
+# the latest tagged commit, and the local version specifier contains the
+# active branch name and the last commit abbreviated hash, separated by
+# a period, and a final `.dirty` optional marker if the working copy is
+# dirty, that is, it has uncommitted changes.
+#
+# So, the regex used to validate the version string is a bit different
+# than the one provided in the PyPA documentation.
 
 # pylint: disable-next=unused-variable
 def test_version_matches_pypa_spec() -> None:
     """Test program version string against PyPA spec."""
     pypa_spec_compliant_version_regex = r"""^
-        (?:0|[1-9][0-9]*+)(?:\.(?:0|[1-9][0-9]*+)){2}               # Release segment
-        (?:\.post(?:0|[1-9][0-9]*+))?+                              # '.post' release segment
-        (?:\+(?:[a-zA-Z.]++)?+(?:[0-9a-f]{7,40})?+(?:\.dirty)?+)?+  # Local version identifier
+        (?P<release>(?:0|[1-9][0-9]*+)(?:\.(?:0|[1-9][0-9]*+)){2})  # Release segment (mandatory segment).
+        (?:                                                         # Development release segment (optional segment).
+            (?P<distance>\.post(?:0|[1-9][0-9]*+))                  #   Post release with distance.
+            \+                                                      #   Local version specifier.
+                (?P<branch>[a-z0-9]++)                              #     Branch name.
+                \.(?P<hash>[0-9a-f]{7,40})                          #     Commit hash.
+                (?P<dirty>\.dirty)?+                                #     Dirty marker (optional within segment).
+        )?+
     $"""
     assert re.fullmatch(pypa_spec_compliant_version_regex, VERSION, re.ASCII|re.VERBOSE) is not None
 
