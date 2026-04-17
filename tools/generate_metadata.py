@@ -7,17 +7,10 @@ from textwrap import dedent
 import tomllib
 from typing import Any
 
-from legion import run
+from legion import git_repository_root, run
 
 BRANCH_NAME_FOR_DETACHED_HEAD = '<detached head>'
 BRANCH_NAME_ESCAPE_SEQUENCE = 'xxx'
-
-def get_project_root() -> Path | None:
-    """Get the root directory for current project."""
-    project_root = None
-    if not (result := run(['git', 'rev-parse', '--show-toplevel'], encoding='utf-8')).returncode:
-        project_root = Path(result.stdout.strip())
-    return project_root
 
 
 def get_package_metadata(project_root: Path) -> dict[str, Any] | None:
@@ -56,7 +49,7 @@ STATUS_SUCCESS = 0
 STATUS_FAILURE = 1
 def main() -> int:
     """."""
-    if (project_root := get_project_root()) is None:
+    if (project_root := git_repository_root()) is None:
         return STATUS_FAILURE
 
     if (package_metadata := get_package_metadata(project_root)) is None:
