@@ -1,2 +1,2 @@
 #!/bin/sh
-python tools/generate_metadata.py
+.venv\Scripts\python tools/generate_metadata.py
