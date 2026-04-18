@@ -4,21 +4,11 @@ from pathlib import Path
 import re
 import sys
 from textwrap import dedent
-import tomllib
-from typing import Any
 
-from legion import git_repository_root, run
+from legion import excepthook, git_repository_root, load_pyproject, run
 
 BRANCH_NAME_FOR_DETACHED_HEAD = '<detached head>'
 BRANCH_NAME_ESCAPE_SEQUENCE = 'xxx'
-
-
-def get_package_metadata(project_root: Path) -> dict[str, Any] | None:
-    """Get the package metadata from `pyproject.toml`."""
-    pyproject_toml_path = project_root / 'pyproject.toml'
-    with contextlib.suppress(PermissionError, FileNotFoundError, tomllib.TOMLDecodeError):
-        return tomllib.loads(pyproject_toml_path.read_text(encoding='utf-8'))
-    return None
 
 
 def get_version() -> str | None:
@@ -49,10 +39,12 @@ STATUS_SUCCESS = 0
 STATUS_FAILURE = 1
 def main() -> int:
     """."""
+    sys.excepthook = excepthook
+
     if (project_root := git_repository_root()) is None:
         return STATUS_FAILURE
 
-    if (package_metadata := get_package_metadata(project_root)) is None:
+    if (package_metadata := load_pyproject(project_root)) is None:
         return STATUS_FAILURE
 
     if (version := get_version()) is None:
