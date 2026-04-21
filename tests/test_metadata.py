@@ -1,20 +1,13 @@
 """Test suite for validating program metadata."""
 from pathlib import Path
 import re
-import subprocess
-import tomllib
+
+from legion import git_repository_root, load_pyproject
 
 from sacamantecas.about import PROGRAM_NAME, VERSION
 
-PROJECT_ROOT = Path(subprocess.run(
-    ['git', 'rev-parse', '--show-toplevel'],  # noqa: S607
-    encoding='utf-8',
-    capture_output=True,
-    check=True,
-).stdout.strip())
-
 # This project uses a PyPA compliant versioning scheme, as defined in
-# https://packaging.python.org/en/latest/specifications/version-specifiers/
+# https://packaging.python.org/en/latest/specifications/version-specifiers/#version-scheme
 #
 # This scheme is partially compliant with *Semantic Versioning 2.0*, as
 # defined in https://semver.org/, at least for final releases, since it
@@ -65,11 +58,12 @@ def test_version_matches_pypa_spec() -> None:
 # pylint: disable-next=unused-variable
 def test_project_root() -> None:
     """Test the project root for the program is coherent."""
-    assert Path(__file__).parent.parent == PROJECT_ROOT
+    assert Path(__file__).parent.parent == git_repository_root()
 
 
 # pylint: disable-next=unused-variable
 def test_program_name_matches_metadata() -> None:
     """Test the hardcorded program name is what it should be."""
-    live_program_name = tomllib.loads((PROJECT_ROOT / 'pyproject.toml').read_text(encoding='utf-8'))['project']['name']
-    assert live_program_name ==  PROGRAM_NAME
+    metadata = load_pyproject()
+    assert metadata is not None
+    assert metadata['project']['name'] == PROGRAM_NAME
