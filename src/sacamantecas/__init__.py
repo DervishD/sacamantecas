@@ -22,13 +22,13 @@ import re
 from shutil import copy2
 import time
 from types import SimpleNamespace
-from typing import cast, ClassVar, NamedTuple, TYPE_CHECKING
+from typing import ClassVar, NamedTuple, TYPE_CHECKING
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, unquote, urlparse, urlunparse
 from urllib.request import Request, urlopen
 from zipfile import BadZipFile
 
-from legion import format_message, get_logger
+from legion import ensure_utf8_output, format_message, get_logger
 from openpyxl import load_workbook
 from openpyxl.cell.cell import Cell, MergedCell, TYPE_STRING as CELLTYPE_STRING
 from openpyxl.styles import Font, PatternFill
@@ -37,8 +37,6 @@ from openpyxl.utils.cell import get_column_letter
 from sacamantecas.about import DEPENDENCIES, PROGRAM_NAME, REPOSITORY, VERSION
 
 if TYPE_CHECKING:
-    from io import TextIOWrapper
-
     from openpyxl.worksheet.worksheet import Worksheet
 
 # Handlers are not implemented as classes, but as generators.
@@ -214,13 +212,6 @@ class ExitCodes(IntEnum):
     ERROR = 3
     KEYBOARD_INTERRUPT = 127
 
-
-# Reconfigure standard output streams so they use UTF-8 encoding even if
-# they are redirected to a file when running the program from a shell.
-if sys.stdout and hasattr(sys.stdout, 'reconfigure'):  # pragma: no branch
-    cast('TextIOWrapper', sys.stdout).reconfigure(encoding='utf-8')
-if sys.stderr and hasattr(sys.stderr, 'reconfigure'):  # pragma: no branch
-    cast('TextIOWrapper', sys.stderr).reconfigure(encoding='utf-8')
 
 logger = get_logger(PROGRAM_NAME)
 
@@ -1098,6 +1089,7 @@ def detect_html_charset(contents: bytes) -> str:
 
 @loggerize
 @keyboard_interrupt_handler
+@ensure_utf8_output
 def main(*args: str) -> ExitCodes:  # pylint: disable=unused-variable
     """."""
     exitcode = ExitCodes.SUCCESS
