@@ -1,8 +1,10 @@
 """Test suite for the different handlers of sources and sinks."""
 from collections import defaultdict
 from hashlib import algorithms_available, new as new_hash
+import os
 from pathlib import Path
 from random import choice, randrange
+import subprocess
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -23,11 +25,53 @@ from sacamantecas import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Generator
 
 HASHES = [hash_function for hash_function in algorithms_available if not hash_function.startswith('shake')]
 SAMPLE_URLS = [f'{choice(('https', 'http', 'file'))}://subdomain{i}.domain.tld' for i in range(10)]  # noqa: S311
 EXPECTED_METADATA = {u: {h: new_hash(h, u.encode('utf-8')).hexdigest() for h in HASHES} for u in SAMPLE_URLS}
+
+
+@pytest.fixture
+# pylint: disable-next=unused-variable
+def unreadable_path(tmp_path: Path, request: pytest.FixtureRequest) -> Generator[Path]:
+    """Create a file in *tmp_path*, unreadable by the current user."""
+    path = tmp_path / request.param
+    path.write_text('')
+
+    subprocess.run(  # noqa: S603
+        ['icacls', str(path), '/inheritance:r'],  # noqa: S607
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    yield path
+
+    path.unlink()
+
+
+@pytest.fixture
+# pylint: disable-next=unused-variable
+def unwritable_path(tmp_path: Path, request: pytest.FixtureRequest) -> Generator[Path]:
+    """Create a file in *tmp_path*, non writable by the current user."""
+    path = tmp_path / request.param
+    path.write_text('')
+
+    subprocess.run(  # noqa: S603
+        ['icacls', str(path), '/deny', f'{os.environ["USERNAME"]}:W'],  # noqa:  S607
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    yield path
+    subprocess.run(  # noqa: S603
+        ['icacls', str(path), '/grant', f'{os.environ["USERNAME"]}:W'],  # noqa: S607
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+    path.unlink()
 
 
 # pylint: disable-next=unused-variable
@@ -287,7 +331,7 @@ def test_handler_spreadsheet_invalid_input(tmp_path: Path, monkeypatch: pytest.M
     pytest.param('unreadable_textfile.txt', textfile_handler, id='test_unreadable_txt_input'),
     pytest.param('unreadable_spreadsheet.xlsx', spreadsheet_handler, id='test_unreadable_xlsx_input'),
 ], indirect=['unreadable_path'])
-# pylint: disable-next=unused-variable
+# pylint: disable-next=unused-variable,redefined-outer-name
 def test_unreadable_input_file(unreadable_path: Path, handler_factory: Callable[[Path], Handler]) -> None:
     """Test handling of unreadable files."""
     handler = handler_factory(unreadable_path)
@@ -323,7 +367,7 @@ def test_unwritable_output_file(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     source_stem: str,
-    unwritable_path: Path,
+    unwritable_path: Path,  # pylint: disable=redefined-outer-name
     handler_factory: Callable[[str | Path], Handler],
 ) -> None:
     """Test handling of non-writable files."""
