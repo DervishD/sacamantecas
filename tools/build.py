@@ -9,12 +9,13 @@ from pathlib import Path
 import shutil
 from subprocess import CalledProcessError, CompletedProcess, run
 import sys
-from typing import cast, TextIO, TYPE_CHECKING
+from typing import TextIO, TYPE_CHECKING
 from zipfile import ZIP_DEFLATED, ZipFile
+
+from legion import ensure_utf8_output
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
-    from io import TextIOWrapper
 
 PROJECT_ROOT = Path(run(
     ['git', 'rev-parse', '--show-toplevel'],  # noqa: S607
@@ -41,13 +42,6 @@ BUNDLE_ASSETS = (
 ERROR_MARKER = '\n*** '
 ERROR_HEADER = 'Error, '
 PROGRESS_MARKER = '  ▶ '
-
-# Reconfigure standard output streams so they use UTF-8 encoding even if
-# they are redirected to a file when running the program from a shell.
-if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
-    cast('TextIOWrapper', sys.stdout).reconfigure(encoding='utf-8')
-if sys.stderr and hasattr(sys.stdout, 'reconfigure'):
-    cast('TextIOWrapper', sys.stderr).reconfigure(encoding='utf-8')
 
 
 def pretty_print(message: str, *, marker: str = '', header: str = '', stream: TextIO = sys.stdout) -> None:
@@ -167,6 +161,7 @@ def create_bundle(bundle_path: Path, manifest:Iterable[Path]) -> None:
             bundle.write(path, path.name)
 
 
+@ensure_utf8_output
 def main() -> int:
     """."""
     pretty_print(f'Building {PROGRAM_NAME} {VERSION}')
