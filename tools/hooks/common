@@ -1,0 +1,16 @@
+#!/bin/sh
+
+die() {
+    echo "$1";
+    exit 1;
+}
+
+update_colophon() {
+    COLOPHON_PATH=$(python tools/colophon.py) || die 'The colophon file could not be generated.'
+}
+
+if [ -f .venv/Scripts/activate ]; then
+    . .venv/Scripts/activate
+else
+    . .venv/bin/activate
+fi

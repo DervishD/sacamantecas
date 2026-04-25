@@ -1,2 +1,0 @@
-#!/bin/sh
-.venv/Scripts/python tools/update_about.py

@@ -32,13 +32,26 @@ license-files = ["LICENSE"]
 authors = [{name="Raúl Núñez de Arenas Coronado", email="raulnac@gmail.com"}]
 maintainers = [{name="Raúl Núñez de Arenas Coronado", email="raulnac@gmail.com"}]
 dependencies = [
-    "legion",
+    "legion @ git+https://github.com/DervishD/legion.git@development",
     "openpyxl==3.1.3",
 ]
 
 [project.urls]
 source = "https://github.com/DervishD/sacamantecas"
 issues = "https://github.com/DervishD/sacamantecas/issues"
+
+[tool.colophon]
+path = 'src/{project[name]}/about.py'
+template = '''
+    """Auto generated, do not edit."""
+    # {timestamp}
+
+    # pylint: disable=unused-variable
+    PROGRAM_NAME = {project[name]!r}
+    VERSION = '{version[tag]}.post{version[distance]}+{version[branch]}{version[detached]}.{version[rev]}{version[dirty]}'
+    REPOSITORY = {project[urls][source]!r}
+    DEPENDENCIES = {project[dependencies]!r}
+'''
 
 [tool.setuptools.dynamic]
 version = {attr = "sacamantecas.about.VERSION"}

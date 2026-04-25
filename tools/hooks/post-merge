@@ -1,2 +1,4 @@
 #!/bin/sh
-.venv/Scripts/python tools/update_about.py
+. "$(dirname "$0")/common"
+
+update_colophon
