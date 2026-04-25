@@ -1,5 +1,4 @@
 """Entry point for `sacamantecas` command line invocation."""
-
 import atexit
 from functools import partial
 import sys
