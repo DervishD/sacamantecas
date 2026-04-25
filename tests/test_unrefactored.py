@@ -13,12 +13,10 @@ ALLOWED_UNREFACTORED_STRINGS = (
     'win32', '\nThis program is compatible only with the Win32 platform.\n',
     # Python well-known strings.
     'frozen', 'w', '%s',
-    # For typing hints.
-    'TextIOWrapper',
     # Allowed empty or whitespace strings.
     ' ', '', b'',
     # Miscellaneous strings.
-    'utf-8', 'ascii', '.', '"', 'reconfigure', '.post', '==', ' v',
+    'utf-8', 'ascii', '.', '"', '.post', '==', ' v',
 )
 
 
