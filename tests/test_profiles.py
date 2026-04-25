@@ -1,10 +1,10 @@
 """Test suite for profiles handling."""
 from contextlib import AbstractContextManager, nullcontext
 from html.parser import HTMLParser
-from pathlib import Path
 import re
+import subprocess
 from textwrap import dedent
-from typing import ClassVar
+from typing import ClassVar, TYPE_CHECKING
 
 import pytest
 
@@ -20,6 +20,9 @@ from sacamantecas import (
     ProfilesError,
     SkimmingError,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 # pylint: disable-next=unused-variable
@@ -49,16 +52,24 @@ def test_profiles_missing_ini_file(
     assert result == expected
 
 
-@pytest.mark.parametrize('unreadable_path', [
-    pytest.param(Path('unreadable_profiles.ini'), id='test_profiles_unreadable_ini_file'),
-], indirect=True)
 # pylint: disable-next=unused-variable
-def test_profiles_unreadable_ini_file(unreadable_path: Path) -> None:
+def test_profiles_unreadable_ini_file(tmp_path: Path) -> None:
     """Test for unreadable profiles configuration file."""
-    with pytest.raises(ProfilesError) as excinfo:
-        load_profiles(unreadable_path)
+    unreadable_profiles_ini = tmp_path / 'unreadable_profiles_ini'
+    unreadable_profiles_ini.write_text('')
 
-    assert str(excinfo.value) == f'No se encontró o no se pudo leer el fichero de perfiles «{unreadable_path}».'
+    subprocess.run(  # noqa: S603
+        ['icacls', str(unreadable_profiles_ini), '/inheritance:r'],  # noqa: S607
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+    with pytest.raises(ProfilesError) as excinfo:
+        load_profiles(unreadable_profiles_ini)
+    unreadable_profiles_ini.unlink()
+
+    assert str(excinfo.value) == f'No se encontró o no se pudo leer el fichero de perfiles «{unreadable_profiles_ini}».'
 
 
 @pytest.mark.parametrize('text', [
