@@ -37,6 +37,7 @@ dependencies = [
 ]
 
 [project.urls]
+homepage = "https://github.com/DervishD/sacamantecas"
 source = "https://github.com/DervishD/sacamantecas"
 issues = "https://github.com/DervishD/sacamantecas/issues"
 
@@ -52,6 +53,22 @@ template = '''
     REPOSITORY = {project[urls][source]!r}
     DEPENDENCIES = {project[dependencies]!r}
 '''
+
+[tool.sacamantecas]
+public_version = "!!{version[tag]!r} if not {version[distance]!r} else f'{version[tag]}.post{version[distance]}'"
+local_version = "{version[branch]}{version[detached]}.{version[rev]}{version[dirty]}"
+package_root = "src/{project[name]}"
+venv_path = "{project_root}/.venv"
+build_path = "{project_root}/build"
+main_script = "{self[package_root]}/__main__.py"
+config_file = "{self[package_root]}/{project[name]}.ini"
+changelog = "{project_root}/CHANGELOG.md"
+bundle_assets = [
+    "{self[config_file]}",
+    "{self[changelog]}",
+    "{project_root}/{project[readme]}",
+]
+
 
 [tool.setuptools.dynamic]
 version = {attr = "sacamantecas.about.VERSION"}
