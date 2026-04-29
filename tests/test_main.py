@@ -67,12 +67,12 @@ def test_keyboard_interrupt_handler(capsys: pytest.CaptureFixture[str]) -> None:
 
 
 # pylint: disable-next=unused-variable
-class MockParser(BaseParser):
-    """Mock parser, needed for the test units below."""  # noqa: D204
-    PARAMETERS = BaseParser.PARAMETERS | {'mock_key'}
+class TestParser(BaseParser):
+    """Test parser, needed for the test units below."""  # noqa: D204
+    PARAMETERS = BaseParser.PARAMETERS | {'example_key'}
 
 
-@pytest.mark.parametrize(('exception', 'mocked_entry_point_name'), [
+@pytest.mark.parametrize(('exception', 'entry_point_name'), [
     pytest.param(SourceError, 'bootstrap', id='test_main_source_error_handling'),
     pytest.param(SkimmingError, 'saca_las_mantecas', id='test_main_skimming_error_handling'),
 ])
@@ -82,7 +82,7 @@ def test_main_exceptions(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
     exception: type[Exception],
-    mocked_entry_point_name: str,
+    entry_point_name: str,
 ) -> None:
     """Test main loop exception handling in `main()`."""
     monkeypatch.setattr(Constants, 'MAIN_OUTPUT_PATH', None)
@@ -90,12 +90,12 @@ def test_main_exceptions(
 
     inifile_path = tmp_path / 'profiles.ini'
     monkeypatch.setattr(Constants, 'INIFILE_PATH', inifile_path)
-    inifile_path.write_text('[mock_section]\nurl = .*\nmock_key = mock_value\n')
+    inifile_path.write_text('[example_section]\nurl = .*\nexample_key = example_value\n')
 
-    error_message = 'mock_error_message'
+    error_message = 'example_error_message'
     def mock_entry_point(*_: object) -> None:
         raise exception(error_message)
-    monkeypatch.setitem(main.__globals__, mocked_entry_point_name, mock_entry_point)
+    monkeypatch.setitem(main.__globals__, entry_point_name, mock_entry_point)
 
     def patched_generate_sinkfile_path(_: Path) -> Path:
         return sinkfile_path
@@ -119,10 +119,10 @@ def test_main_full_invocation(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -
 
     inifile_path = tmp_path / 'profiles.ini'
     monkeypatch.setattr(Constants, 'INIFILE_PATH', inifile_path)
-    inifile_path.write_text('[mock_section]\nurl = .*\nmock_key = mock_value\n')
+    inifile_path.write_text('[example_section]\nurl = .*\nexample_key = example_value\n')
 
     def mock_saca_las_mantecas(_u: str, _p: BaseParser) -> dict[str, str]:
-        return {'mock_key' : 'mock_value'}
+        return {'example_key' : 'example_value'}
     monkeypatch.setitem(main.__globals__, 'saca_las_mantecas', mock_saca_las_mantecas)
 
     def patched_generate_sinkfile_path(_: Path) -> Path:

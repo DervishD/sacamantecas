@@ -152,7 +152,7 @@ def audit(source: str) -> AuditReport:
     ),
     pytest.param(
         [], [],
-        ['class Mock:\n    """Class *Mock* docstring."""'],
+        ['class ExampleClass:\n    """Class *ExampleClass* docstring."""'],
         AuditReport(
             unrefactored_strings = [],
             stale_allowed_strings = [],
@@ -162,7 +162,7 @@ def audit(source: str) -> AuditReport:
     ),
     pytest.param(
         [], [],
-        ['def mock():\n    """Function *mock()* docstring."""'],
+        ['def example():\n    """Function *example()* docstring."""'],
         AuditReport(
             unrefactored_strings = [],
             stale_allowed_strings = [],
@@ -172,7 +172,7 @@ def audit(source: str) -> AuditReport:
     ),
     pytest.param(
         [], [],
-        ['class Mock:\n    MOCK = "mock_string"\n    MOCKS = ("mock_string_x", "mock_string_y")'],
+        ['class ExampleClass:\n    EXAMPLE = "string"\n    EXAMPLES = ("string_x", "string_y")'],
         AuditReport(
             unrefactored_strings = [],
             stale_allowed_strings = [],

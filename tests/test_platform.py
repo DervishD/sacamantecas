@@ -22,7 +22,7 @@ def test_loads_on_windows(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_rejects_non_windows(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
     """Test that SystemExit is raised on non-win32 platforms."""
     monkeypatch.delitem(sys.modules, MODULE_NAME, raising=False)
-    monkeypatch.setattr('sys.platform', 'mock_platform')
+    monkeypatch.setattr('sys.platform', 'example_platform')
 
     with pytest.raises(SystemExit) as excinfo:
         importlib.import_module(MODULE_NAME)

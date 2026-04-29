@@ -130,7 +130,7 @@ def test_retrieve_url_charset_in_headers(monkeypatch: pytest.MonkeyPatch) -> Non
         lambda _: FakeResponse(),  # pyright: ignore[reportUnknownLambdaType,reportUnknownArgumentType]
     )
 
-    contents, charset = retrieve_url('http://mock_url')
+    contents, charset = retrieve_url('http://example_url')
 
     assert charset == FakeResponse.FAKE_RESPONSE_CHARSET
     assert contents == FakeResponse.FAKE_RESPONSE_HTML
@@ -145,7 +145,7 @@ def test_url_retrieve_utf8_data() -> None:
     The first one, against a live server returning a UTF-8 encoded body.
     The second, using a temporary file with fake contents.
     """
-    mock_hostname = 'localhost'
+    hostname = 'localhost'
     server_root_path = Path(__file__).resolve().parent
     sample_file_path = server_root_path / 'utf-8.html'
 
@@ -154,13 +154,13 @@ def test_url_retrieve_utf8_data() -> None:
     previous_cwd = Path.cwd()
     chdir(server_root_path)
 
-    http_server = HTTPServer((mock_hostname, 0), SimpleHTTPRequestHandler)
+    http_server = HTTPServer((hostname, 0), SimpleHTTPRequestHandler)
     thread = threading.Thread(target=http_server.serve_forever, daemon=True)
 
     try:
         thread.start()
 
-        url = f'http://{mock_hostname}:{http_server.server_port}/{sample_file_path.name}'
+        url = f'http://{hostname}:{http_server.server_port}/{sample_file_path.name}'
         contents, encoding = retrieve_url(url)
         assert encoding.lower() == 'utf-8'
         assert contents.decode(encoding) == expected_contents
