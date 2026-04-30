@@ -175,15 +175,15 @@ def test_profiles_parsing(tmp_path: Path) -> None:
         assert type(result_profile.parser) is type(expected_profile.parser)
 
 
-class TestBaseParser(HTMLParser):
+class MockBaseParser(HTMLParser):
     """Test base parser."""  # noqa: D204
     PARAMETERS: ClassVar[set[str]] = set()
-class AParser(TestBaseParser):  # pylint: disable=unused-variable
+class AParser(MockBaseParser):  # pylint: disable=unused-variable
     """Test `Type A` parser."""  # noqa: D204
-    PARAMETERS = TestBaseParser.PARAMETERS | {'akey_1', 'akey_2', 'akey_3'}
-class BParser(TestBaseParser):  # pylint: disable=unused-variable
+    PARAMETERS = MockBaseParser.PARAMETERS | {'akey_1', 'akey_2', 'akey_3'}
+class BParser(MockBaseParser):  # pylint: disable=unused-variable
     """Test `Type B` parser."""  # noqa: D204
-    PARAMETERS = TestBaseParser.PARAMETERS | {'bkey_1', 'bkey_2', 'bkey_3'}
+    PARAMETERS = MockBaseParser.PARAMETERS | {'bkey_1', 'bkey_2', 'bkey_3'}
 @pytest.mark.parametrize(('inifile_contents', 'context_manager'), [
     pytest.param(
         '[bad_extra_keys]\nurl=v\nakey_1=v\nakey_2=v\nakey_3=v\nk=v\n',
@@ -224,7 +224,7 @@ def test_profile_validation(
     context_manager: AbstractContextManager[None | pytest.ExceptionInfo[ProfilesError]],
 ) -> None:
     """Test profile validation using declared parsers."""
-    monkeypatch.setitem(load_profiles.__globals__, 'BaseParser', TestBaseParser)
+    monkeypatch.setitem(load_profiles.__globals__, 'BaseParser', MockBaseParser)
 
     with context_manager:
         inifile_path = tmp_path / 'profiles.ini'
