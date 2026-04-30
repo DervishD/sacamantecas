@@ -14,12 +14,10 @@ def main() -> int | str:
     if (project_metadata := get_project_metadata()) is None:
         return 'Error geting project metadata.'
 
-    project_root = Path(project_metadata['project_root']).resolve()
-    config = project_metadata['tool'][Path(__file__).stem]
-    output_path = project_root / config['path'].format_map(project_metadata)
-    template = dedent(config['template'])
+    output_path = Path(project_metadata['local']['colophon']['path']).resolve()
+    template = dedent(project_metadata['local']['colophon']['template'])
 
-    output_path.resolve().write_text(template.format_map(project_metadata), newline='\n')
+    output_path.write_text(template.format_map(project_metadata), encoding='utf-8', newline='\n')
 
     print(output_path, end='')  # noqa: T201
     return 0

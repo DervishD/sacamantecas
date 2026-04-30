@@ -7,14 +7,13 @@ it, together with the corresponding `.ini` file and other assets, in a
 import contextlib
 import os
 from pathlib import Path
-import re
 import shutil
 from subprocess import CalledProcessError, CompletedProcess
 import sys
 from typing import TYPE_CHECKING
 from zipfile import ZIP_DEFLATED, ZipFile
 
-from legion import ensure_utf8_output, get_project_metadata, resolve_metadata, run
+from legion import ensure_utf8_output, get_project_metadata, run
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
@@ -150,36 +149,32 @@ def main() -> int:
         error('project metadata not found, build aborted.')
         return 1
 
-    metadata = resolve_metadata(metadata, 'self')
-    project_config = metadata['self']
-
     program_name = metadata['project']['name']
-    program_version = project_config['public_version']
-    pretty_print(f'Building {program_name} v{program_version}+{project_config['local_version']}')
+    program_version = metadata['local']['version'].split('+', maxsplit=1)[0]
+    pretty_print(f'Building {program_name} v{metadata['local']['version']}')
 
-    venv_path = Path(project_config['venv_path'])
+    venv_path = Path(metadata['local']['venv_path'])
     progress(f'Checking virtual environment: {venv_path}')
     if not is_venv_ready(venv_path):
         return 1
 
-    required_packages = metadata['project']['dependencies']
-    required_packages = [re.split(r'[><=!@]', package)[0].strip().lower() for package in required_packages]
+    required_packages = metadata['local']['unpinned_deps']
     progress(f'Checking that required packages are installed: {', '.join(required_packages)}')
     if not are_required_packages_installed(required_packages):
         return 1
 
-    build_path = Path(project_config['build_path'])
+    build_path = Path(metadata['local']['build_path'])
     progress(f'Preparing build directory: {build_path}')
     if not prepare_build_directory(build_path):
         return 1
 
     frozen_exe_path = (build_path / program_name).with_suffix('.exe')
     progress(f'Building frozen executable: {frozen_exe_path}')
-    if not build_frozen_executable(project_config['main_script'], frozen_exe_path):
+    if not build_frozen_executable(metadata['local']['main_script'], frozen_exe_path):
         return 1
 
     bundle_path = Path(metadata['project_root']) / f'{program_name}_v{program_version}.zip'
-    manifest = (frozen_exe_path, *[Path(asset) for asset in project_config['bundle_assets']])
+    manifest = (frozen_exe_path, *[Path(asset) for asset in metadata['local']['bundle_assets']])
     progress(f'Building distributable bundle: {bundle_path}')
     create_bundle(bundle_path, manifest)
 

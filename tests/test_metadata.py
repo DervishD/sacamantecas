@@ -2,9 +2,12 @@
 from pathlib import Path
 import re
 
-from legion import git_repository_root, load_pyproject
+from legion import get_project_metadata
 
 from sacamantecas.about import PROGRAM_NAME, VERSION
+
+PROJECT_METADATA = get_project_metadata()
+
 
 # This project uses a PyPA compliant versioning scheme, as defined in
 # https://packaging.python.org/en/latest/specifications/version-specifiers/#version-scheme
@@ -58,12 +61,12 @@ def test_version_matches_pypa_spec() -> None:
 # pylint: disable-next=unused-variable
 def test_project_root() -> None:
     """Test the project root for the program is coherent."""
-    assert Path(__file__).parent.parent == git_repository_root()
+    assert PROJECT_METADATA is not None
+    assert Path(__file__).parent.parent == PROJECT_METADATA['project_root']
 
 
 # pylint: disable-next=unused-variable
 def test_program_name_matches_metadata() -> None:
     """Test the hardcorded program name is what it should be."""
-    metadata = load_pyproject()
-    assert metadata is not None
-    assert metadata['project']['name'] == PROGRAM_NAME
+    assert PROJECT_METADATA is not None
+    assert PROJECT_METADATA['project']['name'] == PROGRAM_NAME
