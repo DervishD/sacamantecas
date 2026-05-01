@@ -7,10 +7,17 @@ die() {
 
 update_colophon() {
     COLOPHON_PATH=$(python tools/colophon.py) || die 'The colophon file could not be generated.'
+    COLOPHON_PATH=${COLOPHON_PATH//\\//}
+    COLOPHON_PATH=${COLOPHON_PATH#"$REPO_ROOT"/}
+    VERSION=$(grep '^VERSION' "$COLOPHON_PATH" | cut -d"'" -f2)
+    RELEASE=$(grep '^RELEASE' "$COLOPHON_PATH" | cut -d"'" -f2)
 }
 
-if [ -f .venv/Scripts/activate ]; then
-    . .venv/Scripts/activate
-else
-    . .venv/bin/activate
+
+if [ -z "$VIRTUAL_ENV" ]; then
+    if [ -f .venv/Scripts/activate ]; then
+        . .venv/Scripts/activate
+    else
+        . .venv/bin/activate
+    fi
 fi

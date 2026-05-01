@@ -1,4 +1,6 @@
 #!/bin/sh
 . "$(dirname "$0")/common"
 
+[ "$3" -eq 0 ] && exit 0
+
 update_colophon

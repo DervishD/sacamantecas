@@ -1,0 +1,7 @@
+#!/bin/sh
+. "$(dirname "$0")/common"
+
+update_colophon
+git restore --worktree "$COLOPHON_PATH"
+
+[ "$VERSION" = "$RELEASE" ] && git tag -af "v$VERSION" -m ''
