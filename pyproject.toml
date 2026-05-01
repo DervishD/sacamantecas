@@ -32,7 +32,7 @@ license-files = ["LICENSE"]
 authors = [{name="Raúl Núñez de Arenas Coronado", email="raulnac@gmail.com"}]
 maintainers = [{name="Raúl Núñez de Arenas Coronado", email="raulnac@gmail.com"}]
 dependencies = [
-    "legion @ git+https://github.com/DervishD/legion.git@development",
+    "legion @ git+https://github.com/DervishD/legion.git@v3.0.3",
     "openpyxl==3.1.3",
 ]
 
