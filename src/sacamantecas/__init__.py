@@ -34,7 +34,7 @@ from openpyxl.cell.cell import Cell, MergedCell, TYPE_STRING as CELLTYPE_STRING
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils.cell import get_column_letter
 
-from sacamantecas.about import DEPENDENCIES, PROGRAM_NAME, REPOSITORY, VERSION
+from .about import BUILD, DEPENDENCIES, PROGRAM_NAME, REPOSITORY, VERSION
 
 if TYPE_CHECKING:
     from openpyxl.worksheet.worksheet import Worksheet
@@ -121,7 +121,7 @@ class Messages(StrEnum):
     )
 
     DEBUGGING_INIT = 'Registro de depuración iniciado.'
-    PROGRAM_BANNER = f'{PROGRAM_NAME} versión {VERSION} ({REPOSITORY})'
+    PROGRAM_BANNER = f'{PROGRAM_NAME} versión {BUILD} ({REPOSITORY})'
 
     DEPENDENCY_BANNER = 'Usando paquete {}'
     PROCESS_DONE = '\nProceso finalizado.'

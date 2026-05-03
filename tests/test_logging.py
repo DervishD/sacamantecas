@@ -14,7 +14,7 @@ from sacamantecas import (
     loggerize,
     warning,
 )
-from sacamantecas.about import DEPENDENCIES, PROGRAM_NAME, REPOSITORY, VERSION
+from sacamantecas.about import BUILD, DEPENDENCIES, PROGRAM_NAME, REPOSITORY, VERSION
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -52,7 +52,7 @@ def test_logging_setup(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
 
     expected_full_log = dedent(f"""
         DEBUG    | loggerize_wrapper() Registro de depuración iniciado.
-        INFO     | loggerize_wrapper() {PROGRAM_NAME} versión {VERSION} ({REPOSITORY})
+        INFO     | loggerize_wrapper() {PROGRAM_NAME} versión {BUILD} ({REPOSITORY})
         {'\n'.join(required_packages).lstrip()}
         DEBUG    | loggerize_wrapper() {PROGRAM_NAME}/{VERSION} +{REPOSITORY} {platform_string}
         ERROR    | f() {message}
@@ -62,7 +62,7 @@ def test_logging_setup(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """).lstrip().splitlines()
 
     expected_main_log = dedent(f"""
-        {PROGRAM_NAME} versión {VERSION} ({REPOSITORY})
+        {PROGRAM_NAME} versión {BUILD} ({REPOSITORY})
         {message}
 
         Proceso finalizado.

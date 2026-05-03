@@ -15,7 +15,7 @@ from sacamantecas import (
     SkimmingError,
     SourceError,
 )
-from sacamantecas.about import PROGRAM_NAME, REPOSITORY, VERSION
+from sacamantecas.about import BUILD, PROGRAM_NAME, REPOSITORY
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -33,7 +33,7 @@ def test_no_arguments(
 
     captured = capsys.readouterr()
 
-    assert captured.out == f'{PROGRAM_NAME} versión {VERSION} ({REPOSITORY})\n\nProceso finalizado.\n'
+    assert captured.out == f'{PROGRAM_NAME} versión {BUILD} ({REPOSITORY})\n\nProceso finalizado.\n'
 
     heading = '\n*** Error: no se han especificado fuentes de entrada para ser procesadas.'
     message = (

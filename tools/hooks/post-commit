@@ -1,7 +1,7 @@
 #!/bin/sh
 . "$(dirname "$0")/common"
 
-update_colophon
-git restore --worktree "$COLOPHON_PATH"
+VERSION=$(python tools/pluck.py local.version) || die 'Failed to get project version'
+BUILD=$(python tools/pluck.py local.build) || die 'Failed to get project build code'
 
-[ "$VERSION" = "$RELEASE" ] && git tag -af "v$VERSION" -m ''
+[ "$VERSION" = "$BUILD" ] && git tag -af "v$VERSION" -m ''

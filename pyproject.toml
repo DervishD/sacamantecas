@@ -43,9 +43,8 @@ issues = "https://github.com/DervishD/sacamantecas/issues"
 
 [tool.sacamantecas]
 package_root = "src/{project[name]}"
-git_version = "{version[tag]}.post{version[distance]}+{version[branch]}{version[detached]}.{version[rev]}{version[dirty]}"
-version = "!!{version[release]!r} or {local[git_version]!r}"
-release = "!!{version[release]!r} or '{version[tag]}.post0'"
+version = "!!{version[release]!r} or '{version[tag]}.post0'"
+build = "!!{version[release]!r} or '{version[tag]}.post{version[distance]}+{version[branch]}{version[detached]}.{version[rev]}{version[dirty]}'"
 build_path = "{project_root}/build"
 main_script = "{local[package_root]}/__main__.py"
 unpinned_deps = "!![__import__('re').split(r'[><=!@]', pkg)[0].strip().lower() for pkg in {project[dependencies]!r}]"
@@ -61,13 +60,13 @@ colophon.template = '''
     # pylint: disable=unused-variable
     PROGRAM_NAME = {project[name]!r}
     VERSION = {local[version]!r}
-    RELEASE = {local[release]!r}
+    BUILD = {local[build]!r}
     REPOSITORY = {project[urls][source]!r}
     DEPENDENCIES = {project[dependencies]!r}
 '''
 
 [tool.setuptools.dynamic]
-version = {attr = "sacamantecas.about.VERSION"}
+version = {attr = "sacamantecas.about.BUILD"}
 
 [tool.pytest]
 pythonpath = ["src"]

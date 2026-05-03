@@ -2,4 +2,6 @@
 . "$(dirname "$0")/common"
 
 update_colophon
+
+COLOPHON_PATH=$(python tools/pluck.py local.colophon.path)  || die 'Failed to get colophon file path'
 git add "$COLOPHON_PATH"
