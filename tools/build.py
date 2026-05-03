@@ -150,8 +150,8 @@ def main() -> int:
         return 1
 
     program_name = metadata['project']['name']
-    program_version = metadata['local']['version'].split('+', maxsplit=1)[0]
-    pretty_print(f'Building {program_name} v{metadata['local']['version']}')
+    program_version = metadata['local']['build'].split('+', maxsplit=1)[0]
+    pretty_print(f'Building {program_name} v{program_version}')
 
     venv_path = Path(metadata['local']['venv_path'])
     progress(f'Checking virtual environment: {venv_path}')
