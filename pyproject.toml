@@ -92,7 +92,6 @@ force-sort-within-sections = true
 order-by-type = false
 
 [tool.pylint.main]
-init-hook = "import sys, os; sys.path.insert(0, os.path.abspath('src'))"
 persistent = false
 jobs = 0
 max-line-length = 120
