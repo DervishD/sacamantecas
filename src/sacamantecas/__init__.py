@@ -561,6 +561,8 @@ def keyboard_interrupt_handler(function: Callable[..., ExitCodes]) -> Callable[.
         try:
             return function(*args)
         except KeyboardInterrupt:
+            logger.set_indent(0)
+            logger.warning('')
             warning(Messages.KEYBOARD_INTERRUPT)
             return ExitCodes.KEYBOARD_INTERRUPT
     return handle_keyboard_interrupt_wrapper

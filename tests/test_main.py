@@ -61,7 +61,7 @@ def test_keyboard_interrupt_handler(capsys: pytest.CaptureFixture[str]) -> None:
 
     result = capsys.readouterr().err.rstrip()
     message = 'el usuario interrumpió la operación de la aplicación.'
-    expected = f'* Aviso: {message}'
+    expected = f'\n* Aviso: {message}'
 
     assert result == expected
 
