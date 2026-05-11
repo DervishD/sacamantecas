@@ -34,7 +34,7 @@ from openpyxl.cell.cell import Cell, MergedCell, TYPE_STRING as CELLTYPE_STRING
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils.cell import get_column_letter
 
-from .about import BUILD, DEPENDENCIES, PROGRAM_NAME, REPOSITORY, VERSION
+from .about import BUILD, DEPENDENCIES, DEVELOPMENT_MODE, PROGRAM_NAME, REPOSITORY, VERSION
 
 if TYPE_CHECKING:
     from openpyxl.worksheet.worksheet import Worksheet
@@ -47,8 +47,6 @@ class Constants:  # pylint: disable=too-few-public-methods
     """Program configuration values."""
 
     PLATFORM = f'Windows {platform.version()};{platform.architecture()[0]};{platform.machine()}'
-
-    DEVELOPMENT_MODE = '.post' in VERSION
 
     OUTPUT_SEPARATOR = ', '
 

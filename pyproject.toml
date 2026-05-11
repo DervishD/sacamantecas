@@ -62,6 +62,7 @@ colophon.template = '''
     PROGRAM_NAME = {project[name]!r}
     VERSION = {local[version]!r}
     BUILD = {local[build]!r}
+    DEVELOPMENT_MODE = not bool({version[release]!r})
     REPOSITORY = {project[urls][source]!r}
     DEPENDENCIES = {project[dependencies]!r}
 '''
