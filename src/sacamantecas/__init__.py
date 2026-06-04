@@ -17,7 +17,6 @@ from html.parser import HTMLParser
 from http.client import HTTPException
 import logging
 from pathlib import Path
-import platform
 import re
 from shutil import copy2
 import time
@@ -46,8 +45,6 @@ type Handler = Generator[str, dict[str, str] | None]
 class Constants:  # pylint: disable=too-few-public-methods
     """Program configuration values."""
 
-    PLATFORM = f'Windows {platform.version()};{platform.architecture()[0]};{platform.machine()}'
-
     OUTPUT_SEPARATOR = ', '
 
     ERROR_MARKER = '*** '
@@ -55,7 +52,7 @@ class Constants:  # pylint: disable=too-few-public-methods
 
     TIMESTAMP_FORMAT = '%Y%m%d_%H%M%S'
 
-    USER_AGENT = f'{PROGRAM_NAME}/{VERSION} +{REPOSITORY} ({PLATFORM})'
+    USER_AGENT = f'{PROGRAM_NAME}/{VERSION} (bot; +{REPOSITORY})'
 
     ACCEPTED_URL_SCHEMES = ('https', 'http', 'file')
 
