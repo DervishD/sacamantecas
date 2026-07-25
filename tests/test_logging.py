@@ -6,11 +6,11 @@ from typing import TYPE_CHECKING
 from legion import format_message
 
 from sacamantecas import (
-    Constants,
     error,
     ExitCodes,
     logger,
     loggerize,
+    Paths,
     warning,
 )
 from sacamantecas.about import BUILD, DEPENDENCIES, PROGRAM_NAME, REPOSITORY, VERSION
@@ -27,10 +27,10 @@ def test_logging_setup(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     def remove_timestamps (logfile: Path) -> list[str]:
         return [' '.join(line.split(' ')[1:]) for line in logfile.read_text(encoding='utf-8').splitlines()]
 
-    main_log_path = tmp_path / Constants.MAIN_OUTPUT_PATH.name
-    full_log_path = tmp_path / Constants.FULL_OUTPUT_PATH.name
-    monkeypatch.setattr(Constants, 'MAIN_OUTPUT_PATH', main_log_path)
-    monkeypatch.setattr(Constants, 'FULL_OUTPUT_PATH', full_log_path)
+    main_log_path = tmp_path / Paths.MAIN_LOG.name
+    full_log_path = tmp_path / Paths.FULL_LOG.name
+    monkeypatch.setattr(Paths, 'MAIN_LOG', main_log_path)
+    monkeypatch.setattr(Paths, 'FULL_LOG', full_log_path)
 
     assert not main_log_path.is_file()
     assert not full_log_path.is_file()

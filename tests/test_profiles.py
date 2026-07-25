@@ -10,12 +10,12 @@ import pytest
 
 from sacamantecas import (
     BaratzParser,
-    Constants,
     ExitCodes,
     get_parser,
     load_profiles,
     main,
     OldRegimeParser,
+    Paths,
     Profile,
     ProfilesError,
     SkimmingError,
@@ -32,8 +32,8 @@ def test_profiles_missing_ini_file(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     """Test for missing main INI file."""
-    monkeypatch.setattr(Constants, 'MAIN_OUTPUT_PATH', None)
-    monkeypatch.setattr(Constants, 'FULL_OUTPUT_PATH', None)
+    monkeypatch.setattr(Paths, 'MAIN_LOG', None)
+    monkeypatch.setattr(Paths, 'FULL_LOG', None)
 
     path = tmp_path / 'non_existent.ini'
 
@@ -42,7 +42,7 @@ def test_profiles_missing_ini_file(
 
     assert str(excinfo.value) == f'No se encontró o no se pudo leer el fichero de perfiles «{path}».'
 
-    monkeypatch.setattr(Constants, 'INIFILE_PATH', path)
+    monkeypatch.setattr(Paths, 'INIFILE', path)
 
     assert main('') == ExitCodes.ERROR
 

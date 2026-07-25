@@ -42,65 +42,24 @@ if TYPE_CHECKING:
 type Handler = Generator[str, dict[str, str] | None]
 
 
-class Constants:  # pylint: disable=too-few-public-methods
-    """Program configuration values."""
+USER_AGENT = f'{PROGRAM_NAME}/{VERSION} (bot; +{REPOSITORY})'
 
-    OUTPUT_SEPARATOR = ', '
+ACCEPTED_URL_SCHEMES = ('https', 'http', 'file')
 
-    ERROR_MARKER = '*** '
-    WARNING_MARKER = '* '
+TIMESTAMP_STEM = time.strftime('_%Y%m%d_%H%M%S')
+SINKFILE_STEM = '_out'
 
-    TIMESTAMP_FORMAT = '%Y%m%d_%H%M%S'
+TEXTFILE_SUFFIX = '.txt'
+SPREADSHEET_SUFFIX = '.xlsx'
 
-    USER_AGENT = f'{PROGRAM_NAME}/{VERSION} (bot; +{REPOSITORY})'
 
-    ACCEPTED_URL_SCHEMES = ('https', 'http', 'file')
+class Paths:  # pylint: disable=too-few-public-methods
+    """Program paths."""
 
-    FALLBACK_HTML_CHARSET = 'ISO-8859-1'
-
-    PROFILE_URL_PATTERN_KEY = 'url'
-    PROFILE_BAD_REGEX_ERROR = 'BadRegex'
-
-    TEXTFILE_SUFFIX = '.txt'
-    SPREADSHEET_SUFFIX = '.xlsx'
-
-    TIMESTAMP_STEM = time.strftime(f'_{TIMESTAMP_FORMAT}')
-    SINKFILE_STEM = '_out'
-
-    ROOT_PATH = Path(sys.executable if getattr(sys, 'frozen', False) else __file__).resolve().parent
-
-    MAIN_OUTPUT_PATH = ROOT_PATH / f'{PROGRAM_NAME}_log{"" if DEVELOPMENT_MODE else TIMESTAMP_STEM}{TEXTFILE_SUFFIX}'
-    FULL_OUTPUT_PATH = ROOT_PATH / f'{PROGRAM_NAME}_trace{"" if DEVELOPMENT_MODE else TIMESTAMP_STEM}{TEXTFILE_SUFFIX}'
-    INIFILE_PATH = ROOT_PATH / f'{PROGRAM_NAME}.ini'
-
-    HANDLER_BOOTSTRAP_SUCCESS = 'Handler bootstrap successful.'
-
-    TEXTSINK_METADATA_HEADER = '{}\n'
-    TEXTSINK_METADATA_INDENT = '  '
-    TEXTSINK_METADATA_SEPARATOR = ': '
-    TEXTSINK_METADATA_PAIR = f'{TEXTSINK_METADATA_INDENT}{{}}{TEXTSINK_METADATA_SEPARATOR}{{}}\n'
-    TEXTSINK_METADATA_FOOTER = '\n'
-
-    METADATA_KEY_TERMINATOR = ':'
-
-    SPREADSHEET_METADATA_COLUMN_MARKER = '[sm] '
-    SPREADSHEET_METADATA_COLUMN_TITLE = f'{SPREADSHEET_METADATA_COLUMN_MARKER}{{}}'
-    SPREADSHEET_CELL_FONT = 'Calibri'
-    SPREADSHEET_CELL_COLOR = 'baddad'
-    SPREADSHEET_CELL_FILL = 'solid'
-
-    URL_UNSAFE_CHARS_RE = r'\W'
-    URL_UNSAFE_REPLACE_CHAR = '_'
-    FILE_SCHEME = 'file://'
-    FILE_URL_SAFE_CHARS = ':/'
-    FILE_URL_SEPARATOR = '/'
-
-    USER_AGENT_HEADER = 'User-Agent'
-
-    META_HTTP_EQUIV_CHARSET_RE = rb'<meta http-equiv="content-type".*charset="([^"]+)"'
-    META_CHARSET_RE = rb'<meta charset="([^"]+)"'
-    META_REFRESH_RE = rb'<meta http-equiv="refresh" content="(?:[^;]+;\s+)?URL=([^"]+)"'
-    URL_FIELDS_TO_REUSE = ('scheme', 'netloc')
+    ROOT = Path(sys.executable if getattr(sys, 'frozen', False) else __file__).resolve().parent
+    MAIN_LOG = ROOT / f'{PROGRAM_NAME}_log{"" if DEVELOPMENT_MODE else TIMESTAMP_STEM}{TEXTFILE_SUFFIX}'
+    FULL_LOG = ROOT / f'{PROGRAM_NAME}_trace{"" if DEVELOPMENT_MODE else TIMESTAMP_STEM}{TEXTFILE_SUFFIX}'
+    INIFILE = ROOT / f'{PROGRAM_NAME}.ini'
 
 
 class Messages(StrEnum):
@@ -122,8 +81,8 @@ class Messages(StrEnum):
     PROCESS_DONE = '\nProceso finalizado.'
     DEBUGGING_DONE = 'Registro de depuración finalizado.'
 
-    ERROR_PREFIX = f'\n{Constants.ERROR_MARKER}Error: '
-    WARNING_PREFIX = f'{Constants.WARNING_MARKER}Aviso: '
+    ERROR_PREFIX = '\n*** Error: '
+    WARNING_PREFIX = '* Aviso: '
 
     UNKNOWN_ERRNO = 'desconocido'
 
@@ -238,6 +197,7 @@ class BaseParser(HTMLParser):
     EMPTY_KEY_PLACEHOLDER = '[vacío]'
     MULTIDATA_SEPARATOR = ' / '
     MULTIVALUE_SEPARATOR = ' === '
+    METADATA_KEY_TERMINATOR = ':'
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Initialize object."""
@@ -273,7 +233,7 @@ class BaseParser(HTMLParser):
                 return
         if self.within_k:
             logger.debug(Messages.METADATA_KEY_FOUND.format(data))
-            self.current_k += data.rstrip(Constants.METADATA_KEY_TERMINATOR)
+            self.current_k += data.rstrip(self.METADATA_KEY_TERMINATOR)
             self.last_k = self.current_k
             return
         if self.within_v:
@@ -513,8 +473,9 @@ def error(heading: str, message: str) -> None:
 
     The result is then logged using `logger.error()`.
     """
+    indentation = ' ' * 4  # Keep aligned with Messages.ERROR_PREFIX's marker width if that changes.
     prefixed_heading = f'{Messages.ERROR_PREFIX}{heading[0].lower()}{heading[1:]}'
-    logger.error(format_message(prefixed_heading, message, indentation=' ' * len(Constants.ERROR_MARKER)))
+    logger.error(format_message(prefixed_heading, message, indentation=indentation))
 
 
 def warning(message: str) -> None:
@@ -532,13 +493,13 @@ def loggerize(function: Callable[..., ExitCodes]) -> Callable[..., ExitCodes]:
     """Decorate *function* so it runs with logging enabled."""
     @wraps(function)
     def loggerize_wrapper(*args: str) -> ExitCodes:
-        logger.config(main_log_output=Constants.MAIN_OUTPUT_PATH, full_log_output=Constants.FULL_OUTPUT_PATH)
+        logger.config(main_log_output=Paths.MAIN_LOG, full_log_output=Paths.FULL_LOG)
 
         logger.debug(Messages.DEBUGGING_INIT)
         logger.info(Messages.PROGRAM_BANNER)
         for required_package in DEPENDENCIES:
             logger.debug(Messages.DEPENDENCY_BANNER.format(required_package.replace('==', ' v')))
-        logger.debug(Constants.USER_AGENT)
+        logger.debug(USER_AGENT)
 
         status = function(*args)
 
@@ -581,6 +542,9 @@ def load_profiles(profiles_path: Path) -> dict[str, Profile]:  # noqa: C901
     The returned dictionary will be empty if no profiles or only empty
     profiles are present in *profiles_path*.
     """
+    url_pattern_key = 'url'
+    bad_regex_error = 'BadRegex'
+
     config = configparser.ConfigParser()
     logger.debug(Messages.LOADING_PROFILES.format(profiles_path))
     try:
@@ -604,7 +568,7 @@ def load_profiles(profiles_path: Path) -> dict[str, Profile]:  # noqa: C901
             try:
                 parser_config[key] = re.compile(value, re.IGNORECASE)
             except re.error as exc:
-                message = Messages.PROFILES_WRONG_SYNTAX.format(Constants.PROFILE_BAD_REGEX_ERROR)
+                message = Messages.PROFILES_WRONG_SYNTAX.format(bad_regex_error)
                 details = Messages.PROFILES_WRONG_SYNTAX_DETAILS.format(
                     section, exc.msg,
                     key, Messages.PROFILES_WRONG_SYNTAX_DETAILS_SEPARATOR, exc.pattern,
@@ -612,7 +576,7 @@ def load_profiles(profiles_path: Path) -> dict[str, Profile]:  # noqa: C901
                     # The empty string above is needed as a placeholder.
                 )
                 raise ProfilesError(message, details) from exc
-        url_pattern = parser_config.pop(Constants.PROFILE_URL_PATTERN_KEY, None)
+        url_pattern = parser_config.pop(url_pattern_key, None)
         if url_pattern is None:
             raise ProfilesError(Messages.INVALID_PROFILE.format(section), Messages.PROFILE_WITHOUT_URL)
         for parser in parsers:
@@ -631,7 +595,7 @@ def is_accepted_url(value: str | None) -> bool:
     try:
         # The check is quite crude but it is simple and works perfectly
         # for the program's needs, which are simple, too.
-        return urlparse(value).scheme in Constants.ACCEPTED_URL_SCHEMES
+        return urlparse(value).scheme in ACCEPTED_URL_SCHEMES
     except ValueError:
         return False
 
@@ -649,10 +613,10 @@ def parse_arguments(*args: str) -> Generator[tuple[str, Handler]]:
         if is_accepted_url(arg):
             logger.debug(Messages.ARG_IS_SOURCE_SINGLE_URL)
             handler = single_url_handler(arg)
-        elif arg.endswith(Constants.TEXTFILE_SUFFIX):
+        elif arg.endswith(TEXTFILE_SUFFIX):
             logger.debug(Messages.ARG_IS_SOURCE_TEXTFILE)
             handler = textfile_handler(Path(arg))
-        elif arg.endswith(Constants.SPREADSHEET_SUFFIX):
+        elif arg.endswith(SPREADSHEET_SUFFIX):
             logger.debug(Messages.ARG_IS_SOURCE_SPREADSHEET)
             handler = spreadsheet_handler(Path(arg))
         else:
@@ -663,7 +627,7 @@ def parse_arguments(*args: str) -> Generator[tuple[str, Handler]]:
 
 def generate_sinkfile_path(base_path: Path) -> Path:
     """Generate a path usable for a data sink, from *base_path*."""
-    return base_path.with_stem(base_path.stem + Constants.SINKFILE_STEM)
+    return base_path.with_stem(base_path.stem + SINKFILE_STEM)
 
 
 # NOTE: the handlers below have to be generators for two reasons.
@@ -683,10 +647,11 @@ def generate_sinkfile_path(base_path: Path) -> Path:
 # yields the URLs and the second one yields a response to the caller
 # after the metadata has been received back into the handler.
 #
-# The first 'yield Constants.HANDLER_BOOTSTRAP_SUCCESS' expression in
-# the handlers is for signalling successful initialization after priming
-# the generator/coroutine.
-
+# The first 'yield HANDLER_READY' expression in the handlers signals a
+# successful initialization after priming the generator, which actually
+# works as a coroutine. Any string value works, but since it may appear
+# in tests, logs, etc. in the future, is better to use something clear.
+HANDLER_READY = 'Handler is ready.'
 def unsupported_source_handler() -> Handler:
     """Handle unsupported sources."""
     raise SourceError(Messages.UNSUPPORTED_SOURCE)
@@ -695,7 +660,12 @@ def unsupported_source_handler() -> Handler:
     # this handler is compatible with all the others. Of course, since
     # the handler just raises an exception, the yield will never be
     # executed…
-    yield Constants.HANDLER_BOOTSTRAP_SUCCESS  # pylint: disable=unreachable
+    yield HANDLER_READY  # pylint: disable=unreachable
+
+
+TEXTSINK_METADATA_HEADER = '{}\n'
+TEXTSINK_METADATA_PAIR = '  {}: {}\n'
+TEXTSINK_METADATA_FOOTER = '\n'
 
 
 def single_url_handler(url: str) -> Handler:
@@ -708,18 +678,18 @@ def single_url_handler(url: str) -> Handler:
 
     The dump output file has UTF-8 encoding.
     """
-    sinkfile_path = generate_sinkfile_path(url_to_path(url).with_suffix(Constants.TEXTFILE_SUFFIX))
+    sinkfile_path = generate_sinkfile_path(url_to_path(url).with_suffix(TEXTFILE_SUFFIX))
     with sinkfile_path.open('w', encoding='utf-8') as sink:
         logger.debug(Messages.DUMPING_METADATA_TO_SINK.format(sinkfile_path))
-        yield Constants.HANDLER_BOOTSTRAP_SUCCESS
+        yield HANDLER_READY
         if is_accepted_url(url):
             retrieved_metadata = yield url
             yield url
             if retrieved_metadata:
-                sink.write(Constants.TEXTSINK_METADATA_HEADER.format(url))
+                sink.write(TEXTSINK_METADATA_HEADER.format(url))
                 for key, value in retrieved_metadata.items():
                     logger.debug(Messages.DUMPING_METADATA_K_V.format(key, value))
-                    message = Constants.TEXTSINK_METADATA_PAIR.format(key, value)
+                    message = TEXTSINK_METADATA_PAIR.format(key, value)
 
                     # Console output allowed here because it is part of
                     # the handler documented and expected behavior.
@@ -728,7 +698,7 @@ def single_url_handler(url: str) -> Handler:
                     logger.dedent()
 
                     sink.write(message)
-                sink.write(Constants.TEXTSINK_METADATA_FOOTER)
+                sink.write(TEXTSINK_METADATA_FOOTER)
 
 
 def url_to_path(url: str) -> Path:
@@ -739,7 +709,7 @@ def url_to_path(url: str) -> Path:
     visually unobtrusive character which is safe to use in a path, so
     the path is still readable.
     """
-    return Path(re.sub(Constants.URL_UNSAFE_CHARS_RE, Constants.URL_UNSAFE_REPLACE_CHAR, url, flags=re.ASCII))
+    return Path(re.sub(r'\W', '_', url, flags=re.ASCII))
 
 
 def textfile_handler(source_file: Path) -> Handler:
@@ -755,7 +725,7 @@ def textfile_handler(source_file: Path) -> Handler:
     encoding = 'utf-8'
     with source_file.open(encoding=encoding) as source, sinkfile_path.open('w', encoding=encoding) as sink:
         logger.debug(Messages.DUMPING_METADATA_TO_SINK.format(sinkfile_path))
-        yield Constants.HANDLER_BOOTSTRAP_SUCCESS
+        yield HANDLER_READY
         for line in source.readlines():
             url = line.strip()
             if not is_accepted_url(url):
@@ -763,11 +733,11 @@ def textfile_handler(source_file: Path) -> Handler:
             retrieved_metadata = yield url
             yield url
             if retrieved_metadata:
-                sink.write(Constants.TEXTSINK_METADATA_HEADER.format(url))
+                sink.write(TEXTSINK_METADATA_HEADER.format(url))
                 for key, value in retrieved_metadata.items():
                     logger.debug(Messages.DUMPING_METADATA_K_V.format(key, value))
-                    sink.write(Constants.TEXTSINK_METADATA_PAIR.format(key, value))
-                sink.write(Constants.TEXTSINK_METADATA_FOOTER)
+                    sink.write(TEXTSINK_METADATA_PAIR.format(key, value))
+                sink.write(TEXTSINK_METADATA_FOOTER)
 
 
 def spreadsheet_handler(source_file: Path) -> Handler:
@@ -795,7 +765,7 @@ def spreadsheet_handler(source_file: Path) -> Handler:
         details = details[0].lower() + details[1:]
         raise SourceError(Messages.SOURCE_SHEET_IS_INVALID, details) from exc
     sink_workbook = load_workbook(sinkfile_path)
-    yield Constants.HANDLER_BOOTSTRAP_SUCCESS
+    yield HANDLER_READY
 
     source_sheet = source_workbook.worksheets[0]
     logger.debug(Messages.WORKING_SHEET.format(source_sheet.title))
@@ -849,16 +819,22 @@ def store_metadata_in_sheet(
     # trick for simulating static variables in functions is using a fake
     # default parameter and using 'SimpleNamespace':
     # https://stackoverflow.com/a/51437838
+
+    metadata_column_header = '[sm] {}'
+    cell_font = 'Calibri'
+    cell_color = 'baddad'
+    cell_fill = 'solid'
+
     for key, value in new_metadata.items():
         if key not in static.known_metadata:
-            column_header = Constants.SPREADSHEET_METADATA_COLUMN_TITLE.format(key)
+            column_header = metadata_column_header.format(key)
             logger.debug(Messages.NEW_METADATA_FOUND.format(key))
             column = sheet.max_column + 1
             static.known_metadata[key] = column
             logger.debug(Messages.METADATA_STORED_IN_COLUMN.format(key, get_column_letter(column)))
             cell = sheet.cell(row=1, column=column, value=column_header)
-            cell.font = Font(name=Constants.SPREADSHEET_CELL_FONT)
-            cell.fill = PatternFill(fgColor=Constants.SPREADSHEET_CELL_COLOR, fill_type=Constants.SPREADSHEET_CELL_FILL)
+            cell.font = Font(name=cell_font)
+            cell.fill = PatternFill(fgColor=cell_color, fill_type=cell_fill)
             # Set column width.
             #
             # As per Excel specification, the width units are the width
@@ -895,7 +871,7 @@ def bootstrap(handler: Handler) -> None:
     except FileNotFoundError as exc:
         raise SourceError(Messages.INPUT_FILE_NOT_FOUND) from exc
     except PermissionError as exc:
-        if Path(exc.filename).stem.endswith(Constants.SINKFILE_STEM):
+        if Path(exc.filename).stem.endswith(SINKFILE_STEM):
             raise SourceError(Messages.OUTPUT_FILE_NO_PERMISSION) from exc
         raise SourceError(Messages.INPUT_FILE_NO_PERMISSION) from exc
 
@@ -994,12 +970,12 @@ def retrieve_url(url: str) -> tuple[bytes, str]:
 
     current_url: str | None = url
 
-    if url.startswith(Constants.FILE_SCHEME):
+    if url.startswith('file://'):
         current_url = resolve_file_url(url)
 
     contents = b''
     charset = ''
-    headers = {Constants.USER_AGENT_HEADER: Constants.USER_AGENT}
+    headers = {'User-Agent': USER_AGENT}
     while current_url:
         logger.debug(Messages.PROCESSING_URL.format(current_url))
         with urlopen(Request(current_url, headers=headers)) as response:  # noqa: S310
@@ -1026,8 +1002,8 @@ def resolve_file_url(url: str) -> str:
     parsed_url = urlparse(url)
     resolved_path = unquote(parsed_url.path[1:])
     resolved_path = Path(resolved_path).resolve().as_posix()
-    resolved_path = quote(resolved_path, safe=Constants.FILE_URL_SAFE_CHARS)
-    return parsed_url._replace(path=Constants.FILE_URL_SEPARATOR + resolved_path).geturl()
+    resolved_path = quote(resolved_path, safe=':/')
+    return parsed_url._replace(path='/' + resolved_path).geturl()
 
 
 def get_redirected_url(contents: bytes, base_url: str) -> str | None:
@@ -1039,7 +1015,10 @@ def get_redirected_url(contents: bytes, base_url: str) -> str | None:
 
     Return redirected URL, or `None` if there is no redirection pragma.
     """
-    if match := re.search(Constants.META_REFRESH_RE, contents, re.IGNORECASE):
+    meta_refresh_re = rb'<meta http-equiv="refresh" content="(?:[^;]+;\s+)?URL=([^"]+)"'
+    url_fields_to_reuse = ('scheme', 'netloc')
+
+    if match := re.search(meta_refresh_re, contents, re.IGNORECASE):
         parsed_url = urlparse(base_url)
         redirected_url = urlparse(match.group(1).decode('ascii'))
         for field in parsed_url._fields:
@@ -1048,7 +1027,7 @@ def get_redirected_url(contents: bytes, base_url: str) -> str | None:
             # scheme and netloc will be reused from the base URL. Any
             # other field will be obtained from the redirected URL and
             # used, no matter if it is empty.
-            if field in Constants.URL_FIELDS_TO_REUSE and not getattr(redirected_url, field):
+            if field in url_fields_to_reuse and not getattr(redirected_url, field):
                 redirected_url = redirected_url._replace(**{field: value})
         redirected_url = urlunparse(redirected_url)
         logger.debug(Messages.REDIRECTED_URL.format(redirected_url))
@@ -1059,23 +1038,26 @@ def get_redirected_url(contents: bytes, base_url: str) -> str | None:
 def detect_html_charset(contents: bytes) -> str:
     """Obtain charset for *content* from HTML tags, if any.
 
-    If the charset can not be determined a sane fallback is used. It may
-    look like UTF-8 would be such a sane fallback, because some webpages
-    may NOT specify any encoding if they are using UTF-8 and it happens
-    to be identical to ASCII for 7-bit codepoints, **BUT** the problem
+    If the charset can not be determined a sane fallback (ISO-8859-1) is
+    used. It may look like UTF-8 would be such a sane fallback, because
+    some webpages may NOT specify any encoding if they are using UTF-8
+    and it is identical to ASCII for 7-bit codepoints, but the problem
     is that UTF-8 will fail for webpages whose encoding is any ISO/IEC
     8859 variant.
 
-    So, the sane default is another, set in the global configuration,
-    and it is based on the encoding most frequently used by the webpages
-    this program will generally process.
+    So, the default is based on the encoding most frequently used by the
+    webpages this program will generally process.
     """
-    charset = Constants.FALLBACK_HTML_CHARSET
-    if match := re.search(Constants.META_HTTP_EQUIV_CHARSET_RE, contents, re.IGNORECASE):
+    fallback_charset = 'ISO-8859-1'
+    meta_http_equiv_charset_re = rb'<meta http-equiv="content-type".*charset="([^"]+)"'
+    meta_charset_re = rb'<meta charset="([^"]+)"'
+
+    charset = fallback_charset
+    if match := re.search(meta_http_equiv_charset_re, contents, re.IGNORECASE):
         # Next best thing, from the meta http-equiv="content-type".
         logger.debug(Messages.CHARSET_FROM_HTTP_EQUIV)
         charset = match.group(1).decode('ascii')
-    elif match := re.search(Constants.META_CHARSET_RE, contents, re.IGNORECASE):
+    elif match := re.search(meta_charset_re, contents, re.IGNORECASE):
         # Last resort, from some meta charset, if any…
         logger.debug(Messages.CHARSET_FROM_META_CHARSET)
         charset = match.group(1).decode('ascii')
@@ -1104,8 +1086,8 @@ def main(*args: str) -> ExitCodes:  # pylint: disable=unused-variable
         return ExitCodes.NO_ARGUMENTS
 
     try:
-        profiles = load_profiles(Constants.INIFILE_PATH)
-        logger.debug(Messages.FOUND_PROFILES.format(Constants.OUTPUT_SEPARATOR.join(profiles.keys())))
+        profiles = load_profiles(Paths.INIFILE)
+        logger.debug(Messages.FOUND_PROFILES.format(', '.join(profiles.keys())))
     except ProfilesError as exc:
         error(str(exc), str(exc.details) if exc.details else '')
         return ExitCodes.ERROR

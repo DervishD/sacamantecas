@@ -1,4 +1,4 @@
-"""Test suite for unused constants and messages."""
+"""Test suite for unused class attributes."""
 import ast
 import functools
 import importlib.util
@@ -72,9 +72,9 @@ def codetrees() -> list[ast.Module]:
 
 
 @pytest.mark.parametrize('classname', [
-    pytest.param(sacamantecas.Constants.__name__, id='test_no_unused_Constants_attributes'),
-    pytest.param(sacamantecas.Messages.__name__, id='test_no_unused_Messages_attributes'),
     pytest.param(sacamantecas.ExitCodes.__name__, id='test_no_unused_ExitCodes_attributes'),
+    pytest.param(sacamantecas.Messages.__name__, id='test_no_unused_Messages_attributes'),
+    pytest.param(sacamantecas.Paths.__name__, id='test_no_unused_Paths_attributes'),
 ])
 # pylint: disable-next=unused-variable
 def test_no_unused_class_attributes(classname: str) -> None:

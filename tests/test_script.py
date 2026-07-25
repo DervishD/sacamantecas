@@ -5,18 +5,18 @@ from textwrap import dedent
 
 import pytest
 
-from sacamantecas import Constants, ExitCodes
+from sacamantecas import ExitCodes, Paths
 
 
 # pylint: disable-next=unused-variable
 def test_script_run(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
     """Test running the module instead of importing it."""
-    monkeypatch.setattr(Constants, 'MAIN_OUTPUT_PATH', None)
-    monkeypatch.setattr(Constants, 'FULL_OUTPUT_PATH', None)
+    monkeypatch.setattr(Paths, 'MAIN_LOG', None)
+    monkeypatch.setattr(Paths, 'FULL_LOG', None)
 
-    sys.argv = [Constants.__module__]
+    sys.argv = [Paths.__module__]
     with pytest.raises(SystemExit) as excinfo:
-        runpy.run_module(Constants.__module__)
+        runpy.run_module(Paths.__module__)
     assert excinfo.value.code == ExitCodes.NO_ARGUMENTS
 
     expected_stdout_start = 'sacamantecas versión'

@@ -7,11 +7,11 @@ import pytest
 
 from sacamantecas import (
     BaseParser,
-    Constants,
     ExitCodes,
     keyboard_interrupt_handler,
     logger,
     main,
+    Paths,
     SkimmingError,
     SourceError,
 )
@@ -26,8 +26,8 @@ def test_no_arguments(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     """Test handling of missing command line arguments."""
-    monkeypatch.setattr(Constants, 'MAIN_OUTPUT_PATH', None)
-    monkeypatch.setattr(Constants, 'FULL_OUTPUT_PATH', None)
+    monkeypatch.setattr(Paths, 'MAIN_LOG', None)
+    monkeypatch.setattr(Paths, 'FULL_LOG', None)
 
     assert main() == ExitCodes.NO_ARGUMENTS
 
@@ -85,11 +85,11 @@ def test_main_exceptions(
     entry_point_name: str,
 ) -> None:
     """Test main loop exception handling in `main()`."""
-    monkeypatch.setattr(Constants, 'MAIN_OUTPUT_PATH', None)
-    monkeypatch.setattr(Constants, 'FULL_OUTPUT_PATH', None)
+    monkeypatch.setattr(Paths, 'MAIN_LOG', None)
+    monkeypatch.setattr(Paths, 'FULL_LOG', None)
 
     inifile_path = tmp_path / 'profiles.ini'
-    monkeypatch.setattr(Constants, 'INIFILE_PATH', inifile_path)
+    monkeypatch.setattr(Paths, 'INIFILE', inifile_path)
     inifile_path.write_text('[example_section]\nurl = .*\nexample_key = example_value\n')
 
     error_message = 'example_error_message'
@@ -112,13 +112,13 @@ def test_main_exceptions(
 # pylint: disable-next=unused-variable
 def test_main_full_invocation(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """Test full invocation of `main()` function."""
-    main_log_path = tmp_path / Constants.MAIN_OUTPUT_PATH.name
-    full_log_path = tmp_path / Constants.FULL_OUTPUT_PATH.name
-    monkeypatch.setattr(Constants, 'MAIN_OUTPUT_PATH', main_log_path)
-    monkeypatch.setattr(Constants, 'FULL_OUTPUT_PATH', full_log_path)
+    main_log_path = tmp_path / Paths.MAIN_LOG.name
+    full_log_path = tmp_path / Paths.FULL_LOG.name
+    monkeypatch.setattr(Paths, 'MAIN_LOG', main_log_path)
+    monkeypatch.setattr(Paths, 'FULL_LOG', full_log_path)
 
     inifile_path = tmp_path / 'profiles.ini'
-    monkeypatch.setattr(Constants, 'INIFILE_PATH', inifile_path)
+    monkeypatch.setattr(Paths, 'INIFILE', inifile_path)
     inifile_path.write_text('[example_section]\nurl = .*\nexample_key = example_value\n')
 
     def mock_saca_las_mantecas(_u: str, _p: BaseParser) -> dict[str, str]:
