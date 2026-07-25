@@ -1,6 +1,5 @@
 """Test suite for the logging system."""
 import logging
-import platform
 from textwrap import dedent
 from typing import TYPE_CHECKING
 
@@ -46,7 +45,6 @@ def test_logging_setup(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     assert main_log_path.is_file()
     assert full_log_path.is_file()
 
-    platform_string = f'(Windows {platform.version()};{platform.architecture()[0]};{platform.machine()})'
     required_packages = [pkg.replace('==', ' v') for pkg in DEPENDENCIES]
     required_packages = [f'        DEBUG    | loggerize_wrapper() Usando paquete {pkg}' for pkg in required_packages]
 
@@ -54,7 +52,7 @@ def test_logging_setup(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         DEBUG    | loggerize_wrapper() Registro de depuración iniciado.
         INFO     | loggerize_wrapper() {PROGRAM_NAME} versión {BUILD} ({REPOSITORY})
         {'\n'.join(required_packages).lstrip()}
-        DEBUG    | loggerize_wrapper() {PROGRAM_NAME}/{VERSION} +{REPOSITORY} {platform_string}
+        DEBUG    | loggerize_wrapper() {PROGRAM_NAME}/{VERSION} (bot; +{REPOSITORY})
         ERROR    | f() {message}
         INFO     | loggerize_wrapper()
         INFO     | loggerize_wrapper() Proceso finalizado.
