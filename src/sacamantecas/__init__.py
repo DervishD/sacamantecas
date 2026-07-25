@@ -524,7 +524,34 @@ def keyboard_interrupt_handler(function: Callable[..., ExitCodes]) -> Callable[.
     return handle_keyboard_interrupt_wrapper
 
 
-def load_profiles(profiles_path: Path) -> dict[str, Profile]:  # noqa: C901
+def build_parser_config(config: configparser.ConfigParser, section: str) -> dict[str, re.Pattern[str]]:
+    """Build parser config from *section* within *config*.
+
+    Empty values are silently skipped.
+    Regular expressions are compiled.
+
+    Raise `ProfilesError` if any value fails to compile as a regex.
+    """
+    bad_regex_error = 'BadRegex'
+    parser_config: dict[str, re.Pattern[str]] = {}
+    for key, value in config[section].items():
+        if not value:
+            continue
+        try:
+            parser_config[key] = re.compile(value, re.IGNORECASE)
+        except re.error as exc:
+            message = Messages.PROFILES_WRONG_SYNTAX.format(bad_regex_error)
+            details = Messages.PROFILES_WRONG_SYNTAX_DETAILS.format(
+                section, exc.msg,
+                key, Messages.PROFILES_WRONG_SYNTAX_DETAILS_SEPARATOR, exc.pattern,
+                '', (exc.pos or 0) + len(key) + len(Messages.PROFILES_WRONG_SYNTAX_DETAILS_SEPARATOR),
+                # The empty string above is needed as a placeholder.
+            )
+            raise ProfilesError(message, details) from exc
+    return parser_config
+
+
+def load_profiles(profiles_path: Path) -> dict[str, Profile]:
     """Load the profiles from *profiles_path*.
 
     Read *profiles_path*, which contains profile definitions, and return
@@ -543,7 +570,6 @@ def load_profiles(profiles_path: Path) -> dict[str, Profile]:  # noqa: C901
     profiles are present in *profiles_path*.
     """
     url_pattern_key = 'url'
-    bad_regex_error = 'BadRegex'
 
     config = configparser.ConfigParser()
     logger.debug(Messages.LOADING_PROFILES.format(profiles_path))
@@ -561,21 +587,7 @@ def load_profiles(profiles_path: Path) -> dict[str, Profile]:  # noqa: C901
     for section in config.sections():
         if not config[section]:
             continue
-        parser_config: dict[str, re.Pattern[str]] = {}
-        for key, value in config[section].items():
-            if not value:
-                continue
-            try:
-                parser_config[key] = re.compile(value, re.IGNORECASE)
-            except re.error as exc:
-                message = Messages.PROFILES_WRONG_SYNTAX.format(bad_regex_error)
-                details = Messages.PROFILES_WRONG_SYNTAX_DETAILS.format(
-                    section, exc.msg,
-                    key, Messages.PROFILES_WRONG_SYNTAX_DETAILS_SEPARATOR, exc.pattern,
-                    '', (exc.pos or 0) + len(key) + len(Messages.PROFILES_WRONG_SYNTAX_DETAILS_SEPARATOR),
-                    # The empty string above is needed as a placeholder.
-                )
-                raise ProfilesError(message, details) from exc
+        parser_config = build_parser_config(config, section)
         url_pattern = parser_config.pop(url_pattern_key, None)
         if url_pattern is None:
             raise ProfilesError(Messages.INVALID_PROFILE.format(section), Messages.PROFILE_WITHOUT_URL)
