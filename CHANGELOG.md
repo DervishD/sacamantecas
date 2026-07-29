@@ -36,7 +36,7 @@ This project versioning scheme complies with the `Python Packaging Authority` [v
 - Separate `dump_url.py` utility
 
 ### Fixed
-- Do not actually access the network in network-related test units
+- Do not actually access the network in network-related unit tests
 
 
 ## [5.2.0] 2025-06-30

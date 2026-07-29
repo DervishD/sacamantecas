@@ -68,7 +68,7 @@ def test_keyboard_interrupt_handler(capsys: pytest.CaptureFixture[str]) -> None:
 
 # pylint: disable-next=unused-variable
 class ATestParser(BaseParser):
-    """Test parser, needed for the test units below."""  # noqa: D204
+    """Test parser, needed for the unit tests below."""  # noqa: D204
     PARAMETERS = BaseParser.PARAMETERS | {'example_key'}
 
 
