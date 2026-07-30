@@ -77,6 +77,9 @@ pythonpath = ["src"]
 line-length = 120
 target-version = "py314"
 
+[tool.ruff.format]
+quote-style = "single"
+
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = ["D203", "D213"]
