@@ -11,6 +11,7 @@ This project versioning scheme complies with the `Python Packaging Authority` [v
 - Include `CHANGELOG.md` and `README.md` in released ZIP file
 - Add `legion` dependency
 - Improve (vastly) program output
+- Improve unit tests
 
 
 ## [5.4.0] 2026-02-21
