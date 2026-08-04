@@ -43,6 +43,8 @@ type MetadataValue = str
 type Metadata = dict[MetadataKey, MetadataValue]
 type RawMetadata = dict[MetadataKey, list[MetadataValue]]
 
+type Url = str
+
 # Handlers are not implemented as classes, but as generators.
 type Handler = Generator[str, Metadata | None]
 
@@ -607,7 +609,7 @@ def load_profiles(profiles_path: Path) -> dict[str, Profile]:
     return profiles
 
 
-def is_accepted_url(value: str | None) -> bool:
+def is_accepted_url(value: Url | None) -> bool:
     """Check whether value is an accepted URL or not."""
     try:
         # The check is quite crude but it is simple and works perfectly
@@ -685,7 +687,7 @@ TEXTSINK_METADATA_PAIR = '  {}: {}\n'
 TEXTSINK_METADATA_FOOTER = '\n'
 
 
-def single_url_handler(url: str) -> Handler:
+def single_url_handler(url: Url) -> Handler:
     """Handle single *url*.
 
     The metadata for *url* is logged with `logging.INFO` level, so it
@@ -718,7 +720,7 @@ def single_url_handler(url: str) -> Handler:
                 sink.write(TEXTSINK_METADATA_FOOTER)
 
 
-def url_to_path(url: str) -> Path:
+def url_to_path(url: Url) -> Path:
     """Convert the given *url* to a valid path.
 
     The method is quite crude but it works: replace all ASCII non-word
@@ -806,7 +808,7 @@ def spreadsheet_handler(source_file: Path) -> Handler:
     source_workbook.close()
 
 
-def get_url_from_row(row: tuple[Cell | MergedCell, ...]) -> str | None:
+def get_url_from_row(row: tuple[Cell | MergedCell, ...]) -> Url | None:
     """Find first URL in row."""
     url = None
     for cell in row:
@@ -893,7 +895,7 @@ def bootstrap(handler: Handler) -> None:
         raise SourceError(Messages.INPUT_FILE_NO_PERMISSION) from exc
 
 
-def get_parser(url: str, profiles: dict[str, Profile]) -> BaseParser:
+def get_parser(url: Url, profiles: dict[str, Profile]) -> BaseParser:
     """Return the appropriate parser for the *url*.
 
     The appropriate parser is retrieved by finding the needed profile
@@ -909,7 +911,7 @@ def get_parser(url: str, profiles: dict[str, Profile]) -> BaseParser:
     raise SkimmingError(Messages.NO_MATCHING_PROFILE)
 
 
-def saca_las_mantecas(url: str, parser: BaseParser) -> Metadata:  # noqa: C901
+def saca_las_mantecas(url: Url, parser: BaseParser) -> Metadata:  # noqa: C901
     """Saca las mantecas.
 
     Saca las mantecas from the given *url*, that is, retrieve contents,
@@ -972,7 +974,7 @@ def saca_las_mantecas(url: str, parser: BaseParser) -> Metadata:  # noqa: C901
     raise SkimmingError(Messages.NO_METADATA_FOUND)
 
 
-def retrieve_url(url: str) -> tuple[bytes, str]:
+def retrieve_url(url: Url) -> tuple[bytes, str]:
     """Retrieve contents from *url*.
 
     First resolve any `meta http-equiv="Refresh"` redirection for *url*
@@ -985,7 +987,7 @@ def retrieve_url(url: str) -> tuple[bytes, str]:
     if not is_accepted_url(url):
         raise URLError(Messages.UNKNOWN_URL_TYPE.format(url))
 
-    current_url: str | None = url
+    current_url: Url | None = url
 
     if url.startswith('file://'):
         current_url = resolve_file_url(url)
@@ -1014,7 +1016,7 @@ def retrieve_url(url: str) -> tuple[bytes, str]:
     return contents, charset
 
 
-def resolve_file_url(url: str) -> str:
+def resolve_file_url(url: Url) -> Url:
     """Resolve relative paths in `file:` *url*."""
     parsed_url = urlparse(url)
     resolved_path = unquote(parsed_url.path[1:])
@@ -1023,7 +1025,7 @@ def resolve_file_url(url: str) -> str:
     return parsed_url._replace(path='/' + resolved_path).geturl()
 
 
-def get_redirected_url(contents: bytes, base_url: str) -> str | None:
+def get_redirected_url(contents: bytes, base_url: Url) -> Url | None:
     """Get redirected URL, if any, from *contents*.
 
     Get redirected URL from a `meta http-equiv="refresh"` pragma in the

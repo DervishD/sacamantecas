@@ -19,6 +19,7 @@ from sacamantecas import (
     Profile,
     ProfilesError,
     SkimmingError,
+    Url,
 )
 
 if TYPE_CHECKING:
@@ -273,7 +274,7 @@ def test_profile_validation(
 ])
 # pylint: disable-next=unused-variable
 def test_get_parser(
-    url: str,
+    url: Url,
     context_manager: AbstractContextManager[None | pytest.ExceptionInfo[SkimmingError]],
     expected_profile_name: str | None,
 ) -> None:

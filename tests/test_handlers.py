@@ -22,6 +22,7 @@ from sacamantecas import (
     SourceError,
     spreadsheet_handler,
     textfile_handler,
+    Url,
     url_to_path,
 )
 
@@ -89,13 +90,9 @@ def test_handler_single_url(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> 
     handler = single_url_handler(SAMPLE_URLS[0])
     bootstrap(handler)
 
-    urls: list[str] = []
+    urls: list[Url] = []
     for url in handler:
-        assert url is not None
-        assert not isinstance(url, bool)
-
         handler.send(EXPECTED_METADATA[url])
-
         urls.append(url)
 
     assert sinkfile_path.is_file()
@@ -156,20 +153,16 @@ def test_handler_textfile(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> No
     handler = textfile_handler(sourcefile_path)
     bootstrap(handler)
 
-    urls: list[str] = []
+    urls: list[Url] = []
     for url in handler:
-        assert url is not None
-        assert not isinstance(url, bool)
-
         handler.send(EXPECTED_METADATA[url])
-
         urls.append(url)
 
     assert sinkfile_path.is_file()
     assert len(urls) == len(SAMPLE_URLS)
     assert urls == SAMPLE_URLS
 
-    result: dict[str, Metadata] = {}
+    result: dict[Url, Metadata] = {}
     current_k = None
     for line in sinkfile_path.read_text().rstrip('\n').split('\n'):
         if not line.rstrip():
@@ -229,8 +222,8 @@ def test_handler_textfile_no_metadata(tmp_path: Path, monkeypatch: pytest.Monkey
         id='test_handler_spreadsheet_with_metadata',
     ),
     pytest.param(
-        defaultdict[str, Metadata](dict),
-        cast('dict[str, Metadata]', {url: {} for url in SAMPLE_URLS}),
+        defaultdict[Url, Metadata](dict),
+        cast('dict[Url, Metadata]', {url: {} for url in SAMPLE_URLS}),
         id='test_handler_spreadsheet_without_metadata',
     ),
 ])
@@ -238,8 +231,8 @@ def test_handler_textfile_no_metadata(tmp_path: Path, monkeypatch: pytest.Monkey
 def test_handler_spreadsheet(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
-    metadata: dict[str, Metadata],
-    expected: dict[str, Metadata],
+    metadata: dict[Url, Metadata],
+    expected: dict[Url, Metadata],
 ) -> None:
     """Test spreadsheet handler."""
     sourcefile_path = tmp_path / 'urls.xlsx'
@@ -269,10 +262,8 @@ def test_handler_spreadsheet(
     handler = spreadsheet_handler(sourcefile_path)
     bootstrap(handler)
 
-    urls: list[str] = []
+    urls: list[Url] = []
     for url in handler:
-        assert isinstance(url, str)
-
         handler.send(metadata[url])
 
         urls.append(url)
@@ -369,7 +360,7 @@ def test_unwritable_output_file(
     monkeypatch: pytest.MonkeyPatch,
     source_stem: str,
     unwritable_path: Path,  # pylint: disable=redefined-outer-name
-    handler_factory: Callable[[str | Path], Handler],
+    handler_factory: Callable[[Url | Path], Handler],
 ) -> None:
     """Test handling of non-writable files."""
     def patched_generate_sinkfile_path(_: Path) -> Path:

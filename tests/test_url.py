@@ -14,6 +14,7 @@ from sacamantecas import (
     is_accepted_url,
     resolve_file_url,
     retrieve_url,
+    Url,
 )
 
 
@@ -71,7 +72,7 @@ def test_file_url_resolution(request: pytest.FixtureRequest, netloc:str, base:st
     ),
 ])
 # pylint: disable-next=unused-variable
-def test_url_redirection(delay: str, url: str, extra: str, expected: str) -> None:
+def test_url_redirection(delay: str, url: Url, extra: str, expected: Url) -> None:
     """Test *url* redirections using *delay* and *extra* fields."""
     base_url = 'http://sub.domain.tld:80/root/sub/p.html;pr?k1=v1&k2=v2#fr'
     contents = fr'<meta http-equiv="refresh" content="{delay}url={url}{extra}"'.encode()

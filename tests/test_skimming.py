@@ -10,6 +10,7 @@ from sacamantecas import (
     Metadata,
     saca_las_mantecas,
     SkimmingError,
+    Url,
 )
 
 TEST_PARSER = BaseParser()
@@ -93,12 +94,12 @@ HTTP_RETRIEVAL_ERROR_MESSAGE = 'No se obtuvieron contenidos.'
 # pylint: disable-next=unused-variable
 def test_skimming_url_retrieval_errors(
     monkeypatch: pytest.MonkeyPatch,
-    url: str,
+    url: Url,
     exception: type[Exception],
     error_message: tuple[str, str],
 ) -> None:
     """Test *url* retrieval errors."""
-    def mock_urlopen(_: str) -> None:
+    def mock_urlopen(_: Url) -> None:
         raise exception
 
     monkeypatch.setitem(saca_las_mantecas.__globals__, 'urlopen', mock_urlopen)
@@ -112,7 +113,7 @@ def test_skimming_url_retrieval_errors(
 # pylint: disable-next=unused-variable
 def test_skimming_no_contents(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test retrieving no contents from the URL."""
-    def mock_retrieve_url(_: str) -> tuple[None, None]:
+    def mock_retrieve_url(_: Url) -> tuple[None, None]:
         return None, None
 
     monkeypatch.setitem(saca_las_mantecas.__globals__, 'retrieve_url', mock_retrieve_url)
@@ -126,7 +127,7 @@ def test_skimming_no_contents(monkeypatch: pytest.MonkeyPatch) -> None:
 # pylint: disable-next=unused-variable
 def test_skimming_no_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test retrieving no metadata from the URL."""
-    def mock_retrieve_url(_: str) -> tuple[bytes, str]:
+    def mock_retrieve_url(_: Url) -> tuple[bytes, str]:
         return b'example_contents', 'utf-8'
 
     monkeypatch.setitem(saca_las_mantecas.__globals__, 'retrieve_url', mock_retrieve_url)
@@ -141,7 +142,7 @@ def test_skimming_no_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_skimming_proper_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test retrieving proper metadata from the URL."""
     expected_metadata = {'example_key' : 'example_value'}
-    def mock_retrieve_url(_: str) -> tuple[bytes, str]:
+    def mock_retrieve_url(_: Url) -> tuple[bytes, str]:
         return b'example_contents', 'utf-8'
 
     def mock_get_metadata(_: object) -> Metadata:

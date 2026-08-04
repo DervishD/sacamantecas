@@ -3,11 +3,11 @@ import sys
 
 from legion import ensure_utf8_output, excepthook, get_logger
 
-from sacamantecas import retrieve_url, url_to_path
+from sacamantecas import retrieve_url, Url, url_to_path
 
 
 @ensure_utf8_output
-def main(*args: str) -> int:
+def main(*args: Url) -> int:
     """."""
     logger = get_logger(__name__)
     logger.config()
