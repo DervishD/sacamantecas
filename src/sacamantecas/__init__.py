@@ -38,8 +38,13 @@ from .about import BUILD, DEPENDENCIES, DEVELOPMENT_MODE, PROGRAM_NAME, REPOSITO
 if TYPE_CHECKING:
     from openpyxl.worksheet.worksheet import Worksheet
 
+type MetadataKey = str
+type MetadataValue = str
+type Metadata = dict[MetadataKey, MetadataValue]
+type RawMetadata = dict[MetadataKey, list[MetadataValue]]
+
 # Handlers are not implemented as classes, but as generators.
-type Handler = Generator[str, dict[str, str] | None]
+type Handler = Generator[str, Metadata | None]
 
 
 USER_AGENT = f'{PROGRAM_NAME}/{VERSION} (bot; +{REPOSITORY})'
@@ -192,8 +197,8 @@ class BaseParser(HTMLParser):
     """Base class for catalogue parsers."""
 
     PARAMETERS: ClassVar[set[str]] = set()
-    DEFAULT_K = ''
-    DEFAULT_V = ''
+    DEFAULT_K: MetadataKey = ''
+    DEFAULT_V: MetadataValue = ''
     EMPTY_KEY_PLACEHOLDER = '[vacío]'
     MULTIDATA_SEPARATOR = ' / '
     MULTIVALUE_SEPARATOR = ' === '
@@ -203,10 +208,10 @@ class BaseParser(HTMLParser):
         """Initialize object."""
         self.within_k: bool
         self.within_v: bool
-        self.current_k: str
-        self.current_v: str
-        self.last_k: str
-        self.retrieved_metadata: dict[str, list[str]]
+        self.current_k: MetadataKey
+        self.current_v: MetadataValue
+        self.last_k: MetadataKey
+        self.retrieved_metadata: RawMetadata
         self.config: dict[str, re.Pattern[str]]
         super().__init__(*args, **kwargs)
 
@@ -274,9 +279,9 @@ class BaseParser(HTMLParser):
         self.current_k = self.DEFAULT_K
         self.current_v = self.DEFAULT_V
 
-    def get_metadata(self) -> dict[str, str]:
+    def get_metadata(self) -> Metadata:
         """Get the metadata retrieved so far."""
-        processed_metadata: dict[str, str] = {}
+        processed_metadata: Metadata = {}
         for key, value in self.retrieved_metadata.items():
             processed_metadata[key] = self.MULTIVALUE_SEPARATOR.join(value)
         return processed_metadata
@@ -818,7 +823,7 @@ def get_url_from_row(row: tuple[Cell | MergedCell, ...]) -> str | None:
 def store_metadata_in_sheet(
     sheet: Worksheet,
     row: int,
-    new_metadata: dict[str, str],
+    new_metadata: Metadata,
     static: SimpleNamespace = SimpleNamespace(known_metadata = {}),  # noqa: B008
 ) -> None:
     """Store *new_metadata* in provided *sheet* at given *row*.
@@ -904,7 +909,7 @@ def get_parser(url: str, profiles: dict[str, Profile]) -> BaseParser:
     raise SkimmingError(Messages.NO_MATCHING_PROFILE)
 
 
-def saca_las_mantecas(url: str, parser: BaseParser) -> dict[str, str]:  # noqa: C901
+def saca_las_mantecas(url: str, parser: BaseParser) -> Metadata:  # noqa: C901
     """Saca las mantecas.
 
     Saca las mantecas from the given *url*, that is, retrieve contents,

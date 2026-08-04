@@ -11,7 +11,11 @@ from sacamantecas import (
     BaratzParser,
     BaseParser,
     logger,
+    Metadata,
+    MetadataKey,
+    MetadataValue,
     OldRegimeParser,
+    RawMetadata,
 )
 
 
@@ -124,7 +128,7 @@ def test_parser_reset() -> None:
     ),
 ])
 # pylint: disable-next=unused-variable
-def test_metadata_storage(caplog: pytest.LogCaptureFixture, k: str, v: str, expected: str) -> None:
+def test_metadata_storage(caplog: pytest.LogCaptureFixture, k: MetadataKey, v: MetadataValue, expected: str) -> None:
     """Test `store_metadata()` branches."""
     logger.propagate = True
     caplog.set_level(logging.DEBUG)
@@ -162,7 +166,7 @@ MULTIPLE_K, MULTIPLE_V = 'multiple_key', ['multiple_value1', 'multiple_value2', 
     ),
 ])
 # pylint: disable-next=unused-variable
-def test_metadata_retrieval(metadata: dict[str, list[str]], expected: dict[str, str]) -> None:
+def test_metadata_retrieval(metadata: RawMetadata, expected: Metadata) -> None:
     """Test `get_metadata()`."""
     parser = BaseParser()
 
@@ -205,7 +209,7 @@ WS_NL_DATA = '  {}\n   whitespaced     \n       and\t\n    newlined   '
     pytest.param((EMPTY_DATA, EMPTY_DATA), {}, id='test_parser_baseline_missing_data'),
 ])
 # pylint: disable-next=unused-variable
-def test_parser_baseline(contents: tuple[str | None, str | None], expected: dict[str, str]) -> None:
+def test_parser_baseline(contents: tuple[MetadataKey | None, MetadataValue | None], expected: Metadata) -> None:
     """Test the basic functionality of parsers."""
     parser = BaseParser()
 
@@ -353,7 +357,7 @@ OP_EE = ELEMENT_E.format(TAG=TAG)
     pytest.param(f'<{TAG} wrong="wrong"></{TAG}>', (), id='test_old_regime_parser_wrong_attribute_in_marker_tag'),
 ])
 # pylint: disable-next=unused-variable
-def test_old_regime_parser(contents: str, expected: tuple[str, str]) -> None:
+def test_old_regime_parser(contents: str, expected: tuple[MetadataKey, MetadataValue]) -> None:
     """Test *Old Regime* parser."""
     k_data = generate_random_string()
     v_data = generate_random_string()
@@ -473,7 +477,7 @@ BP_VB, BP_VE = ELEMENT_B.format(TAG=BaratzParser.V_TAG, MARKER=''), ELEMENT_E.fo
     pytest.param(f'<{M_TAG} wrong="wrong"></{M_TAG}>', (), id='test_baratz_parser_wrong_attribute_in_marker_tag'),
 ])
 # pylint: disable-next=unused-variable
-def test_baratz_parser(contents: str, expected: tuple[str, str]) -> None:
+def test_baratz_parser(contents: str, expected: tuple[MetadataKey, MetadataValue]) -> None:
     """Test *Baratz* parser."""
     k_data = generate_random_string()
     v_data = generate_random_string()

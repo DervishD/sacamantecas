@@ -11,6 +11,7 @@ from sacamantecas import (
     keyboard_interrupt_handler,
     logger,
     main,
+    Metadata,
     Paths,
     SkimmingError,
     SourceError,
@@ -121,7 +122,7 @@ def test_main_full_invocation(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -
     monkeypatch.setattr(Paths, 'INIFILE', inifile_path)
     inifile_path.write_text('[example_section]\nurl = .*\nexample_key = example_value\n')
 
-    def mock_saca_las_mantecas(_u: str, _p: BaseParser) -> dict[str, str]:
+    def mock_saca_las_mantecas(_u: str, _p: BaseParser) -> Metadata:
         return {'example_key' : 'example_value'}
     monkeypatch.setitem(main.__globals__, 'saca_las_mantecas', mock_saca_las_mantecas)
 

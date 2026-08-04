@@ -7,6 +7,7 @@ import pytest
 
 from sacamantecas import (
     BaseParser,
+    Metadata,
     saca_las_mantecas,
     SkimmingError,
 )
@@ -143,7 +144,7 @@ def test_skimming_proper_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
     def mock_retrieve_url(_: str) -> tuple[bytes, str]:
         return b'example_contents', 'utf-8'
 
-    def mock_get_metadata(_: object) -> dict[str, str]:
+    def mock_get_metadata(_: object) -> Metadata:
         return expected_metadata
 
     monkeypatch.setitem(saca_las_mantecas.__globals__, 'retrieve_url', mock_retrieve_url)

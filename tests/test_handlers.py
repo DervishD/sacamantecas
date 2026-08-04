@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from random import choice, randrange
 import subprocess
-from typing import TYPE_CHECKING
+from typing import cast, TYPE_CHECKING
 from uuid import uuid4
 
 from openpyxl import load_workbook, Workbook
@@ -17,6 +17,7 @@ from sacamantecas import (
     bootstrap,
     get_url_from_row,
     Handler,
+    Metadata,
     single_url_handler,
     SourceError,
     spreadsheet_handler,
@@ -168,7 +169,7 @@ def test_handler_textfile(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> No
     assert len(urls) == len(SAMPLE_URLS)
     assert urls == SAMPLE_URLS
 
-    result: dict[str, dict[str, str]] = {}
+    result: dict[str, Metadata] = {}
     current_k = None
     for line in sinkfile_path.read_text().rstrip('\n').split('\n'):
         if not line.rstrip():
@@ -228,8 +229,8 @@ def test_handler_textfile_no_metadata(tmp_path: Path, monkeypatch: pytest.Monkey
         id='test_handler_spreadsheet_with_metadata',
     ),
     pytest.param(
-        defaultdict[str, dict[str, str]](dict),
-        {url: dict[str, str]() for url in SAMPLE_URLS},
+        defaultdict[str, Metadata](dict),
+        cast('dict[str, Metadata]', {url: {} for url in SAMPLE_URLS}),
         id='test_handler_spreadsheet_without_metadata',
     ),
 ])
@@ -237,8 +238,8 @@ def test_handler_textfile_no_metadata(tmp_path: Path, monkeypatch: pytest.Monkey
 def test_handler_spreadsheet(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
-    metadata: dict[str, dict[str, str]],
-    expected: dict[str, dict[str, str]],
+    metadata: dict[str, Metadata],
+    expected: dict[str, Metadata],
 ) -> None:
     """Test spreadsheet handler."""
     sourcefile_path = tmp_path / 'urls.xlsx'
