@@ -45,6 +45,8 @@ type RawMetadata = dict[MetadataKey, list[MetadataValue]]
 
 type Url = str
 
+type ParserConfig = dict[str, re.Pattern[str]]
+
 # Handlers are not implemented as classes, but as generators.
 type Handler = Generator[str, Metadata | None]
 
@@ -214,7 +216,7 @@ class BaseParser(HTMLParser):
         self.current_v: MetadataValue
         self.last_k: MetadataKey
         self.retrieved_metadata: RawMetadata
-        self.config: dict[str, re.Pattern[str]]
+        self.config: ParserConfig
         super().__init__(*args, **kwargs)
 
     def reset(self) -> None:
@@ -248,7 +250,7 @@ class BaseParser(HTMLParser):
             self.current_v += f'{self.MULTIDATA_SEPARATOR if self.current_v else ''}{data}'
             return
 
-    def configure(self, config: dict[str, re.Pattern[str]]) -> None:
+    def configure(self, config: ParserConfig) -> None:
         """Configure parser.
 
         Set up parser with configuration from *config*, that is, a set
@@ -468,7 +470,7 @@ class Profile(NamedTuple):
     """Abstraction for profiles."""  # noqa: D204
     url_pattern: re.Pattern[str]
     parser: BaseParser
-    parser_config: dict[str, re.Pattern[str]]
+    parser_config: ParserConfig
 
 
 def error(heading: str, message: str) -> None:
@@ -531,7 +533,7 @@ def keyboard_interrupt_handler(function: Callable[..., ExitCodes]) -> Callable[.
     return handle_keyboard_interrupt_wrapper
 
 
-def build_parser_config(config: configparser.ConfigParser, section: str) -> dict[str, re.Pattern[str]]:
+def build_parser_config(config: configparser.ConfigParser, section: str) -> ParserConfig:
     """Build parser config from *section* within *config*.
 
     Empty values are silently skipped.
@@ -540,7 +542,7 @@ def build_parser_config(config: configparser.ConfigParser, section: str) -> dict
     Raise `ProfilesError` if any value fails to compile as a regex.
     """
     bad_regex_error = 'BadRegex'
-    parser_config: dict[str, re.Pattern[str]] = {}
+    parser_config: ParserConfig = {}
     for key, value in config[section].items():
         if not value:
             continue
