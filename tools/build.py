@@ -71,7 +71,7 @@ def is_venv_ready(venv_path: Path) -> bool:
         return True
 
     # But if it exists, it has to be active.
-    if os.environ['VIRTUAL_ENV'].lower() != str(venv_path).lower():
+    if os.environ.get('VIRTUAL_ENV', '').lower() != str(venv_path).lower():
         error('wrong or missing VIRTUAL_ENV environment variable.')
         return False
 
