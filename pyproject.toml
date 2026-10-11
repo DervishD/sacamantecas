@@ -82,7 +82,7 @@ quote-style = "single"
 
 [tool.ruff.lint]
 select = ["ALL"]
-ignore = ["D203", "D213"]
+ignore = ["CPY001", "D203", "D213"]
 
 [tool.ruff.lint.extend-per-file-ignores]
 "tests/**/*.py" = ["S101"]
