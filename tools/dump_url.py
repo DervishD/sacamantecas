@@ -22,7 +22,7 @@ def main(*args: Url) -> int:
 
         output_path = Path(re.sub(r'\W', '_', url).rstrip('. ')).with_suffix('.html')
         logger.info('Dumping web page to %s', output_path)
-        output_path.write_text(contents, encoding='utf-8')
+        output_path.write_text(contents, encoding=encoding)
     return 0
 
 
