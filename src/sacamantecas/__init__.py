@@ -986,9 +986,6 @@ def retrieve_url(url: Url) -> tuple[bytes, str]:
 
     Return a (contents, charset) tuple.
     """
-    if not is_accepted_url(url):
-        raise URLError(Messages.UNKNOWN_URL_TYPE.format(url))
-
     current_url: Url | None = url
 
     if url.startswith('file://'):
