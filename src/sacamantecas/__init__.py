@@ -76,8 +76,8 @@ class Messages(StrEnum):
 
     PRESS_ANY_KEY = '\nPulse cualquier tecla para continuar...'
     KEYBOARD_INTERRUPT = 'El usuario interrumpió la operación de la aplicación.'
-    NO_ARGUMENTS_HEADING = 'No se han especificado fuentes de entrada para ser procesadas.'
-    NO_ARGUMENTS_INSTRUCTIONS = (
+    NO_ARGUMENTS = (
+        'No se han especificado fuentes de entrada para ser procesadas.\n'
         '\n'
         'Arrastre y suelte un fichero de entrada sobre el icono de la aplicación,\n'
         'o bien proporcione los nombres de las fuentes de entrada como argumentos.'
@@ -93,6 +93,14 @@ class Messages(StrEnum):
     ERROR_PREFIX = '\n*** Error: '
     WARNING_PREFIX = '* Aviso: '
 
+    EXCEPTION_DEBUG_DUMP = 'Se lanzó una excepción «{}».'
+    EXCEPTION_CONTEXT_DEBUG_DUMP = (
+        '  __context__ -> «{}»\n'
+        '  __repr__    -> {}\n'
+        '  __str__     -> {}\n'
+    )
+    EXCEPTION_NO_CONTEXT_DEBUG_DUMP = 'La excepción no contiene contexto.'
+
     UNKNOWN_ERRNO = 'desconocido'
 
     UNHANDLED_EXCEPTION = 'Excepción sin gestionar'
@@ -106,24 +114,28 @@ class Messages(StrEnum):
     LOADING_PROFILES = 'Obteniendo perfiles desde «{}».'
     EMPTY_PROFILES = 'No hay perfiles definidos en el fichero de perfiles «{}».'
     MISSING_PROFILES = 'No se encontró o no se pudo leer el fichero de perfiles «{}».'
-    PROFILES_WRONG_SYNTAX = 'Error de sintaxis «{}» leyendo el fichero de perfiles.'
-    PROFILES_WRONG_SYNTAX_DETAILS = 'Perfil «{}», {}:\n  {}{}{}\n  {:_<{}}^'
-    PROFILES_WRONG_SYNTAX_DETAILS_SEPARATOR = ' = '
-    INVALID_PROFILE = 'El perfil «{}» es inválido.'
-    PROFILE_WITHOUT_URL = 'El perfil no incluye un patrón de URL.'
-    UNKNOWN_URL_TYPE = 'El URL «{}» es de tipo desconocido.'
+    PROFILES_WRONG_SYNTAX = 'Sintaxis incorrecta en el fichero de perfiles [{}].'
+    PROFILES_WRONG_REGEX = (
+        'Expresión regular incorrecta en el fichero de perfiles.\n'
+        'Perfil «{}», clave «{}»:\n'
+        '  {}\n'
+        '  {:_<{}}^\n'
+        '  [{}: {}]\n'
+    )
+    PROFILE_WRONG_PARAMETERS = 'El perfil «{}» no contiene parámetros correctos.'
+    PROFILE_WITHOUT_URL = 'El perfil «{}» no incluye un patrón de URL.'
     NO_MATCHING_PROFILE = 'No se encontró un perfil para procesar el URL.'
     FOUND_PROFILES = 'Se obtuvieron los siguientes perfiles: {}.'
     DETECTED_PROFILE = 'Perfil detectado: «{}».'
 
     PROCESSING_URL = 'Procesando URL «{}».'
     REDIRECTED_URL = 'URL redirigido a «{}».'
-    OSLIKE_URLERROR = 'Error de red {}: {}.'
-    HTTP_PROTOCOL_URLERROR = 'Error de protocolo HTTP {}: {}.'
-    GENERIC_URLERROR = 'Error de URL{}: {}.'
-    URL_ACCESS_ERROR = 'No resultó posible acceder a la dirección especificada.'
-    HTTP_RETRIEVAL_ERROR = 'No se obtuvieron contenidos.'
-    CONNECTION_ERROR = 'Se produjo un error de conexión {} accediendo al URL.'
+    OSLIKE_URLERROR = '{}'
+    HTTP_PROTOCOL_URLERROR = 'respuesta HTTP {}'
+    UNEXPECTED_URLERROR = 'error inesperado'
+    URL_ACCESS_ERROR = 'No resultó posible acceder a la dirección especificada ({}).\n'
+    HTTP_RETRIEVAL_ERROR = 'No se obtuvieron contenidos, error de protocolo HTTP «{}».'
+    CONNECTION_ERROR = 'Se produjo un error de conexión «{}» accediendo al URL.'
     NO_CONTENTS_ERROR = 'No se recibieron contenidos del URL.'
 
     CHARSET_NOT_IN_HEADERS = 'Charset no detectado en las cabeceras.'
@@ -135,7 +147,7 @@ class Messages(StrEnum):
 
     SKIMMING_MARKER = '\nSacando las mantecas:\n'
     SOURCE_LABEL = 'Fuente: {}'
-    UNSUPPORTED_SOURCE = 'La fuente no es de un tipo admitido.'
+    UNSUPPORTED_GATEWAY = 'La fuente no es de un tipo admitido.'
     INPUT_FILE_NOT_FOUND = 'No se encontró el fichero de entrada.'
     INPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para leer el fichero de entrada.'
     OUTPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para crear el fichero de salida.'
@@ -182,9 +194,8 @@ logger = get_logger(PROGRAM_NAME)
 class BaseCustomError(Exception):
     """Base class for all program custom exceptions."""  # noqa: D204
     # pylint: disable-next=keyword-arg-before-vararg
-    def __init__ (self, message: str, details: object = '', *args: object, **kwargs: object) -> None:
-        """Initialize exception with message and details."""
-        self.details = details
+    def __init__ (self, message: str, *args: object, **kwargs: object) -> None:
+        """Initialize exception with message."""
         super().__init__(message, *args, **kwargs)
 
 class ProfilesError(BaseCustomError):
@@ -473,18 +484,37 @@ class Profile(NamedTuple):
     parser_config: ParserConfig
 
 
-def error(heading: str, message: str) -> None:
-    """Preprocess and log error *message*, prepending *heading*.
+def error(message: str) -> None:
+    """Preprocess and log error *message*.
 
-    First, the initial letter of *heading* is lowercased. Then, a fixed
-    prefix is prepended to *heading*. Finally, the resulting string is
-    formatted together with *message* using `legion.format_message()`.
+    First, the initial letter of *message* is lowercased. Then, a fixed
+    prefix is prepended. Finally, the resulting string is formatted by
+    using `legion.format_message()`, that is, if *message* has multiple
+    lines, then the first one is considered a heading, and the remaining
+    lines are indented.
 
-    The result is then logged using `logger.error()`.
+    The result is logged using `logger.error()`.
     """
-    indentation = ' ' * 4  # Keep aligned with Messages.ERROR_PREFIX's marker width if that changes.
-    prefixed_heading = f'{Messages.ERROR_PREFIX}{heading[0].lower()}{heading[1:]}'
-    logger.error(format_message(prefixed_heading, message, indentation=indentation))
+    heading, _, remaining = message.partition('\n')
+    heading = f'{Messages.ERROR_PREFIX}{heading[0].lower()}{heading[1:]}'
+    logger.error(format_message(heading, remaining, indentation=' ' * Messages.ERROR_PREFIX.index(' ')))
+
+
+def log_exception(exc: Exception) -> None:
+    """Log *exc* with `logger.debug()`.
+
+    If *exc* has `__context__` it is dumped, too.
+    """
+    logger.debug(Messages.EXCEPTION_DEBUG_DUMP.format(type(exc).__name__))
+    if exc.__context__:
+        message = Messages.EXCEPTION_CONTEXT_DEBUG_DUMP.format(
+            type(exc.__context__).__name__,
+            repr(exc.__context__),
+            str(exc.__context__),
+        )
+    else:
+        message = Messages.EXCEPTION_NO_CONTEXT_DEBUG_DUMP
+    logger.debug(message)
 
 
 def warning(message: str) -> None:
@@ -541,22 +571,19 @@ def build_parser_config(config: configparser.ConfigParser, section: str) -> Pars
 
     Raise `ProfilesError` if any value fails to compile as a regex.
     """
-    bad_regex_error = 'BadRegex'
     parser_config: ParserConfig = {}
     for key, value in config[section].items():
         if not value:
             continue
         try:
             parser_config[key] = re.compile(value, re.IGNORECASE)
-        except re.error as exc:
-            message = Messages.PROFILES_WRONG_SYNTAX.format(bad_regex_error)
-            details = Messages.PROFILES_WRONG_SYNTAX_DETAILS.format(
-                section, exc.msg,
-                key, Messages.PROFILES_WRONG_SYNTAX_DETAILS_SEPARATOR, exc.pattern,
-                '', (exc.pos or 0) + len(key) + len(Messages.PROFILES_WRONG_SYNTAX_DETAILS_SEPARATOR),
-                # The empty string above is needed as a placeholder.
-            )
-            raise ProfilesError(message, details) from exc
+        except re.PatternError as exc:
+            message = Messages.PROFILES_WRONG_REGEX.format(
+                section, key,
+                exc.pattern,
+                '', exc.pos or 0,  # The empty string is needed as a placeholder!
+                type(exc).__name__, str(exc))
+            raise ProfilesError(message) from exc
     return parser_config
 
 
@@ -589,7 +616,7 @@ def load_profiles(profiles_path: Path) -> dict[str, Profile]:
         raise ProfilesError(Messages.MISSING_PROFILES.format(exc.filename)) from exc
     except configparser.Error as exc:
         errorname = type(exc).__name__.removesuffix(configparser.Error.__name__)
-        raise ProfilesError(Messages.PROFILES_WRONG_SYNTAX.format(errorname), exc) from exc
+        raise ProfilesError(Messages.PROFILES_WRONG_SYNTAX.format(errorname)) from exc
 
     profiles: dict[str, Profile] = {}
     parsers = [parser() for parser in BaseParser.__subclasses__()]
@@ -599,12 +626,12 @@ def load_profiles(profiles_path: Path) -> dict[str, Profile]:
         parser_config = build_parser_config(config, section)
         url_pattern = parser_config.pop(url_pattern_key, None)
         if url_pattern is None:
-            raise ProfilesError(Messages.INVALID_PROFILE.format(section), Messages.PROFILE_WITHOUT_URL)
+            raise ProfilesError(Messages.PROFILE_WITHOUT_URL.format(section))
         for parser in parsers:
             if parser_config.keys() == parser.PARAMETERS:
                 break
         else:
-            raise ProfilesError(Messages.INVALID_PROFILE.format(section))
+            raise ProfilesError(Messages.PROFILE_WRONG_PARAMETERS.format(section))
         profiles[section] = Profile(url_pattern, parser, parser_config)
     if not profiles:
         raise ProfilesError(Messages.EMPTY_PROFILES.format(profiles_path))
@@ -931,40 +958,24 @@ def saca_las_mantecas(url: Url, parser: BaseParser) -> Metadata:  # noqa: C901
         # So, in order to have useful messages, some discrimination has
         # to be done here.
         if isinstance(exc.reason, OSError):
-            error_code = Messages.UNKNOWN_ERRNO
-            if exc.reason.errno:
-                try:
-                    error_code = errno.errorcode[exc.reason.errno]
-                except KeyError:
-                    error_code = exc.reason.errno
-            error_reason = exc.reason.strerror or ''
-            details = Messages.OSLIKE_URLERROR
+            reason = Messages.OSLIKE_URLERROR.format(type(exc.reason).__name__)
         elif isinstance(exc, HTTPError):
-            error_code = exc.code
-            error_reason = exc.reason.lower()
-            details = Messages.HTTP_PROTOCOL_URLERROR
+            reason = Messages.HTTP_PROTOCOL_URLERROR.format(exc.code)
         else:
-            error_code = ''
-            error_reason = str(exc.reason)
-            details = Messages.GENERIC_URLERROR
-        error_reason = (error_reason[0].lower() + error_reason[1:]).rstrip('.')
-        raise SkimmingError(Messages.URL_ACCESS_ERROR, details.format(error_code, error_reason)) from exc
+            reason = Messages.UNEXPECTED_URLERROR
+        raise SkimmingError(Messages.URL_ACCESS_ERROR.format(reason)) from exc
     # Apparently, 'HTTPException', 'ConnectionError' and the subclasses
     # are masked or wrapped by 'urllib', and documentation is not very
     # informative. So, just in case something weird happen, it is better
     # to handle these exception types here as well.
     except HTTPException as exc:
-        details = f'{type(exc).__name__}: {exc}.'
-        raise SkimmingError(Messages.HTTP_RETRIEVAL_ERROR, details) from exc
+        raise SkimmingError(Messages.HTTP_RETRIEVAL_ERROR.format(type(exc).__name__)) from exc
     except ConnectionError as exc:
         error_code = Messages.UNKNOWN_ERRNO
         if exc.errno:
             with contextlib.suppress(IndexError):
                 error_code = errno.errorcode[exc.errno]
-        details = ''
-        if exc.strerror:
-            details = f'{exc.strerror.capitalize().rstrip(".")}.'
-        raise SkimmingError(Messages.CONNECTION_ERROR.format(error_code), details) from exc
+        raise SkimmingError(Messages.CONNECTION_ERROR.format(error_code)) from exc
 
     if not contents:
         raise SkimmingError(Messages.NO_CONTENTS_ERROR)
@@ -1100,14 +1111,15 @@ def main(*args: str) -> ExitCodes:  # pylint: disable=unused-variable
         # so it is better to signal the end user with an error and give
         # an explanation if no input arguments are provided, as soon as
         # possible.
-        error(Messages.NO_ARGUMENTS_HEADING, Messages.NO_ARGUMENTS_INSTRUCTIONS)
+        error(Messages.NO_ARGUMENTS)
         return ExitCodes.NO_ARGUMENTS
 
     try:
         profiles = load_profiles(Paths.INIFILE)
         logger.debug(Messages.FOUND_PROFILES.format(', '.join(profiles.keys())))
     except ProfilesError as exc:
-        error(str(exc), str(exc.details) if exc.details else '')
+        log_exception(exc)
+        error(str(exc))
         return ExitCodes.ERROR
 
     logger.info(Messages.SKIMMING_MARKER)
