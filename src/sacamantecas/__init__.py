@@ -7,9 +7,8 @@ if sys.platform != 'win32':
     sys.exit(None)
 
 # pylint: disable=wrong-import-position
-from collections.abc import Callable, Generator
+from abc import ABC, abstractmethod
 import configparser
-import contextlib
 from enum import IntEnum, StrEnum
 import errno
 from functools import wraps
@@ -20,8 +19,7 @@ from pathlib import Path
 import re
 from shutil import copy2
 import time
-from types import SimpleNamespace
-from typing import ClassVar, NamedTuple, TYPE_CHECKING
+from typing import ClassVar, final, NamedTuple, TYPE_CHECKING
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, unquote, urlparse, urlunparse
 from urllib.request import Request, urlopen
@@ -36,7 +34,10 @@ from openpyxl.utils.cell import get_column_letter
 from .about import BUILD, DEPENDENCIES, DEVELOPMENT_MODE, PROGRAM_NAME, REPOSITORY, VERSION
 
 if TYPE_CHECKING:
+    from collections.abc import Callable, Generator
+
     from openpyxl.worksheet.worksheet import Worksheet
+
 
 type MetadataKey = str
 type MetadataValue = str
@@ -44,11 +45,8 @@ type Metadata = dict[MetadataKey, MetadataValue]
 type RawMetadata = dict[MetadataKey, list[MetadataValue]]
 
 type Url = str
-
+type SkimResults = dict[Url, Metadata]
 type ParserConfig = dict[str, re.Pattern[str]]
-
-# Handlers are not implemented as classes, but as generators.
-type Handler = Generator[str, Metadata | None]
 
 
 USER_AGENT = f'{PROGRAM_NAME}/{VERSION} (bot; +{REPOSITORY})'
@@ -231,8 +229,8 @@ class BaseCustomError(Exception):
 class ProfilesError(BaseCustomError):
     """Raise for profile-related errors."""
 
-class SourceError(BaseCustomError):
-    """Raise for source-related errors."""
+class GatewayError(BaseCustomError):
+    """Raise for gateway-related errors."""
 
 class SkimmingError(BaseCustomError):
     """Raise for skimming-related errors."""
@@ -679,280 +677,375 @@ def is_accepted_url(value: Url | None) -> bool:
         return False
 
 
-def parse_arguments(*args: str) -> Generator[tuple[str, Handler]]:
+def parse_arguments(*args: str) -> Generator[Gateway]:
     """Parse **args*.
 
-    Parse each argument in **args*, check if it is a valid source, then
-    identify its type and build the corresponding handler.
-
-    Yield tuple containing the source and its corresponding handler.
+    Parse each argument in **args*, identify its type and check if it is
+    supported. If so, build the corresponding `Gateway` and yield it.
     """
     for arg in args:
-        logger.debug(Messages.PROCESSING_ARG.format(arg))
-        if is_accepted_url(arg):
-            logger.debug(Messages.ARG_IS_SOURCE_SINGLE_URL)
-            handler = single_url_handler(arg)
-        elif arg.endswith(TEXTFILE_SUFFIX):
-            logger.debug(Messages.ARG_IS_SOURCE_TEXTFILE)
-            handler = textfile_handler(Path(arg))
-        elif arg.endswith(SPREADSHEET_SUFFIX):
-            logger.debug(Messages.ARG_IS_SOURCE_SPREADSHEET)
-            handler = spreadsheet_handler(Path(arg))
+        clean_arg = arg.strip()
+        logger.debug(Debug.PROCESSING_ARG.format(clean_arg))
+        gateway: Gateway
+        if not clean_arg:
+            continue
+        if is_accepted_url(clean_arg):
+            logger.debug(Debug.ARG_IS_SINGLE_URL)
+            gateway = SingleUrlGateway(clean_arg)
+        elif clean_arg.endswith(TEXTFILE_SUFFIX):
+            logger.debug(Debug.ARG_IS_TEXTFILE)
+            gateway = TextFileGateway(clean_arg)
+        elif clean_arg.endswith(SPREADSHEET_SUFFIX):
+            logger.debug(Debug.ARG_IS_SPREADSHEET)
+            gateway = SpreadSheetGateway(clean_arg)
         else:
-            logger.debug(Messages.ARG_IS_SOURCE_UNSUPPORTED)
-            handler = unsupported_source_handler()
-        yield arg, handler
+            logger.debug(Debug.ARG_IS_UNSUPPORTED)
+            gateway = UnsupportedGateway(clean_arg)
+        yield gateway
 
 
-def generate_sinkfile_path(base_path: Path) -> Path:
-    """Generate a path usable for a data sink, from *base_path*."""
-    return base_path.with_stem(base_path.stem + SINKFILE_STEM)
+class Gateway(ABC):
+    """Base class for gateways.
+
+    A `Gateway` supplies unique URLs from its source in first appearance
+    order, and stores their metadata into its sink.
+    """
+
+    SINK_STEM = '_out'
+
+    def __init__(self, source: str, *args: object, **kwargs: object) -> None:
+        """."""
+        super().__init__(*args, **kwargs)
+        self.source_path = Path(source)
+        self.sink_path = self.generate_sink_path()
+        self.urls: list[Url]= []
+        self._label = source.strip()
+
+    @property
+    def label(self) -> str:
+        """."""
+        return self._label
+
+    def generate_sink_path(self) -> Path:
+        """Generate the sink file path from `self.source`."""
+        return self.source_path.with_stem(self.source_path.stem + self.SINK_STEM)
+
+    @final
+    def get_urls(self) -> list[Url]:
+        """Return the URLs found in this gateway's source.
+
+        This returns *unique* URLs, in order of first appearance.
+
+        Handles some `OSError` exceptions translating them to the more
+        precise corresponding `GatewayError'.
+        """
+        try:
+            unique_urls = list(dict.fromkeys(self._get_urls()))
+        except FileNotFoundError as exc:
+            raise GatewayError(Messages.GATEWAY_ERROR_INPUT_FILE_NOT_FOUND) from exc
+        except PermissionError as exc:
+            raise GatewayError(Messages.GATEWAY_ERROR_INPUT_FILE_NO_PERMISSION) from exc
+        self.urls = unique_urls
+        return self.urls
+
+    @final
+    def save_metadata(self, results: SkimResults) -> None:
+        """Save *results* metadata to this gateway's sink.
+
+        Raise `GatewayError` if *results* contains no metadata at all.
+        This is checked first, so no I/O is involved in that case.
+
+        Otherwise, the URLs are retrieved again from the source, using
+        `get_urls()`, before saving anything. That way the sink reflects
+        the source as it is at saving time, not as it was when the URLs
+        were first read. As a consequence, any `GatewayError` that the
+        `get_urls()` call can raise will be raised here too.
+
+        Handles some `OSError` exceptions translating them to the more
+        precise corresponding `GatewayError`.
+        """
+        if not any(results.values()):
+            raise GatewayError(Messages.GATEWAY_ERROR_NO_RESULTS_TO_SAVE)
+        self.get_urls()
+        try:
+            return self._save_metadata(results)
+        except PermissionError as exc:
+            raise GatewayError(Messages.GATEWAY_ERROR_OUTPUT_FILE_NO_PERMISSION) from exc
+        except FileNotFoundError as exc:
+            if exc.filename is not None and Path(exc.filename) == self.source_path:
+                raise GatewayError(Messages.GATEWAY_ERROR_INPUT_FILE_NOT_FOUND) from exc
+            raise GatewayError(Messages.GATEWAY_ERROR_OUTPUT_FILE_NOT_FOUND) from exc
+
+    @abstractmethod
+    def _get_urls(self) -> list[Url]:
+        """Actual implementation of `get_urls()`."""
+
+    @abstractmethod
+    def _save_metadata(self, results: SkimResults) -> None:
+        """Actual implementation of `save_metadata()`."""
 
 
-# NOTE: the handlers below have to be generators for two reasons.
-#
-# The first reason, the list of URLs retrieved by the handler from the
-# source can be potentially large. So, using a generator is a lot more
-# efficient.
-#
-# The second reason, a generator allows the caller to use the handler in
-# two separate stages: URL is retrieved first, so the handler can keep
-# processing it, and then the obtained metadata for the URL is obtained
-# and sent back to the handler. In short, the handler is acting as both
-# a coroutine and a generator.
-#
-# Since the metadata is sent back to the handler, it triggers another
-# iteration so a double yield is needed. The first one is the one that
-# yields the URLs and the second one yields a response to the caller
-# after the metadata has been received back into the handler.
-#
-# The first 'yield HANDLER_READY' expression in the handlers signals a
-# successful initialization after priming the generator, which actually
-# works as a coroutine. Any string value works, but since it may appear
-# in tests, logs, etc. in the future, is better to use something clear.
-HANDLER_READY = 'Handler is ready.'
-def unsupported_source_handler() -> Handler:
-    """Handle unsupported sources."""
-    raise SourceError(Messages.UNSUPPORTED_SOURCE)
-    # The 'yield' below is needed, otherwise the return value of the
-    # handler will not be a generator/coroutine and that is needed so
-    # this handler is compatible with all the others. Of course, since
-    # the handler just raises an exception, the yield will never be
-    # executed…
-    yield HANDLER_READY  # pylint: disable=unreachable
+class UnsupportedGateway(Gateway):
+    """Represents an unsupported gateway."""
+
+    def _get_urls(self) -> list[Url]:
+        """Raise, since this gateway type is not supported."""
+        raise GatewayError(Messages.GATEWAY_ERROR_UNSUPPORTED_GATEWAY)
+
+    def _save_metadata(self, results: SkimResults) -> None:
+        """Not reachable.
+
+        `save_metadata()` retrieves the URLs with `get_urls()` before
+        calling this method, and for this gateway type it always raises.
+        """
+        raise NotImplementedError
 
 
-TEXTSINK_METADATA_HEADER = '{}\n'
-TEXTSINK_METADATA_PAIR = '  {}: {}\n'
-TEXTSINK_METADATA_FOOTER = '\n'
+class SingleUrlGateway(Gateway):
+    """Represents a gateway providing a single URL.
 
-
-def single_url_handler(url: Url) -> Handler:
-    """Handle single *url*.
-
-    The metadata for *url* is logged with `logging.INFO` level, so it
+    The metadata for the URL is logged with `logging.INFO` level, so it
     will be printed on `sys.stdout` in addition to the corresponding log
-    file, and will be also written as key-value pairs into a dump text
-    file whose name is based on a properly sanitized version of *url*.
+    file, and will be also written as key-value pairs into a text sink
+    file whose name is based on a properly sanitized version of the URL.
 
-    The dump output file has UTF-8 encoding.
+    The text sink file has UTF-8 encoding.
     """
-    sinkfile_path = generate_sinkfile_path(url_to_path(url).with_suffix(TEXTFILE_SUFFIX))
-    with sinkfile_path.open('w', encoding='utf-8') as sink:
-        logger.debug(Messages.DUMPING_METADATA_TO_SINK.format(sinkfile_path))
-        yield HANDLER_READY
-        if is_accepted_url(url):
-            retrieved_metadata = yield url
-            yield url
-            if retrieved_metadata:
-                sink.write(TEXTSINK_METADATA_HEADER.format(url))
-                for key, value in retrieved_metadata.items():
-                    logger.debug(Messages.DUMPING_METADATA_K_V.format(key, value))
-                    message = TEXTSINK_METADATA_PAIR.format(key, value)
 
-                    # Console output allowed here because it is part of
-                    # the handler documented and expected behavior.
-                    logger.indent()
-                    logger.info(message)
-                    logger.dedent()
+    HEADER = '{}\n\n'
+    METADATA_PAIR = '[{:{width}}] {}\n'
 
-                    sink.write(message)
-                sink.write(TEXTSINK_METADATA_FOOTER)
+    def __init__(self, source: str, *args: object, **kwargs: object) -> None:
+        """."""
+        super().__init__(source, *args, **kwargs)
+        self.urls = self._get_urls()
+        self.source_path = self.__url_to_path()
+        self.sink_path = self.generate_sink_path()
+
+    def _get_urls(self) -> list[Url]:
+        """Return this gateway's single URL."""
+        return [self.label]
+
+    def _save_metadata(self, results: SkimResults) -> None:
+        """Save *results* metadata to a text file sink."""
+        metadata = results.get(self.urls[0])
+        if not metadata:
+            return
+
+        with self.sink_path.open('w', encoding='utf-8') as sink:
+            logger.debug(Debug.DUMPING_METADATA_TO_SINK.format(self.sink_path))
+            sink.write(self.HEADER.format(self.urls[0]))
+            width = max(map(len, metadata))
+            for key, value in metadata.items():
+                logger.debug(Debug.DUMPING_METADATA_K_V.format(key, value))
+                message = self.METADATA_PAIR.format(key, value, width=width)
+
+                # Console output allowed here because it is part of the
+                # gateway documented and expected behavior.
+                logger.indent()
+                logger.info(message.rstrip())
+                logger.dedent()
+                sink.write(message)
+
+    def __url_to_path(self) -> Path:
+        """Convert the *url* to a valid path with the correct suffix.
+
+        The method is quite crude but it works: replace every ASCII non
+        word characters (potentially unsafe when they are present in a
+        path) by a visually unobtrusive character which is safe to use
+        while keeping the path readable.
+        """
+        return Path(re.sub(r'\W', '_', self.urls[0], flags=re.ASCII).rstrip('. ')).with_suffix(TEXTFILE_SUFFIX)
 
 
-def url_to_path(url: Url) -> Path:
-    """Convert the given *url* to a valid path.
+class TextFileGateway(Gateway):
+    """Represents a gateway to a text file containing URLs.
 
-    The method is quite crude but it works: replace all ASCII non-word
-    characters (potentially unsafe if they are present in a path) by a
-    visually unobtrusive character which is safe to use in a path, so
-    the path is still readable.
+    There must be a single URL per file line. URLs can be repeated and
+    there can be interspersed empty lines. Encoding must be `UTF-8`.
+
+    Metadata is written to a text file with `UTF-8` encoding, containing
+    one record per distinct URL found in the input in order of its first
+    appearance. Repeated URLs do not produce repeated records.
+
+    Each record has a first unindented line with the URL, and then all
+    the metadata pairs on separate indented lines. Records are separated
+    by an empty line. URLs for which no metadata was obtained do not get
+    a record.
     """
-    return Path(re.sub(r'\W', '_', url, flags=re.ASCII))
+
+    METADATA_HEADER = '{}\n'
+    METADATA_PAIR = '  {}: {}\n'
+    METADATA_FOOTER = '\n'
+
+    def _get_urls(self) -> list[Url]:
+        """Return all urls in the input file, stripped."""
+        try:
+            with self.source_path.open(encoding='utf-8') as source_file:
+                lines = source_file.read().splitlines()
+        except UnicodeDecodeError as exc:
+            raise GatewayError(Messages.GATEWAY_ERROR_INPUT_TEXT_FILE_NOT_UTF_8) from exc
+        return [line.strip() for line in lines if line.strip()]
+
+    def _save_metadata(self, results: SkimResults) -> None:
+        """Save *results* metadata to a text file sink."""
+        with self.sink_path.open('w', encoding='utf-8') as sink:
+            logger.debug(Debug.DUMPING_METADATA_TO_SINK.format(self.sink_path))
+            for url in self.urls:
+                if url not in results:
+                    continue
+                if not (metadata := results[url]):
+                    continue
+                sink.write(self.METADATA_HEADER.format(url))
+                for key, value in metadata.items():
+                    logger.debug(Debug.DUMPING_METADATA_K_V.format(key, value))
+                    sink.write(self.METADATA_PAIR.format(key, value))
+                sink.write(self.METADATA_FOOTER)
 
 
-def textfile_handler(source_file: Path) -> Handler:
-    """Handle URLs from *source_file* text file, one per line.
+class SpreadSheetGateway(Gateway):
+    """Represents a gateway to an Excel-like spreadsheet file.
 
-    The metadata for each URL is dumped into another text file, named
-    after *source_file*. In that output file, first the URL is written,
-    then the metadata as key-value pairs.
+    Only one sheet (the first one) is supported, and only the first URL
+    in a row is used. URLs can be repeated and there can be interspersed
+    empty rows.
 
-    All files are assumed to have UTF-8 encoding.
+    Metadata is written to a copy of the original spreadsheet file, with
+    a name based upon the original, on new columns.
+
+    A heading row is inserted at the top of the sheet to hold the column
+    headers, so the original rows are shifted down by one in the copy.
+
+    A repeated URL is processed only once, but its metadata is written
+    on every row where the URL appears. Rows whose URL got no metadata
+    are left untouched.
     """
-    sinkfile_path = generate_sinkfile_path(source_file)
-    encoding = 'utf-8'
-    with source_file.open(encoding=encoding) as source, sinkfile_path.open('w', encoding=encoding) as sink:
-        logger.debug(Messages.DUMPING_METADATA_TO_SINK.format(sinkfile_path))
-        yield HANDLER_READY
-        for line in source.readlines():
-            url = line.strip()
-            if not is_accepted_url(url):
+
+    ADDED_METADATA_COLUMN_HEADER = '[sm] {}'
+    ADDED_CELLS_FONT = 'Calibri'
+    ADDED_CELLS_COLOR = 'baddad'
+    ADDED_CELLS_FILL = 'solid'
+
+    def __init__(self, source: str, *args: object, **kwargs: object) -> None:
+        """."""
+        super().__init__(source, *args, **kwargs)
+        self.sink_sheet: Worksheet | None = None
+        self.url_rows: dict[Url, list[int]] = {}
+        self.known_metadata: dict[MetadataKey, int] = {}
+
+    def _get_urls(self) -> list[Url]:
+        """Return all URLs in the input file, stripped.
+
+        NOTE: only the first sheet is processed, because (allegedly…) it
+        is the one where the URLs are.
+        """
+        try:
+            source_workbook = load_workbook(self.source_path)
+        except (KeyError, BadZipFile) as exc:
+            raise GatewayError(Messages.GATEWAY_ERROR_SOURCE_SHEET_IS_INVALID) from exc
+        source_sheet = source_workbook.worksheets[0]
+        logger.debug(Debug.WORKING_SHEET.format(source_sheet.title))
+        self.url_rows = {}
+        all_urls: list[Url] = []
+        for row in source_sheet.rows:
+            row_number = row[0].row
+            if not row_number:
                 continue
-            retrieved_metadata = yield url
-            yield url
-            if retrieved_metadata:
-                sink.write(TEXTSINK_METADATA_HEADER.format(url))
-                for key, value in retrieved_metadata.items():
-                    logger.debug(Messages.DUMPING_METADATA_K_V.format(key, value))
-                    sink.write(TEXTSINK_METADATA_PAIR.format(key, value))
-                sink.write(TEXTSINK_METADATA_FOOTER)
+            logger.debug(Debug.PROCESSING_ROW.format(row_number))
+            if (url := self.__get_url_from_row(row)) is None:
+                continue
+            url = url.strip()
+            all_urls.append(url)
+            self.url_rows.setdefault(url, []).append(row_number)
+        source_workbook.close()
+        return all_urls
 
+    def _save_metadata(self, results: SkimResults) -> None:
+        """Save *results* metadata to a spreadsheet file sink."""
+        logger.debug(Debug.COPYING_WORKBOOK.format(self.sink_path))
+        copy2(self.source_path, self.sink_path)
 
-def spreadsheet_handler(source_file: Path) -> Handler:
-    """Handle URLs from spreadsheet *source_file*, one per row. Ish.
+        sink_workbook = load_workbook(self.sink_path)
+        self.sink_sheet = sink_workbook.worksheets[0]
 
-    The metadata obtained is dumped into another spreadsheet, whose name
-    is based upon *source_file*. It is not created anew, it is a copy of
-    the *source_file* spreadsheet and later modified.
+        logger.debug(Debug.INSERTING_HEADING_ROW)
+        self.sink_sheet.insert_rows(1, 1)
 
-    The metadata is added to the destination spreadsheet in new columns,
-    one per metadata. These columns are marked with a prefix so they are
-    easier to recognize.
+        self.known_metadata = {}
+        for url, rows in self.url_rows.items():
+            if url in results:
+                for row in rows:
+                    self.__store_metadata(row, results[url])
+        sink_workbook.save(self.sink_path)
+        sink_workbook.close()
 
-    NOTE: not all sheets are processed, only the first one because it is
-    the one where the URLs for the items are. Allegedly…s
-    """
-    sinkfile_path = generate_sinkfile_path(source_file)
-    logger.debug(Messages.COPYING_WORKBOOK.format(sinkfile_path))
+    @staticmethod
+    def __get_url_from_row(row: tuple[Cell | MergedCell, ...]) -> Url | None:
+        """Find first URL in row."""
+        url = None
+        for cell in row:
+            if cell.data_type != CELLTYPE_STRING:
+                logger.debug(Debug.NONSTRING_CELL.format(cell.coordinate))
+                continue
+            if is_accepted_url(str(cell.value)):
+                url = str(cell.value)
+                logger.debug(Debug.URL_FOUND_IN_CELL.format(cell.coordinate, url))
+                break  # Only the FIRST URL found is considered.
+        return url
 
-    copy2(source_file, sinkfile_path)
-    try:
-        source_workbook = load_workbook(source_file)
-    except (KeyError, BadZipFile) as exc:
-        details = str(exc).strip('"')
-        details = details[0].lower() + details[1:]
-        raise SourceError(Messages.SOURCE_SHEET_IS_INVALID, details) from exc
-    sink_workbook = load_workbook(sinkfile_path)
-    yield HANDLER_READY
+    def __store_metadata(self, row: int, metadata: Metadata) -> None:
+        """Store *metadata* in *self.sink_sheet* at given *row*.
 
-    source_sheet = source_workbook.worksheets[0]
-    logger.debug(Messages.WORKING_SHEET.format(source_sheet.title))
+        For new metadata keys a new column is added to *self.sink_sheet*
+        and the value is added there. For already existing metadata keys
+        the value is added to the corresponding existing column.
 
-    sink_sheet = sink_workbook.worksheets[0]
+        The new columns are marked with a prefix so they are easier to
+        recognize, filter and process later.
+        """
+        cell_font = self.ADDED_CELLS_FONT
+        cell_color = self.ADDED_CELLS_COLOR
+        cell_fill = self.ADDED_CELLS_FILL
 
-    logger.debug(Messages.INSERTING_HEADING_ROW)
-    sink_sheet.insert_rows(1, 1)
-
-    for row in source_sheet.rows:
-        row_number = row[0].row
-        logger.debug(Messages.PROCESSING_ROW.format(row_number))
-        if (url := get_url_from_row(row)) is None:
-            continue
-        retrieved_metadata = yield url
-        yield url
-        if retrieved_metadata and row_number:
-            store_metadata_in_sheet(sink_sheet, row_number, retrieved_metadata)
-    sink_workbook.save(sinkfile_path)
-    sink_workbook.close()
-    source_workbook.close()
-
-
-def get_url_from_row(row: tuple[Cell | MergedCell, ...]) -> Url | None:
-    """Find first URL in row."""
-    url = None
-    for cell in row:
-        if cell.data_type != CELLTYPE_STRING:
-            logger.debug(Messages.NONSTRING_CELL.format(cell.coordinate))
-            continue
-        if is_accepted_url(str(cell.value)):
-            url = str(cell.value)
-            logger.debug(Messages.URL_FOUND_IN_CELL.format(cell.coordinate, url))
-            break  # Only the FIRST URL found in each row is considered.
-    return url
-
-
-def store_metadata_in_sheet(
-    sheet: Worksheet,
-    row: int,
-    new_metadata: Metadata,
-    static: SimpleNamespace = SimpleNamespace(known_metadata = {}),  # noqa: B008
-) -> None:
-    """Store *new_metadata* in provided *sheet* at given *row*.
-
-    For new metadata keys, a new column is added to the *sheet* and the
-    value is added there. For already existing metadata keys, the value
-    is added to the corresponding existing column.
-    """
-    # NOTE: since default parameters are evaluated just once, a typical
-    # trick for simulating static variables in functions is using a fake
-    # default parameter and using 'SimpleNamespace':
-    # https://stackoverflow.com/a/51437838
-
-    metadata_column_header = '[sm] {}'
-    cell_font = 'Calibri'
-    cell_color = 'baddad'
-    cell_fill = 'solid'
-
-    for key, value in new_metadata.items():
-        if key not in static.known_metadata:
-            column_header = metadata_column_header.format(key)
-            logger.debug(Messages.NEW_METADATA_FOUND.format(key))
-            column = sheet.max_column + 1
-            static.known_metadata[key] = column
-            logger.debug(Messages.METADATA_STORED_IN_COLUMN.format(key, get_column_letter(column)))
-            cell = sheet.cell(row=1, column=column, value=column_header)
-            cell.font = Font(name=cell_font)
-            cell.fill = PatternFill(fgColor=cell_color, fill_type=cell_fill)
-            # Set column width.
-            #
-            # As per Excel specification, the width units are the width
-            # of the zero character of the font used by the Normal style
-            # for a workbook. So a column of width 10 would fit exactly
-            # 10 zero characters in the font specified by the 'Normal'
-            # style.
-            #
-            # No, no kidding.
-            #
-            # Since this width units are, IMHO, totally arbitrary, let's
-            # choose an arbitrary column width, so 42.
-            #
-            # To wit, the Answer to the Ultimate Question of Life, the
-            # Universe, and Everything.
-            sheet.column_dimensions[get_column_letter(column)].width = 42
-            # This is needed because in some occasions Excel files are
-            # not properly generated and the last column has a 'max'
-            # field too large, and that has an unintended consequence:
-            # ANY change to the settings of that column affects ALL the
-            # following ones whose index is less than 'max'… So, it's
-            # better to fix that field.
-            sheet.column_dimensions[get_column_letter(column)].max = column
-        logger.debug(Messages.DUMPING_METADATA_K_V.format(key, value))
-        # Since a heading row is inserted, the rows where metadata has
-        # to go have now an +1 offset, as they have been displaced.
-        sheet.cell(row + 1, static.known_metadata[key], value=value)
-
-
-def bootstrap(handler: Handler) -> None:
-    """Bootstrap *handler* and deal with initialization errors."""
-    try:
-        handler.send(None)
-    except FileNotFoundError as exc:
-        raise SourceError(Messages.INPUT_FILE_NOT_FOUND) from exc
-    except PermissionError as exc:
-        if Path(exc.filename).stem.endswith(SINKFILE_STEM):
-            raise SourceError(Messages.OUTPUT_FILE_NO_PERMISSION) from exc
-        raise SourceError(Messages.INPUT_FILE_NO_PERMISSION) from exc
+        sheet = self.sink_sheet
+        if sheet is None:
+            return
+        for key, value in metadata.items():
+            if key not in self.known_metadata:
+                column_header = self.ADDED_METADATA_COLUMN_HEADER.format(key)
+                logger.debug(Debug.NEW_METADATA_FOUND.format(key))
+                column = sheet.max_column + 1
+                self.known_metadata[key] = column
+                logger.debug(Debug.METADATA_STORED_IN_COLUMN.format(key, get_column_letter(column)))
+                cell = sheet.cell(row=1, column=column, value=column_header)
+                cell.font = Font(name=cell_font)
+                cell.fill = PatternFill(fgColor=cell_color, fill_type=cell_fill)
+                # Set column width.
+                #
+                # As per Excel specification, the width of the zero char
+                # in the font used by the `Normal` style in a workbook
+                # is the unit for all the widths. So a column of width
+                # 42 would fit 42 zero characters in the font specified
+                # by the 'Normal' style.
+                #
+                # No, no kidding.
+                #
+                # Since this width units are, IMNSHO, totally arbitrary,
+                # let's choose an arbitrary column width, so 42.
+                #
+                # To wit, the Answer to the Ultimate Question of Life,
+                # the Universe, and Everything.
+                sheet.column_dimensions[get_column_letter(column)].width = 42
+                # This is needed because in some occasions Excel files
+                # are not properly generated and the last column has a
+                # *max* field too large, and that implies an unintended
+                # consequence: **ANY** change to the settings of that
+                # column affects ALL the following ones whose index is
+                # less than *max*… So, it's better to fix that field.
+                sheet.column_dimensions[get_column_letter(column)].max = column
+            logger.debug(Debug.DUMPING_METADATA_K_V.format(key, value))
+            # There is a one row offset because of the added headers.
+            sheet.cell(row + 1, self.known_metadata[key], value=value)
 
 
 def get_parser(url: Url, profiles: dict[str, Profile]) -> BaseParser:
@@ -1125,6 +1218,86 @@ def detect_html_charset(contents: bytes) -> str:
     return charset
 
 
+def collect_urls(gateway: Gateway) -> list[Url]:
+    """Collect URLs from a gateway, handling errors.
+
+    Retrieve the URLs from *gateway* using its `get_urls()` method. If
+    that raises a `GatewayError`, log the exception, emit a warning and
+    treat the result as empty.
+
+    If *gateway* provides no URLs, a warning is emitted, too.
+
+    Return the list of collected URLs, which is empty if the *gateway*
+    could not be read or its source contains no URLs.
+    """
+    urls: list[Url] = []
+    logger.indent()
+    try:
+        urls = gateway.get_urls()
+    except GatewayError as exc:
+        log_exception(exc)
+        warning(str(exc))
+    else:
+        if not urls:
+            warning(Messages.WARNING_GATEWAY_EMPTY)
+    logger.dedent()
+    return urls
+
+
+def process_urls(urls: list[Url], profiles: dict[str, Profile]) -> SkimResults:
+    """Process *urls*, obtaining the metadata for each one.
+
+    For every URL in *urls*, find the adequate parser using *profiles*,
+    retrieve its contents and extract the metadata. Progress is logged
+    as each URL gets processed.
+
+    A URL for which no metadata can be obtained is logged as a warning
+    and left out of the results while processing continues.
+
+    A summary is logged after processing is done.
+
+    Return a dictionary mapping each successfully processed URL to its
+    metadata, in the same order as *urls*. The dictionary is empty if
+    no URL could be processed.
+    """
+    results: SkimResults = {}
+    logger.indent()
+    for url in urls:
+        logger.info(url)
+        try:
+            results[url] = saca_las_mantecas(url, get_parser(url, profiles))
+        except SkimmingError as exc:
+            log_exception(exc)
+            logger.indent()
+            warning(str(exc))
+            logger.dedent()
+    summary_template = (
+        Messages.URLS_RESULT_NONE if not results
+        else Messages.URLS_RESULT_ONE if len(results) == 1
+        else Messages.URLS_RESULT_MANY
+    )
+    summary = summary_template.format(len(results), len(urls))
+    logger.info(Messages.URLS_RESULT.format(summary))
+    logger.dedent()
+    return results
+
+
+def save_results(gateway: Gateway, results: SkimResults) -> bool:
+    """Send *results* to *gateway*.
+
+    Any `GatewayError` raised while saving is logged as a warning.
+
+    Return `True` if the metadata was saved, `False` otherwise.
+    """
+    try:
+        gateway.save_metadata(results)
+    except GatewayError as exc:
+        log_exception(exc)
+        warning(str(exc))
+        return False
+    return True
+
+
 @loggerize
 @keyboard_interrupt_handler
 @ensure_utf8_output
@@ -1152,38 +1325,24 @@ def main(*args: str) -> ExitCodes:  # pylint: disable=unused-variable
         error(str(exc))
         return ExitCodes.ERROR
 
-    logger.info(Messages.SKIMMING_MARKER)
-    logger.indent()
-    for source, handler in parse_arguments(*args):
-        logger.info(Messages.SOURCE_LABEL.format(source))
-        try:
-            bootstrap(handler)
-        except SourceError as exc:
-            logger.indent()
-            warning(str(exc))
-            logger.dedent()
-            exitcode = ExitCodes.WARNING
-            continue
-
+    for gateway in parse_arguments(*args):
+        logger.info('')
+        logger.info(Messages.GATEWAY_LABEL.format(gateway.label))
         logger.indent()
-        for url in handler:
-            logger.info(url)
-            retrieved_metadata = {}
-            try:
-                parser = get_parser(url, profiles)
-                retrieved_metadata = saca_las_mantecas(url, parser)
-            except SkimmingError as exc:
-                logger.indent()
-                warning(str(exc))
-                logger.debug(exc.details)
-                logger.dedent()
+
+        logger.info(Messages.STEP_LOADING_URLS)
+        urls = collect_urls(gateway)
+        if urls:
+            logger.info(Messages.STEP_PROCESSING_URLS)
+            results = process_urls(urls, profiles)
+            if len(results) != len(urls):
                 exitcode = ExitCodes.WARNING
-            finally:
-                # No matter if metadata has actual contents or not, the
-                # handler has to be 'advanced' to the next URL, so the
-                # metadata it is expecting has to be sent back to the
-                # handler.
-                handler.send(retrieved_metadata)
+            if results:
+                logger.info(Messages.STEP_SAVING_RESULTS)
+                success = save_results(gateway, results)
+                if not success:
+                    exitcode = ExitCodes.WARNING
+        else:
+            exitcode = ExitCodes.WARNING
         logger.dedent()
-    logger.dedent()
     return exitcode
