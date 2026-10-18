@@ -51,7 +51,7 @@ type ParserConfig = dict[str, re.Pattern[str]]
 
 USER_AGENT = f'{PROGRAM_NAME}/{VERSION} (bot; +{REPOSITORY})'
 
-ACCEPTED_URL_SCHEMES = ('https', 'http', 'file')
+URL_PATTERN = re.compile(r'[a-z][a-z0-9+.-]+://', re.IGNORECASE)
 
 TIMESTAMP_STEM = time.strftime('_%Y%m%d_%H%M%S')
 
@@ -660,14 +660,16 @@ def load_profiles(profiles_path: Path) -> dict[str, Profile]:
     return profiles
 
 
-def is_accepted_url(value: Url | None) -> bool:
-    """Check whether value is an accepted URL or not."""
-    try:
-        # The check is quite crude but it is simple and works perfectly
-        # for the program's needs, which are simple, too.
-        return urlparse(value).scheme in ACCEPTED_URL_SCHEMES
-    except ValueError:
-        return False
+def is_url(value: str) -> bool:
+    """Check whether *value* is a URL, for this program's needs.
+
+    A URL is a string starting with a scheme of at least two characters
+    followed by `://`. The two-character minimum keeps a Windows drive
+    letter from being taken for a scheme.
+
+    Only the shape is checked, not the actual validity.
+    """
+    return URL_PATTERN.match(value) is not None
 
 
 def parse_arguments(*args: str) -> Generator[Gateway]:
@@ -684,7 +686,7 @@ def parse_arguments(*args: str) -> Generator[Gateway]:
         gateway: Gateway
         if not clean_arg:
             continue
-        if is_accepted_url(clean_arg):
+        if is_url(clean_arg):
             logger.debug(Debug.ARG_IS_SINGLE_URL)
             gateway = SingleUrlGateway(clean_arg)
         elif lowercase_arg.endswith(TEXTFILE_SUFFIX):
@@ -982,8 +984,9 @@ class SpreadSheetGateway(Gateway):
             if cell.data_type != CELLTYPE_STRING:
                 logger.debug(Debug.NONSTRING_CELL.format(cell.coordinate))
                 continue
-            if is_accepted_url(str(cell.value)):
-                url = str(cell.value)
+            value = str(cell.value).strip()
+            if is_url(value):
+                url = value
                 logger.debug(Debug.URL_FOUND_IN_CELL.format(cell.coordinate, url))
                 break  # Only the FIRST URL found is considered.
         return url
