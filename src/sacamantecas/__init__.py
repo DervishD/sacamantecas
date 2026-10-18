@@ -685,6 +685,8 @@ def parse_arguments(*args: str) -> Generator[Gateway]:
     """
     for arg in args:
         clean_arg = arg.strip()
+        lowercase_arg = clean_arg.lower()
+
         logger.debug(Debug.PROCESSING_ARG.format(clean_arg))
         gateway: Gateway
         if not clean_arg:
@@ -692,10 +694,10 @@ def parse_arguments(*args: str) -> Generator[Gateway]:
         if is_accepted_url(clean_arg):
             logger.debug(Debug.ARG_IS_SINGLE_URL)
             gateway = SingleUrlGateway(clean_arg)
-        elif clean_arg.endswith(TEXTFILE_SUFFIX):
+        elif lowercase_arg.endswith(TEXTFILE_SUFFIX):
             logger.debug(Debug.ARG_IS_TEXTFILE)
             gateway = TextFileGateway(clean_arg)
-        elif clean_arg.endswith(SPREADSHEET_SUFFIX):
+        elif lowercase_arg.endswith(SPREADSHEET_SUFFIX):
             logger.debug(Debug.ARG_IS_SPREADSHEET)
             gateway = SpreadSheetGateway(clean_arg)
         else:
