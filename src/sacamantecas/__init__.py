@@ -56,7 +56,6 @@ USER_AGENT = f'{PROGRAM_NAME}/{VERSION} (bot; +{REPOSITORY})'
 ACCEPTED_URL_SCHEMES = ('https', 'http', 'file')
 
 TIMESTAMP_STEM = time.strftime('_%Y%m%d_%H%M%S')
-SINKFILE_STEM = '_out'
 
 TEXTFILE_SUFFIX = '.txt'
 SPREADSHEET_SUFFIX = '.xlsx'
@@ -72,111 +71,142 @@ class Paths:  # pylint: disable=too-few-public-methods
 
 
 class Messages(StrEnum):
-    """Messages."""
+    """End-user messages."""
 
+    # Helpers.
+    ERROR_PREFIX = '\n*** Error: '
+    WARNING_PREFIX = '* Aviso: '
+    STEP_MARKER = '·'
+
+    # General messages.
     PRESS_ANY_KEY = '\nPulse cualquier tecla para continuar...'
-    KEYBOARD_INTERRUPT = 'El usuario interrumpió la operación de la aplicación.'
-    NO_ARGUMENTS = (
+    PROGRAM_BANNER = f'{PROGRAM_NAME} versión {BUILD} ({REPOSITORY})'
+    PROCESS_DONE = 'Proceso finalizado'
+
+    # Main loop messages.
+    GATEWAY_LABEL = 'Fuente: {}'
+    STEP_LOADING_URLS = f'{STEP_MARKER}Obteniendo URLs'
+    STEP_PROCESSING_URLS = f'{STEP_MARKER}Sacando las mantecas'
+    URLS_RESULT = '=> {}'
+    URLS_RESULT_NONE = 'Ninguna URL procesada de un total de {1}'
+    URLS_RESULT_ONE = '1 URL procesada de un total de {1}'
+    URLS_RESULT_MANY = '{0} URLs procesadas de un total de {1}'
+    STEP_SAVING_RESULTS = f'{STEP_MARKER}Guardando metadatos'
+
+    # Warning messages.
+    WARNING_KEYBOARD_INTERRUPT = 'El usuario interrumpió la operación de la aplicación.'
+    WARNING_GATEWAY_EMPTY = 'La fuente no contiene ningún URL'
+
+    # Generic error messages:
+    ERROR_UNHANDLED_EXCEPTION = 'Excepción sin gestionar'
+    ERROR_NO_ARGUMENTS = (
         'No se han especificado fuentes de entrada para ser procesadas.\n'
         '\n'
         'Arrastre y suelte un fichero de entrada sobre el icono de la aplicación,\n'
         'o bien proporcione los nombres de las fuentes de entrada como argumentos.'
     )
 
-    DEBUGGING_INIT = 'Registro de depuración iniciado.'
-    PROGRAM_BANNER = f'{PROGRAM_NAME} versión {BUILD} ({REPOSITORY})'
-
-    DEPENDENCY_BANNER = 'Usando paquete {}'
-    PROCESS_DONE = '\nProceso finalizado.'
-    DEBUGGING_DONE = 'Registro de depuración finalizado.'
-
-    ERROR_PREFIX = '\n*** Error: '
-    WARNING_PREFIX = '* Aviso: '
-
-    EXCEPTION_DEBUG_DUMP = 'Se lanzó una excepción «{}».'
-    EXCEPTION_CONTEXT_DEBUG_DUMP = (
-        '  __context__ -> «{}»\n'
-        '  __repr__    -> {}\n'
-        '  __str__     -> {}\n'
-    )
-    EXCEPTION_NO_CONTEXT_DEBUG_DUMP = 'La excepción no contiene contexto.'
-
-    UNKNOWN_ERRNO = 'desconocido'
-
-    UNHANDLED_EXCEPTION = 'Excepción sin gestionar'
-
-    PROCESSING_ARG = 'Procesando argumento «{}».'
-    ARG_IS_SOURCE_SINGLE_URL = 'El argumento es una fuente de tipo single_url.'
-    ARG_IS_SOURCE_TEXTFILE = 'El argumento es una fuente de tipo textfile.'
-    ARG_IS_SOURCE_SPREADSHEET = 'El argumento es una fuente de tipo spreadsheet.'
-    ARG_IS_SOURCE_UNSUPPORTED = 'El argumento no es un tipo de fuente admitido.'
-
-    LOADING_PROFILES = 'Obteniendo perfiles desde «{}».'
-    EMPTY_PROFILES = 'No hay perfiles definidos en el fichero de perfiles «{}».'
-    MISSING_PROFILES = 'No se encontró o no se pudo leer el fichero de perfiles «{}».'
-    PROFILES_WRONG_SYNTAX = 'Sintaxis incorrecta en el fichero de perfiles [{}].'
-    PROFILES_WRONG_REGEX = (
-        'Expresión regular incorrecta en el fichero de perfiles.\n'
+    # Profile handling errors.
+    PROFILES_ERROR_MISSING_PROFILES = 'No se encontró o no se pudo leer el fichero de perfiles «{}»'
+    PROFILES_ERROR_PROFILES_WRONG_SYNTAX = 'Sintaxis incorrecta en el fichero de perfiles [{}]'
+    PROFILES_ERROR_PROFILE_WITHOUT_URL = 'El perfil «{}» no incluye un patrón de URL'
+    PROFILES_ERROR_PROFILE_WRONG_PARAMETERS = 'El perfil «{}» no contiene parámetros correctos'
+    PROFILES_ERROR_EMPTY_PROFILES = 'No hay perfiles definidos en el fichero de perfiles «{}»'
+    PROFILES_ERROR_WRONG_REGEX = (
+        'Expresión regular incorrecta en el fichero de perfiles\n'
         'Perfil «{}», clave «{}»:\n'
         '  {}\n'
         '  {:_<{}}^\n'
         '  [{}: {}]\n'
     )
-    PROFILE_WRONG_PARAMETERS = 'El perfil «{}» no contiene parámetros correctos.'
-    PROFILE_WITHOUT_URL = 'El perfil «{}» no incluye un patrón de URL.'
-    NO_MATCHING_PROFILE = 'No se encontró un perfil para procesar el URL.'
-    FOUND_PROFILES = 'Se obtuvieron los siguientes perfiles: {}.'
-    DETECTED_PROFILE = 'Perfil detectado: «{}».'
 
-    PROCESSING_URL = 'Procesando URL «{}».'
-    REDIRECTED_URL = 'URL redirigido a «{}».'
-    OSLIKE_URLERROR = '{}'
-    HTTP_PROTOCOL_URLERROR = 'respuesta HTTP {}'
-    UNEXPECTED_URLERROR = 'error inesperado'
-    URL_ACCESS_ERROR = 'No resultó posible acceder a la dirección especificada ({}).\n'
-    HTTP_RETRIEVAL_ERROR = 'No se obtuvieron contenidos, error de protocolo HTTP «{}».'
-    CONNECTION_ERROR = 'Se produjo un error de conexión «{}» accediendo al URL.'
-    NO_CONTENTS_ERROR = 'No se recibieron contenidos del URL.'
+    # Gateway errors.
+    GATEWAY_ERROR_UNSUPPORTED_GATEWAY = 'La fuente no es de un tipo admitido'
+    GATEWAY_ERROR_INPUT_FILE_NOT_FOUND = 'No se encontró el fichero de entrada'
+    GATEWAY_ERROR_OUTPUT_FILE_NOT_FOUND = 'No se encontró el fichero de salida'
+    GATEWAY_ERROR_INPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para leer el fichero de entrada'
+    GATEWAY_ERROR_OUTPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para crear el fichero de salida'
+    GATEWAY_ERROR_NO_RESULTS_TO_SAVE = 'No hay metadatos para esta fuente'
+    GATEWAY_ERROR_INPUT_TEXT_FILE_NOT_UTF_8 = 'El fichero de entrada no está codificado en UTF-8'
+    GATEWAY_ERROR_SOURCE_SHEET_IS_INVALID = 'La hoja de entrada es inválida'
 
-    CHARSET_NOT_IN_HEADERS = 'Charset no detectado en las cabeceras.'
-    CHARSET_IN_HEADERS = 'Charset detectado en las cabeceras.'
-    CHARSET_FROM_HTTP_EQUIV = 'Charset detectado mediante meta http-equiv.'
-    CHARSET_FROM_META_CHARSET = 'Charset detectado mediante meta charset.'
-    CHARSET_FROM_DEFAULT = 'Charset not detectado, usando valor por defecto.'
-    CONTENTS_ENCODING = 'Contenidos codificados con charset «{}».'
+    # Skimming errors.
+    SKIMMING_ERROR_NO_MATCHING_PROFILE = 'No se encontró un perfil para procesar el URL'
+    SKIMMING_ERROR_URL_ACCESS = 'No resultó posible acceder a la dirección especificada ({})'
+    URL_ACCESS_REASON_OSLIKE_ERROR = '{}'
+    URL_ACCESS_REASON_HTTP_ERROR = 'respuesta HTTP {}'
+    URL_ACCESS_REASON_UNEXPECTED_ERROR = 'error inesperado'
+    SKIMMING_ERROR_ERROR_HTTP_RETRIEVAL = 'No se obtuvieron contenidos, error de protocolo HTTP «{}»'
+    SKIMMING_ERROR_CONNECTION_FAILED = 'Se produjo un error de conexión «{}» accediendo al URL'
+    SKIMMING_ERROR_CONNECTION_FAILED_UNKNOWN_REASON = 'Se produjo un error de conexión desconocido accediendo al URL'
+    SKIMMING_ERROR_NO_CONTENTS = 'No se recibieron contenidos del URL'
+    SKIMMING_ERROR_NO_METADATA_FOUND = 'No se obtuvieron metadatos'
 
-    SKIMMING_MARKER = '\nSacando las mantecas:\n'
-    SOURCE_LABEL = 'Fuente: {}'
-    UNSUPPORTED_GATEWAY = 'La fuente no es de un tipo admitido.'
-    INPUT_FILE_NOT_FOUND = 'No se encontró el fichero de entrada.'
-    INPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para leer el fichero de entrada.'
-    OUTPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para crear el fichero de salida.'
-    NO_METADATA_FOUND = 'No se obtuvieron metadatos.'
 
-    HTML_START_TAG = '➜ HTML <{}{}{}>'
-    METADATA_KEY_FOUND = 'Se encontró la clave «{}».'
-    METADATA_VALUE_FOUND = 'Se encontró el valor «{}».'
-    METADATA_IS_EMPTY = 'Metadato vacío.'
-    METADATA_MISSING_VALUE = 'Metadato «{}» incompleto, ignorando.'
-    METADATA_MISSING_KEY = 'No se encontró una clave, usando «{}».'
-    METADATA_OK = 'Metadato correcto «{}: {}».'
-    METADATA_KEY_MARKER_FOUND = 'Se encontró una marca de clave «{}».'
-    METADATA_VALUE_MARKER_FOUND = 'Se encontró una marca de valor «{}».'
-    METADATA_MARKER_FOUND = 'Se encontró una marca de metadato «{}».'
-    DUMPING_METADATA_TO_SINK = 'Volcando metadatos a «{}».'
-    DUMPING_METADATA_K_V = 'Añadiendo metadato «{}» con valor «{}».'
-    PARSER_NESTING_ERROR_K_IN_V = 'Problema de anidación (clave dentro de valor), restableciendo parser.'
-    PARSER_NESTING_ERROR_V_IN_K = 'Problema de anidación (valor dentro de clave), restableciendo parser.'
+class Debug(StrEnum):
+    """Trace (debugging) messages."""
 
-    COPYING_WORKBOOK = 'Copiando workbook a «{}».'
-    WORKING_SHEET = 'La hoja con la que se trabajará es «{}»".'
-    SOURCE_SHEET_IS_INVALID = 'La hoja de entrada es inválida ({}).'
-    INSERTING_HEADING_ROW = 'Insertando fila de cabeceras.'
-    PROCESSING_ROW = 'Procesando fila {}.'
-    NONSTRING_CELL = 'La celda «{}» no es de tipo cadena, será ignorada.'
+    # General messages.
+    DEBUGGING_INIT = 'Registro de depuración iniciado'
+    DEBUGGING_DONE = 'Registro de depuración finalizado'
+    DEPENDENCY_BANNER = 'Usando paquete {}'
+
+    # Exception logging.
+    EXCEPTION_LOG = 'Se lanzó una excepción «{}»'
+    EXCEPTION_LOG_NO_CONTEXT = 'La excepción no contiene contexto'
+    EXCEPTION_LOG_CONTEXT = (
+        '  __context__ -> «{}»\n'
+        '  __repr__    -> {}\n'
+        '  __str__     -> {}\n'
+    )
+
+    # Argument parsing.
+    PROCESSING_ARG = 'Procesando argumento «{}»'
+    ARG_IS_SINGLE_URL = 'El argumento es de tipo single_url'
+    ARG_IS_TEXTFILE = 'El argumento es de tipo textfile'
+    ARG_IS_SPREADSHEET = 'El argumento es de tipo spreadsheet'
+    ARG_IS_UNSUPPORTED = 'El argumento no es de un tipo admitido'
+
+    # Profiles handling.
+    LOADING_PROFILES = 'Obteniendo perfiles desde «{}»'
+    FOUND_PROFILES = 'Se obtuvieron los siguientes perfiles: {}'
+    PROFILE_ID = 'Perfil y tipo de catálogo: «{}»/«{}»'
+
+    # URL retrieval.
+    PROCESSING_URL = 'Procesando URL «{}»'
+    REDIRECTED_URL = 'URL redirigido a «{}»'
+    CHARSET_NOT_IN_HEADERS = 'Charset no detectado en las cabeceras'
+    CHARSET_FROM_HTTP_EQUIV = 'Charset detectado mediante meta http-equiv'
+    CHARSET_FROM_META_CHARSET = 'Charset detectado mediante meta charset'
+    CHARSET_FROM_DEFAULT = 'Charset no detectado, usando valor por defecto'
+    CHARSET_IN_HEADERS = 'Charset detectado en las cabeceras'
+    CONTENTS_ENCODING = 'Contenidos codificados con charset «{}»'
+
+    # Gateways.
+    DUMPING_METADATA_TO_SINK = 'Volcando metadatos a «{}»'
+    DUMPING_METADATA_K_V = 'Añadiendo metadato «{}» con valor «{}»'
+    WORKING_SHEET = 'La hoja con la que se trabajará es «{}»'
+    PROCESSING_ROW = 'Procesando fila {}'
+    COPYING_WORKBOOK = 'Copiando workbook a «{}»'
+    INSERTING_HEADING_ROW = 'Insertando fila de cabeceras'
+    NONSTRING_CELL = 'La celda «{}» no es de tipo cadena, será ignorada'
     URL_FOUND_IN_CELL = 'Se encontró un URL en la celda «{}»: {}'
-    NEW_METADATA_FOUND = 'Se encontró un metadato nuevo, «{}».'
-    METADATA_STORED_IN_COLUMN = 'El metadato «{}» irá en la columna «{}».'
+    NEW_METADATA_FOUND = 'Se encontró un metadato nuevo, «{}»'
+    METADATA_STORED_IN_COLUMN = 'El metadato «{}» irá en la columna «{}»'
+
+    # Parsers.
+    HTML_START_TAG = '➜ HTML <{}{}{}>'
+    METADATA_KEY_FOUND = 'Se encontró la clave «{}»'
+    METADATA_VALUE_FOUND = 'Se encontró el valor «{}»'
+    METADATA_IS_EMPTY = 'Metadato vacío'
+    METADATA_MISSING_VALUE = 'Metadato «{}» incompleto, ignorando'
+    METADATA_MISSING_KEY = 'No se encontró una clave, usando «{}»'
+    METADATA_OK = 'Metadato correcto «{}: {}»'
+    METADATA_KEY_MARKER_FOUND = 'Se encontró una marca de clave «{}»'
+    METADATA_VALUE_MARKER_FOUND = 'Se encontró una marca de valor «{}»'
+    METADATA_MARKER_FOUND = 'Se encontró una marca de metadato «{}»'
+    PARSER_NESTING_ERROR_K_IN_V = 'Problema de anidación (clave dentro de valor), restableciendo parser'
+    PARSER_NESTING_ERROR_V_IN_K = 'Problema de anidación (valor dentro de clave), restableciendo parser'
 
 
 class ExitCodes(IntEnum):
@@ -241,7 +271,7 @@ class BaseParser(HTMLParser):
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         """Handle opening tags."""
-        logger.debug(Messages.HTML_START_TAG.format(tag, ' ' * bool(attrs), ' '.join((f'{k}="{v}"' for k, v in attrs))))
+        logger.debug(Debug.HTML_START_TAG.format(tag, ' ' * bool(attrs), ' '.join((f'{k}="{v}"' for k, v in attrs))))
 
     def handle_data(self, data: str) -> None:
         """Handle data."""
@@ -252,12 +282,12 @@ class BaseParser(HTMLParser):
             if not data:
                 return
         if self.within_k:
-            logger.debug(Messages.METADATA_KEY_FOUND.format(data))
+            logger.debug(Debug.METADATA_KEY_FOUND.format(data))
             self.current_k += data.rstrip(self.METADATA_KEY_TERMINATOR)
             self.last_k = self.current_k
             return
         if self.within_v:
-            logger.debug(Messages.METADATA_VALUE_FOUND.format(data))
+            logger.debug(Debug.METADATA_VALUE_FOUND.format(data))
             self.current_v += f'{self.MULTIDATA_SEPARATOR if self.current_v else ''}{data}'
             return
 
@@ -278,19 +308,19 @@ class BaseParser(HTMLParser):
     def store_metadata(self) -> None:
         """Store found metadata, handling missing parts."""
         if not self.current_k and not self.current_v:
-            logger.debug(Messages.METADATA_IS_EMPTY)
+            logger.debug(Debug.METADATA_IS_EMPTY)
         if self.current_k and not self.current_v:
-            logger.debug(Messages.METADATA_MISSING_VALUE.format(self.current_k))
+            logger.debug(Debug.METADATA_MISSING_VALUE.format(self.current_k))
         if not self.current_k and self.current_v:
             self.current_k = self.last_k or self.EMPTY_KEY_PLACEHOLDER
-            logger.debug(Messages.METADATA_MISSING_KEY.format(self.current_k))
+            logger.debug(Debug.METADATA_MISSING_KEY.format(self.current_k))
         if self.current_k and self.current_v:
             if self.current_k not in self.retrieved_metadata:
                 self.retrieved_metadata[self.current_k] = []
             # A set is not used below, to preserve order.
             if self.current_v not in self.retrieved_metadata[self.current_k]:
                 self.retrieved_metadata[self.current_k].append(self.current_v)
-            logger.debug(Messages.METADATA_OK.format(self.current_k, self.current_v))
+            logger.debug(Debug.METADATA_OK.format(self.current_k, self.current_v))
         self.current_k = self.DEFAULT_K
         self.current_v = self.DEFAULT_V
 
@@ -339,7 +369,7 @@ class OldRegimeParser(BaseParser):
             if attr[1] is None:
                 continue
             if attr[0] == self.CLASS_ATTR and (match := self.config[self.K_CLASS].search(attr[1])):
-                logger.debug(Messages.METADATA_KEY_MARKER_FOUND.format(match.group(0)))
+                logger.debug(Debug.METADATA_KEY_MARKER_FOUND.format(match.group(0)))
                 self.within_k = True
                 self.current_k = self.DEFAULT_K
                 self.current_k_tag = tag
@@ -347,13 +377,13 @@ class OldRegimeParser(BaseParser):
                     # If still processing a value, log about the nesting
                     # error but reset parser so everything starts afresh
                     # like if a new key had been found.
-                    logger.debug(Messages.PARSER_NESTING_ERROR_K_IN_V)
+                    logger.debug(Debug.PARSER_NESTING_ERROR_K_IN_V)
                     self.within_v = False
                     self.current_v = self.DEFAULT_V
                     self.current_v_tag = None
                 break
             if attr[0] == self.CLASS_ATTR and (match := self.config[self.V_CLASS].search(attr[1])):
-                logger.debug(Messages.METADATA_VALUE_MARKER_FOUND.format(match.group(0)))
+                logger.debug(Debug.METADATA_VALUE_MARKER_FOUND.format(match.group(0)))
                 self.within_v = True
                 self.current_v = self.DEFAULT_V
                 self.current_v_tag = tag
@@ -364,7 +394,7 @@ class OldRegimeParser(BaseParser):
                     # If some data was got for the key, the parser will
                     # be left in 'within_v' mode to try to get the value
                     # if possible. Otherwise the parser is reset.
-                    logger.debug(Messages.PARSER_NESTING_ERROR_V_IN_K)
+                    logger.debug(Debug.PARSER_NESTING_ERROR_V_IN_K)
                     self.within_k = False
                     self.current_k_tag = None
                     if not self.current_k:
@@ -431,23 +461,23 @@ class BaratzParser(BaseParser):
                 if attr[1] is None:
                     return
                 if self.config[self.M_ATTR].fullmatch(attr[0]) and self.config[self.M_VALUE].search(attr[1]):
-                    logger.debug(Messages.METADATA_MARKER_FOUND.format(attr[1]))
+                    logger.debug(Debug.METADATA_MARKER_FOUND.format(attr[1]))
                     self.within_meta = True
                     return
         else:
             if tag == self.K_TAG:
-                logger.debug(Messages.METADATA_KEY_MARKER_FOUND.format(tag))
+                logger.debug(Debug.METADATA_KEY_MARKER_FOUND.format(tag))
                 self.within_k = True
                 if self.within_v:
                     # If still processing a value, log about the nesting
                     # error but reset parser so everything starts afresh
                     # like if a new key had been found.
-                    logger.debug(Messages.PARSER_NESTING_ERROR_K_IN_V)
+                    logger.debug(Debug.PARSER_NESTING_ERROR_K_IN_V)
                     self.within_v = False
                     self.current_v = self.DEFAULT_V
                 return
             if tag == self.V_TAG:
-                logger.debug(Messages.METADATA_VALUE_MARKER_FOUND.format(tag))
+                logger.debug(Debug.METADATA_VALUE_MARKER_FOUND.format(tag))
                 self.within_v = True
                 if self.within_k:
                     # If a new key is found but a previous one is still
@@ -456,7 +486,7 @@ class BaratzParser(BaseParser):
                     # If some data was got for the key, the parser will
                     # be left in 'within_v' mode to try to get the value
                     # if possible. Otherwise the parser is reset.
-                    logger.debug(Messages.PARSER_NESTING_ERROR_V_IN_K)
+                    logger.debug(Debug.PARSER_NESTING_ERROR_V_IN_K)
                     self.within_k = False
                     if not self.current_k:
                         self.within_v = False
@@ -505,15 +535,15 @@ def log_exception(exc: Exception) -> None:
 
     If *exc* has `__context__` it is dumped, too.
     """
-    logger.debug(Messages.EXCEPTION_DEBUG_DUMP.format(type(exc).__name__))
+    logger.debug(Debug.EXCEPTION_LOG.format(type(exc).__name__))
     if exc.__context__:
-        message = Messages.EXCEPTION_CONTEXT_DEBUG_DUMP.format(
+        message = Debug.EXCEPTION_LOG_CONTEXT.format(
             type(exc.__context__).__name__,
             repr(exc.__context__),
             str(exc.__context__),
         )
     else:
-        message = Messages.EXCEPTION_NO_CONTEXT_DEBUG_DUMP
+        message = Debug.EXCEPTION_LOG_NO_CONTEXT
     logger.debug(message)
 
 
@@ -534,16 +564,17 @@ def loggerize(function: Callable[..., ExitCodes]) -> Callable[..., ExitCodes]:
     def loggerize_wrapper(*args: str) -> ExitCodes:
         logger.config(main_log_output=Paths.MAIN_LOG, full_log_output=Paths.FULL_LOG)
 
-        logger.debug(Messages.DEBUGGING_INIT)
+        logger.debug(Debug.DEBUGGING_INIT)
         logger.info(Messages.PROGRAM_BANNER)
         for required_package in DEPENDENCIES:
-            logger.debug(Messages.DEPENDENCY_BANNER.format(required_package.replace('==', ' v')))
+            logger.debug(Debug.DEPENDENCY_BANNER.format(required_package.replace('==', ' v')))
         logger.debug(USER_AGENT)
 
         status = function(*args)
 
+        logger.info('')
         logger.info(Messages.PROCESS_DONE)
-        logger.debug(Messages.DEBUGGING_DONE)
+        logger.debug(Debug.DEBUGGING_DONE)
         logging.shutdown()
         return status
     return loggerize_wrapper
@@ -558,7 +589,7 @@ def keyboard_interrupt_handler(function: Callable[..., ExitCodes]) -> Callable[.
         except KeyboardInterrupt:
             logger.set_indent(0)
             logger.warning('')
-            warning(Messages.KEYBOARD_INTERRUPT)
+            warning(Messages.WARNING_KEYBOARD_INTERRUPT)
             return ExitCodes.KEYBOARD_INTERRUPT
     return handle_keyboard_interrupt_wrapper
 
@@ -578,7 +609,7 @@ def build_parser_config(config: configparser.ConfigParser, section: str) -> Pars
         try:
             parser_config[key] = re.compile(value, re.IGNORECASE)
         except re.PatternError as exc:
-            message = Messages.PROFILES_WRONG_REGEX.format(
+            message = Messages.PROFILES_ERROR_WRONG_REGEX.format(
                 section, key,
                 exc.pattern,
                 '', exc.pos or 0,  # The empty string is needed as a placeholder!
@@ -608,15 +639,15 @@ def load_profiles(profiles_path: Path) -> dict[str, Profile]:
     url_pattern_key = 'url'
 
     config = configparser.ConfigParser()
-    logger.debug(Messages.LOADING_PROFILES.format(profiles_path))
+    logger.debug(Debug.LOADING_PROFILES.format(profiles_path))
     try:
         with profiles_path.open(encoding='utf-8') as inifile:
             config.read_file(inifile)
     except (FileNotFoundError, PermissionError) as exc:
-        raise ProfilesError(Messages.MISSING_PROFILES.format(exc.filename)) from exc
+        raise ProfilesError(Messages.PROFILES_ERROR_MISSING_PROFILES.format(exc.filename)) from exc
     except configparser.Error as exc:
         errorname = type(exc).__name__.removesuffix(configparser.Error.__name__)
-        raise ProfilesError(Messages.PROFILES_WRONG_SYNTAX.format(errorname)) from exc
+        raise ProfilesError(Messages.PROFILES_ERROR_PROFILES_WRONG_SYNTAX.format(errorname)) from exc
 
     profiles: dict[str, Profile] = {}
     parsers = [parser() for parser in BaseParser.__subclasses__()]
@@ -626,15 +657,15 @@ def load_profiles(profiles_path: Path) -> dict[str, Profile]:
         parser_config = build_parser_config(config, section)
         url_pattern = parser_config.pop(url_pattern_key, None)
         if url_pattern is None:
-            raise ProfilesError(Messages.PROFILE_WITHOUT_URL.format(section))
+            raise ProfilesError(Messages.PROFILES_ERROR_PROFILE_WITHOUT_URL.format(section))
         for parser in parsers:
             if parser_config.keys() == parser.PARAMETERS:
                 break
         else:
-            raise ProfilesError(Messages.PROFILE_WRONG_PARAMETERS.format(section))
+            raise ProfilesError(Messages.PROFILES_ERROR_PROFILE_WRONG_PARAMETERS.format(section))
         profiles[section] = Profile(url_pattern, parser, parser_config)
     if not profiles:
-        raise ProfilesError(Messages.EMPTY_PROFILES.format(profiles_path))
+        raise ProfilesError(Messages.PROFILES_ERROR_EMPTY_PROFILES.format(profiles_path))
     return profiles
 
 
@@ -934,13 +965,13 @@ def get_parser(url: Url, profiles: dict[str, Profile]) -> BaseParser:
     """
     for profile_name, profile in profiles.items():
         if profile.url_pattern.search(url):
-            logger.debug(Messages.DETECTED_PROFILE.format(profile_name))
+            logger.debug(Debug.PROFILE_ID.format(profile_name, type(profile.parser).__name__))
             profile.parser.configure(profile.parser_config)
             return profile.parser
-    raise SkimmingError(Messages.NO_MATCHING_PROFILE)
+    raise SkimmingError(Messages.SKIMMING_ERROR_NO_MATCHING_PROFILE)
 
 
-def saca_las_mantecas(url: Url, parser: BaseParser) -> Metadata:  # noqa: C901
+def saca_las_mantecas(url: Url, parser: BaseParser) -> Metadata:
     """Saca las mantecas.
 
     Saca las mantecas from the given *url*, that is, retrieve contents,
@@ -958,33 +989,32 @@ def saca_las_mantecas(url: Url, parser: BaseParser) -> Metadata:  # noqa: C901
         # So, in order to have useful messages, some discrimination has
         # to be done here.
         if isinstance(exc.reason, OSError):
-            reason = Messages.OSLIKE_URLERROR.format(type(exc.reason).__name__)
+            reason = Messages.URL_ACCESS_REASON_OSLIKE_ERROR.format(type(exc.reason).__name__)
         elif isinstance(exc, HTTPError):
-            reason = Messages.HTTP_PROTOCOL_URLERROR.format(exc.code)
+            reason = Messages.URL_ACCESS_REASON_HTTP_ERROR.format(exc.code)
         else:
-            reason = Messages.UNEXPECTED_URLERROR
-        raise SkimmingError(Messages.URL_ACCESS_ERROR.format(reason)) from exc
+            reason = Messages.URL_ACCESS_REASON_UNEXPECTED_ERROR
+        raise SkimmingError(Messages.SKIMMING_ERROR_URL_ACCESS.format(reason)) from exc
     # Apparently, 'HTTPException', 'ConnectionError' and the subclasses
     # are masked or wrapped by 'urllib', and documentation is not very
     # informative. So, just in case something weird happen, it is better
     # to handle these exception types here as well.
     except HTTPException as exc:
-        raise SkimmingError(Messages.HTTP_RETRIEVAL_ERROR.format(type(exc).__name__)) from exc
+        raise SkimmingError(Messages.SKIMMING_ERROR_ERROR_HTTP_RETRIEVAL.format(type(exc).__name__)) from exc
     except ConnectionError as exc:
-        error_code = Messages.UNKNOWN_ERRNO
-        if exc.errno:
-            with contextlib.suppress(IndexError):
-                error_code = errno.errorcode[exc.errno]
-        raise SkimmingError(Messages.CONNECTION_ERROR.format(error_code)) from exc
+        error_code = errno.errorcode.get(exc.errno) if exc.errno else None
+        if error_code is None:
+            raise SkimmingError(Messages.SKIMMING_ERROR_CONNECTION_FAILED_UNKNOWN_REASON) from exc
+        raise SkimmingError(Messages.SKIMMING_ERROR_CONNECTION_FAILED.format(error_code)) from exc
 
     if not contents:
-        raise SkimmingError(Messages.NO_CONTENTS_ERROR)
+        raise SkimmingError(Messages.SKIMMING_ERROR_NO_CONTENTS)
 
     parser.feed(contents.decode(encoding))
     parser.close()
     if retrieved_metadata := parser.get_metadata():
         return retrieved_metadata
-    raise SkimmingError(Messages.NO_METADATA_FOUND)
+    raise SkimmingError(Messages.SKIMMING_ERROR_NO_METADATA_FOUND)
 
 
 def retrieve_url(url: Url) -> tuple[bytes, str]:
@@ -1006,7 +1036,7 @@ def retrieve_url(url: Url) -> tuple[bytes, str]:
     charset = ''
     headers = {'User-Agent': USER_AGENT}
     while current_url:
-        logger.debug(Messages.PROCESSING_URL.format(current_url))
+        logger.debug(Debug.PROCESSING_URL.format(current_url))
         with urlopen(Request(current_url, headers=headers)) as response:  # noqa: S310
             # First, check if any redirection is needed and try to get
             # the charset the easy way.
@@ -1017,11 +1047,11 @@ def retrieve_url(url: Url) -> tuple[bytes, str]:
     # In this point, we have the contents as a byte string.
     # If the charset is 'None', it has to be determined the hard way.
     if not charset:
-        logger.debug(Messages.CHARSET_NOT_IN_HEADERS)
+        logger.debug(Debug.CHARSET_NOT_IN_HEADERS)
         charset = detect_html_charset(contents)
     else:
-        logger.debug(Messages.CHARSET_IN_HEADERS)
-    logger.debug(Messages.CONTENTS_ENCODING.format(charset))
+        logger.debug(Debug.CHARSET_IN_HEADERS)
+    logger.debug(Debug.CONTENTS_ENCODING.format(charset))
 
     return contents, charset
 
@@ -1059,7 +1089,7 @@ def get_redirected_url(contents: bytes, base_url: Url) -> Url | None:
             if field in url_fields_to_reuse and not getattr(redirected_url, field):
                 redirected_url = redirected_url._replace(**{field: value})
         redirected_url = urlunparse(redirected_url)
-        logger.debug(Messages.REDIRECTED_URL.format(redirected_url))
+        logger.debug(Debug.REDIRECTED_URL.format(redirected_url))
         return redirected_url
     return None
 
@@ -1084,14 +1114,14 @@ def detect_html_charset(contents: bytes) -> str:
     charset = fallback_charset
     if match := re.search(meta_http_equiv_charset_re, contents, re.IGNORECASE):
         # Next best thing, from the meta http-equiv="content-type".
-        logger.debug(Messages.CHARSET_FROM_HTTP_EQUIV)
+        logger.debug(Debug.CHARSET_FROM_HTTP_EQUIV)
         charset = match.group(1).decode('ascii')
     elif match := re.search(meta_charset_re, contents, re.IGNORECASE):
         # Last resort, from some meta charset, if any…
-        logger.debug(Messages.CHARSET_FROM_META_CHARSET)
+        logger.debug(Debug.CHARSET_FROM_META_CHARSET)
         charset = match.group(1).decode('ascii')
     else:
-        logger.debug(Messages.CHARSET_FROM_DEFAULT)
+        logger.debug(Debug.CHARSET_FROM_DEFAULT)
     return charset
 
 
@@ -1111,12 +1141,12 @@ def main(*args: str) -> ExitCodes:  # pylint: disable=unused-variable
         # so it is better to signal the end user with an error and give
         # an explanation if no input arguments are provided, as soon as
         # possible.
-        error(Messages.NO_ARGUMENTS)
+        error(Messages.ERROR_NO_ARGUMENTS)
         return ExitCodes.NO_ARGUMENTS
 
     try:
         profiles = load_profiles(Paths.INIFILE)
-        logger.debug(Messages.FOUND_PROFILES.format(', '.join(profiles.keys())))
+        logger.debug(Debug.FOUND_PROFILES.format(', '.join(profiles.keys())))
     except ProfilesError as exc:
         log_exception(exc)
         error(str(exc))
