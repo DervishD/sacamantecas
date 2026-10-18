@@ -219,20 +219,13 @@ class ExitCodes(IntEnum):
 logger = get_logger(PROGRAM_NAME)
 
 
-class BaseCustomError(Exception):
-    """Base class for all program custom exceptions."""  # noqa: D204
-    # pylint: disable-next=keyword-arg-before-vararg
-    def __init__ (self, message: str, *args: object, **kwargs: object) -> None:
-        """Initialize exception with message."""
-        super().__init__(message, *args, **kwargs)
-
-class ProfilesError(BaseCustomError):
+class ProfilesError(Exception):
     """Raise for profile-related errors."""
 
-class GatewayError(BaseCustomError):
+class GatewayError(Exception):
     """Raise for gateway-related errors."""
 
-class SkimmingError(BaseCustomError):
+class SkimmingError(Exception):
     """Raise for skimming-related errors."""
 
 
