@@ -639,7 +639,7 @@ def load_profiles(profiles_path: Path) -> dict[str, Profile]:
     config = configparser.ConfigParser()
     logger.debug(Debug.LOADING_PROFILES.format(profiles_path))
     try:
-        with profiles_path.open(encoding='utf-8') as inifile:
+        with profiles_path.open(encoding='utf-8-sig') as inifile:
             config.read_file(inifile)
     except (FileNotFoundError, PermissionError) as exc:
         raise ProfilesError(Messages.PROFILES_ERROR_MISSING_PROFILES.format(exc.filename)) from exc
@@ -883,7 +883,7 @@ class TextFileGateway(Gateway):
     def _get_urls(self) -> list[Url]:
         """Return all urls in the input file, stripped."""
         try:
-            with self.source_path.open(encoding='utf-8') as source_file:
+            with self.source_path.open(encoding='utf-8-sig') as source_file:
                 lines = source_file.read().splitlines()
         except UnicodeDecodeError as exc:
             raise GatewayError(Messages.GATEWAY_ERROR_INPUT_TEXT_FILE_NOT_UTF_8) from exc
