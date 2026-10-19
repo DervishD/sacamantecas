@@ -59,6 +59,7 @@ TEXTFILE_SUFFIX = '.txt'
 SPREADSHEET_SUFFIX = '.xlsx'
 
 SOCKET_TIMEOUT = 30
+MAX_REDIRECTIONS = 5
 
 
 class Paths:  # pylint: disable=too-few-public-methods
@@ -136,6 +137,7 @@ class Messages(StrEnum):
     URL_ACCESS_REASON_OSLIKE_ERROR = '{}'
     URL_ACCESS_REASON_HTTP_ERROR = 'respuesta HTTP {}'
     URL_ACCESS_REASON_UNEXPECTED_ERROR = 'error inesperado'
+    SKIMMING_ERROR_TOO_MANY_REDIRECTIONS = 'Demasiadas redirecciones accediendo al URL'
     SKIMMING_ERROR_ERROR_HTTP_RETRIEVAL = 'No se obtuvieron contenidos, error de protocolo HTTP «{}»'
     SKIMMING_ERROR_CONNECTION_FAILED = 'Se produjo un error de conexión «{}» accediendo al URL'
     SKIMMING_ERROR_CONNECTION_FAILED_UNKNOWN_REASON = 'Se produjo un error de conexión desconocido accediendo al URL'
@@ -1140,14 +1142,19 @@ def retrieve_url(url: Url) -> tuple[bytes, str]:
     contents = b''
     charset = ''
     headers = {'User-Agent': USER_AGENT}
+    redirections = 0
     while current_url:
         logger.debug(Debug.PROCESSING_URL.format(current_url))
-        with urlopen(Request(current_url, headers=headers)) as response:  # noqa: S310
+        with urlopen(Request(current_url, headers=headers), timeout=SOCKET_TIMEOUT) as response:  # noqa: S310
             # First, check if any redirection is needed and try to get
             # the charset the easy way.
             contents = response.read()
             charset = response.headers.get_content_charset()
         current_url = get_redirected_url(contents, current_url)
+        if current_url:
+            redirections += 1
+            if redirections > MAX_REDIRECTIONS:
+                raise SkimmingError(Messages.SKIMMING_ERROR_TOO_MANY_REDIRECTIONS)
 
     # In this point, we have the contents as a byte string.
     # If the charset is 'None', it has to be determined the hard way.
