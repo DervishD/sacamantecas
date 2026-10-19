@@ -137,7 +137,9 @@ class Messages(StrEnum):
     SKIMMING_ERROR_ERROR_HTTP_RETRIEVAL = 'No se obtuvieron contenidos, error de protocolo HTTP «{}»'
     SKIMMING_ERROR_CONNECTION_FAILED = 'Se produjo un error de conexión «{}» accediendo al URL'
     SKIMMING_ERROR_CONNECTION_FAILED_UNKNOWN_REASON = 'Se produjo un error de conexión desconocido accediendo al URL'
+    SKIMMING_ERROR_INVALID_URL = 'El URL no tiene un formato válido'
     SKIMMING_ERROR_NO_CONTENTS = 'No se recibieron contenidos del URL'
+    SKIMMING_ERROR_UNDECODABLE_CONTENTS = 'No se pudieron decodificar los contenidos con el charset «{}»'
     SKIMMING_ERROR_NO_METADATA_FOUND = 'No se obtuvieron metadatos'
 
 
@@ -1097,11 +1099,18 @@ def saca_las_mantecas(url: Url, parser: BaseParser) -> Metadata:
         if error_code is None:
             raise SkimmingError(Messages.SKIMMING_ERROR_CONNECTION_FAILED_UNKNOWN_REASON) from exc
         raise SkimmingError(Messages.SKIMMING_ERROR_CONNECTION_FAILED.format(error_code)) from exc
+    except (LookupError, ValueError) as exc:
+        raise SkimmingError(Messages.SKIMMING_ERROR_INVALID_URL) from exc
 
     if not contents:
         raise SkimmingError(Messages.SKIMMING_ERROR_NO_CONTENTS)
 
-    parser.feed(contents.decode(encoding))
+    try:
+        decoded_contents = contents.decode(encoding)
+    except UnicodeDecodeError as exc:
+        raise SkimmingError(Messages.SKIMMING_ERROR_UNDECODABLE_CONTENTS.format(encoding)) from exc
+
+    parser.feed(decoded_contents)
     parser.close()
     if retrieved_metadata := parser.get_metadata():
         return retrieved_metadata
