@@ -1108,6 +1108,10 @@ def saca_las_mantecas(url: Url, parser: BaseParser) -> Metadata:
         raise SkimmingError(Messages.SKIMMING_ERROR_TIMEOUT) from exc
     except (LookupError, ValueError) as exc:
         raise SkimmingError(Messages.SKIMMING_ERROR_INVALID_URL) from exc
+    except OSError as exc:
+        # Must go after `URLError`, `ConnectionError` and `TimeoutError`
+        # since all of them are subclasses of 'OSError'!
+        raise SkimmingError(Messages.SKIMMING_ERROR_CONNECTION_FAILED.format(type(exc).__name__)) from exc
 
     if not contents:
         raise SkimmingError(Messages.SKIMMING_ERROR_NO_CONTENTS)
