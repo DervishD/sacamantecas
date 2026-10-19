@@ -1179,7 +1179,7 @@ def get_redirected_url(contents: bytes, base_url: Url) -> Url | None:
 
     if match := re.search(meta_refresh_re, contents, re.IGNORECASE):
         parsed_url = urlparse(base_url)
-        redirected_url = urlparse(match.group(1).decode('ascii'))
+        redirected_url = urlparse(match.group(1).decode('ascii', errors='replace'))
         for field in parsed_url._fields:
             value = getattr(parsed_url, field)
             # If not specified in the obtained redirected URL, both the
