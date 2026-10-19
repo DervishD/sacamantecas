@@ -363,10 +363,10 @@ class OldRegimeParser(BaseParser):
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         """Handle opening tags."""
         super().handle_starttag(tag, attrs)
-        for attr in attrs:
-            if attr[1] is None:
+        for attr_name, attr_value in attrs:
+            if attr_value is None:
                 continue
-            if attr[0] == self.CLASS_ATTR and (match := self.config[self.K_CLASS].search(attr[1])):
+            if attr_name == self.CLASS_ATTR and (match := self.config[self.K_CLASS].search(attr_value)):
                 logger.debug(Debug.METADATA_KEY_MARKER_FOUND.format(match.group(0)))
                 self.within_k = True
                 self.current_k = self.DEFAULT_K
@@ -380,7 +380,7 @@ class OldRegimeParser(BaseParser):
                     self.current_v = self.DEFAULT_V
                     self.current_v_tag = None
                 break
-            if attr[0] == self.CLASS_ATTR and (match := self.config[self.V_CLASS].search(attr[1])):
+            if attr_name == self.CLASS_ATTR and (match := self.config[self.V_CLASS].search(attr_value)):
                 logger.debug(Debug.METADATA_VALUE_MARKER_FOUND.format(match.group(0)))
                 self.within_v = True
                 self.current_v = self.DEFAULT_V
@@ -455,11 +455,11 @@ class BaratzParser(BaseParser):
         if not self.within_meta:
             if not self.config[self.M_TAG].fullmatch(tag):
                 return
-            for attr in attrs:
-                if attr[1] is None:
-                    return
-                if self.config[self.M_ATTR].fullmatch(attr[0]) and self.config[self.M_VALUE].search(attr[1]):
-                    logger.debug(Debug.METADATA_MARKER_FOUND.format(attr[1]))
+            for attr_name, attr_value in attrs:
+                if attr_value is None:
+                    continue
+                if self.config[self.M_ATTR].fullmatch(attr_name) and self.config[self.M_VALUE].search(attr_value):
+                    logger.debug(Debug.METADATA_MARKER_FOUND.format(attr_value))
                     self.within_meta = True
                     return
         else:
