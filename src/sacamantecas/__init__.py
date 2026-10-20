@@ -23,7 +23,6 @@ from typing import ClassVar, final, NamedTuple, TYPE_CHECKING
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, unquote, urlparse, urlunparse
 from urllib.request import Request, urlopen
-from zipfile import BadZipFile
 
 from legion import ensure_utf8_output, format_message, get_logger
 from openpyxl import load_workbook
@@ -127,6 +126,8 @@ class Messages(StrEnum):
     GATEWAY_ERROR_OUTPUT_FILE_NOT_FOUND = 'No se encontró el fichero de salida'
     GATEWAY_ERROR_INPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para leer el fichero de entrada'
     GATEWAY_ERROR_OUTPUT_FILE_NO_PERMISSION = 'No hay permisos suficientes para crear el fichero de salida'
+    GATEWAY_ERROR_INPUT_FILE_READ_FAILED = 'No se pudo leer el fichero de entrada'
+    GATEWAY_ERROR_OUTPUT_FILE_WRITE_FAILED = 'No se pudo escribir el fichero de salida'
     GATEWAY_ERROR_NO_RESULTS_TO_SAVE = 'No hay metadatos para esta fuente'
     GATEWAY_ERROR_INPUT_TEXT_FILE_NOT_UTF_8 = 'El fichero de entrada no está codificado en UTF-8'
     GATEWAY_ERROR_SOURCE_SHEET_IS_INVALID = 'La hoja de entrada es inválida'
@@ -749,6 +750,8 @@ class Gateway(ABC):
             raise GatewayError(Messages.GATEWAY_ERROR_INPUT_FILE_NOT_FOUND) from exc
         except PermissionError as exc:
             raise GatewayError(Messages.GATEWAY_ERROR_INPUT_FILE_NO_PERMISSION) from exc
+        except OSError as exc:
+            raise GatewayError(Messages.GATEWAY_ERROR_INPUT_FILE_READ_FAILED) from exc
         self.urls = unique_urls
         return self.urls
 
@@ -779,6 +782,8 @@ class Gateway(ABC):
             if exc.filename is not None and Path(exc.filename) == self.source_path:
                 raise GatewayError(Messages.GATEWAY_ERROR_INPUT_FILE_NOT_FOUND) from exc
             raise GatewayError(Messages.GATEWAY_ERROR_OUTPUT_FILE_NOT_FOUND) from exc
+        except OSError as exc:
+            raise GatewayError(Messages.GATEWAY_ERROR_OUTPUT_FILE_WRITE_FAILED) from exc
 
     @abstractmethod
     def _get_urls(self) -> list[Url]:
@@ -945,7 +950,17 @@ class SpreadSheetGateway(Gateway):
         """
         try:
             source_workbook = load_workbook(self.source_path)
-        except (KeyError, BadZipFile) as exc:
+        # NOTE: the `except` blocks below are a hack, true, but they are
+        # the lesser evil. Unfortunately, openpyxl documentation is not
+        # very thorough regarding the exceptions it raises for invalid
+        # files and the documented ones are a mess, from `BadZipFile` to
+        # XML parser errors, including standard library ones.
+        #
+        # The solution below is quite pragmatic: catch all of them, but
+        # make sure `OSError` ones are bubbled up to `self.get_urls()`.
+        except OSError:
+            raise
+        except Exception as exc:
             raise GatewayError(Messages.GATEWAY_ERROR_SOURCE_SHEET_IS_INVALID) from exc
         source_sheet = source_workbook.worksheets[0]
         logger.debug(Debug.WORKING_SHEET.format(source_sheet.title))
