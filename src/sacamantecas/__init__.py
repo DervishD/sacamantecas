@@ -107,15 +107,16 @@ class Messages(StrEnum):
     )
 
     # Profile handling errors.
-    PROFILES_ERROR_FILE_NOT_FOUND = 'No se encontró el fichero de perfiles «{}»'
-    PROFILES_ERROR_FILE_NO_PERMISSION = 'No hay permisos suficientes para leer el fichero de perfiles «{}»'
-    PROFILES_ERROR_FILE_READ_FAILED = 'No se pudo leer el fichero de perfiles «{}»'
-    PROFILES_ERROR_FILE_NOT_UTF_8 = 'El fichero de perfiles «{}» no está codificado en UTF-8'
-    PROFILES_ERROR_PROFILES_WRONG_SYNTAX = 'Sintaxis incorrecta en el fichero de perfiles [{}]'
-    PROFILES_ERROR_PROFILE_WITHOUT_URL = 'El perfil «{}» no incluye un patrón de URL'
-    PROFILES_ERROR_PROFILE_WRONG_PARAMETERS = 'El perfil «{}» no contiene parámetros correctos'
-    PROFILES_ERROR_EMPTY_PROFILES = 'No hay perfiles definidos en el fichero de perfiles «{}»'
-    PROFILES_ERROR_WRONG_REGEX = (
+    PROFILE_ERROR_FILE_NOT_FOUND = 'No se encontró el fichero de perfiles «{}»'
+    PROFILE_ERROR_FILE_NO_PERMISSION = 'No hay permisos suficientes para leer el fichero de perfiles «{}»'
+    PROFILE_ERROR_FILE_READ_FAILED = 'No se pudo leer el fichero de perfiles «{}»'
+    PROFILE_ERROR_FILE_NOT_UTF_8 = 'El fichero de perfiles «{}» no está codificado en UTF-8'
+    PROFILE_ERROR_PROFILES_WRONG_SYNTAX = 'Sintaxis incorrecta en el fichero de perfiles [{}]'
+    PROFILE_ERROR_PROFILE_WITHOUT_URL = 'El perfil «{}» no incluye un patrón de URL'
+    PROFILE_ERROR_PROFILE_WRONG_PARAMETERS = 'El perfil «{}» no contiene parámetros correctos'
+    PROFILE_ERROR_EMPTY_PROFILES = 'No hay perfiles definidos en el fichero de perfiles «{}»'
+    PROFILE_ERROR_NO_MATCHING_PROFILE = 'No se encontró un perfil para procesar el URL'
+    PROFILE_ERROR_WRONG_REGEX = (
         'Expresión regular incorrecta en el fichero de perfiles\n'
         'Perfil «{}», clave «{}»:\n'
         '  {}\n'
@@ -136,7 +137,6 @@ class Messages(StrEnum):
     GATEWAY_ERROR_SOURCE_SHEET_IS_INVALID = 'La hoja de entrada es inválida'
 
     # Skimming errors.
-    SKIMMING_ERROR_NO_MATCHING_PROFILE = 'No se encontró un perfil para procesar el URL'
     SKIMMING_ERROR_URL_ACCESS = 'No resultó posible acceder a la dirección especificada ({})'
     URL_ACCESS_REASON_OSLIKE_ERROR = '{}'
     URL_ACCESS_REASON_HTTP_ERROR = 'respuesta HTTP {}'
@@ -230,8 +230,8 @@ class ExitCodes(IntEnum):
 logger = get_logger(PROGRAM_NAME)
 
 
-class ProfilesError(Exception):
-    """Raise for profile-related errors."""
+class ProfileError(Exception):
+    """Raised for profile related errors."""
 
 class GatewayError(Exception):
     """Raise for gateway-related errors."""
@@ -611,12 +611,12 @@ def build_parser_config(config: configparser.ConfigParser, section: str) -> Pars
         try:
             parser_config[key] = re.compile(value, re.IGNORECASE)
         except re.PatternError as exc:
-            message = Messages.PROFILES_ERROR_WRONG_REGEX.format(
+            message = Messages.PROFILE_ERROR_WRONG_REGEX.format(
                 section, key,
                 exc.pattern,
                 '', exc.pos or 0,  # The empty string is needed as a placeholder!
                 type(exc).__name__, str(exc))
-            raise ProfilesError(message) from exc
+            raise ProfileError(message) from exc
     return parser_config
 
 
@@ -643,16 +643,16 @@ def load_profiles(profiles_path: Path) -> dict[str, Profile]:
         with profiles_path.open(encoding='utf-8-sig') as inifile:
             config.read_file(inifile)
     except FileNotFoundError as exc:
-        raise ProfilesError(Messages.PROFILES_ERROR_FILE_NOT_FOUND.format(profiles_path)) from exc
+        raise ProfileError(Messages.PROFILE_ERROR_FILE_NOT_FOUND.format(profiles_path)) from exc
     except PermissionError as exc:
-        raise ProfilesError(Messages.PROFILES_ERROR_FILE_NO_PERMISSION.format(profiles_path)) from exc
+        raise ProfileError(Messages.PROFILE_ERROR_FILE_NO_PERMISSION.format(profiles_path)) from exc
     except OSError as exc:
-        raise ProfilesError(Messages.PROFILES_ERROR_FILE_READ_FAILED.format(profiles_path)) from exc
+        raise ProfileError(Messages.PROFILE_ERROR_FILE_READ_FAILED.format(profiles_path)) from exc
     except UnicodeDecodeError as exc:
-        raise ProfilesError(Messages.PROFILES_ERROR_FILE_NOT_UTF_8.format(profiles_path)) from exc
+        raise ProfileError(Messages.PROFILE_ERROR_FILE_NOT_UTF_8.format(profiles_path)) from exc
     except configparser.Error as exc:
         errorname = type(exc).__name__.removesuffix(configparser.Error.__name__)
-        raise ProfilesError(Messages.PROFILES_ERROR_PROFILES_WRONG_SYNTAX.format(errorname)) from exc
+        raise ProfileError(Messages.PROFILE_ERROR_PROFILES_WRONG_SYNTAX.format(errorname)) from exc
 
     profiles: dict[str, Profile] = {}
     parsers = [parser() for parser in BaseParser.__subclasses__()]
@@ -662,15 +662,15 @@ def load_profiles(profiles_path: Path) -> dict[str, Profile]:
         parser_config = build_parser_config(config, section)
         url_pattern = parser_config.pop(url_pattern_key, None)
         if url_pattern is None:
-            raise ProfilesError(Messages.PROFILES_ERROR_PROFILE_WITHOUT_URL.format(section))
+            raise ProfileError(Messages.PROFILE_ERROR_PROFILE_WITHOUT_URL.format(section))
         for parser in parsers:
             if parser_config.keys() == parser.PARAMETERS:
                 break
         else:
-            raise ProfilesError(Messages.PROFILES_ERROR_PROFILE_WRONG_PARAMETERS.format(section))
+            raise ProfileError(Messages.PROFILE_ERROR_PROFILE_WRONG_PARAMETERS.format(section))
         profiles[section] = Profile(url_pattern, parser, parser_config)
     if not profiles:
-        raise ProfilesError(Messages.PROFILES_ERROR_EMPTY_PROFILES.format(profiles_path))
+        raise ProfileError(Messages.PROFILE_ERROR_EMPTY_PROFILES.format(profiles_path))
     return profiles
 
 
@@ -1081,13 +1081,15 @@ def get_parser(url: Url, profiles: dict[str, Profile]) -> BaseParser:
     within *profiles* whose 'url_pattern' matches the given *url*. Then,
     the parser is returned after being properly configured to handle the
     *url* contents.
+
+    Raises `ProfileError` if no matching profile is found for *url*.
     """
     for profile_name, profile in profiles.items():
         if profile.url_pattern.search(url):
             logger.debug(Debug.PROFILE_ID.format(profile_name, type(profile.parser).__name__))
             profile.parser.configure(profile.parser_config)
             return profile.parser
-    raise SkimmingError(Messages.SKIMMING_ERROR_NO_MATCHING_PROFILE)
+    raise ProfileError(Messages.PROFILE_ERROR_NO_MATCHING_PROFILE)
 
 
 def saca_las_mantecas(url: Url, parser: BaseParser) -> Metadata:
@@ -1310,7 +1312,7 @@ def process_urls(urls: list[Url], profiles: dict[str, Profile]) -> SkimResults:
         logger.info(url)
         try:
             results[url] = saca_las_mantecas(url, get_parser(url, profiles))
-        except SkimmingError as exc:
+        except (ProfileError, SkimmingError) as exc:
             log_exception(exc)
             logger.indent()
             warning(str(exc))
@@ -1364,7 +1366,7 @@ def main(*args: str) -> ExitCodes:  # pylint: disable=unused-variable
     try:
         profiles = load_profiles(Paths.INIFILE)
         logger.debug(Debug.FOUND_PROFILES.format(', '.join(profiles.keys())))
-    except ProfilesError as exc:
+    except ProfileError as exc:
         log_exception(exc)
         error(str(exc))
         return ExitCodes.ERROR
