@@ -107,7 +107,10 @@ class Messages(StrEnum):
     )
 
     # Profile handling errors.
-    PROFILES_ERROR_MISSING_PROFILES = 'No se encontró o no se pudo leer el fichero de perfiles «{}»'
+    PROFILES_ERROR_FILE_NOT_FOUND = 'No se encontró el fichero de perfiles «{}»'
+    PROFILES_ERROR_FILE_NO_PERMISSION = 'No hay permisos suficientes para leer el fichero de perfiles «{}»'
+    PROFILES_ERROR_FILE_READ_FAILED = 'No se pudo leer el fichero de perfiles «{}»'
+    PROFILES_ERROR_FILE_NOT_UTF_8 = 'El fichero de perfiles «{}» no está codificado en UTF-8'
     PROFILES_ERROR_PROFILES_WRONG_SYNTAX = 'Sintaxis incorrecta en el fichero de perfiles [{}]'
     PROFILES_ERROR_PROFILE_WITHOUT_URL = 'El perfil «{}» no incluye un patrón de URL'
     PROFILES_ERROR_PROFILE_WRONG_PARAMETERS = 'El perfil «{}» no contiene parámetros correctos'
@@ -626,11 +629,8 @@ def load_profiles(profiles_path: Path) -> dict[str, Profile]:
     Dictionary keys are the obtained profile names, while the values are
     the corresponding profile definitions as `Profile` named tuples.
 
-    Raise `MissingProfilesError` if *profiles_path* cannot be opened or
-    read.
-
-    Raise `ProfilesSyntaxError` if there are any syntax errors in the
-    contents of *profiles_path*.
+    Raise `ProfilesError` if *profiles_path* cannot be found, read, has
+    syntax or encoding errors, etc.
 
     The returned dictionary will be empty if no profiles or only empty
     profiles are present in *profiles_path*.
@@ -642,8 +642,14 @@ def load_profiles(profiles_path: Path) -> dict[str, Profile]:
     try:
         with profiles_path.open(encoding='utf-8-sig') as inifile:
             config.read_file(inifile)
-    except (FileNotFoundError, PermissionError) as exc:
-        raise ProfilesError(Messages.PROFILES_ERROR_MISSING_PROFILES.format(exc.filename)) from exc
+    except FileNotFoundError as exc:
+        raise ProfilesError(Messages.PROFILES_ERROR_FILE_NOT_FOUND.format(profiles_path)) from exc
+    except PermissionError as exc:
+        raise ProfilesError(Messages.PROFILES_ERROR_FILE_NO_PERMISSION.format(profiles_path)) from exc
+    except OSError as exc:
+        raise ProfilesError(Messages.PROFILES_ERROR_FILE_READ_FAILED.format(profiles_path)) from exc
+    except UnicodeDecodeError as exc:
+        raise ProfilesError(Messages.PROFILES_ERROR_FILE_NOT_UTF_8.format(profiles_path)) from exc
     except configparser.Error as exc:
         errorname = type(exc).__name__.removesuffix(configparser.Error.__name__)
         raise ProfilesError(Messages.PROFILES_ERROR_PROFILES_WRONG_SYNTAX.format(errorname)) from exc
