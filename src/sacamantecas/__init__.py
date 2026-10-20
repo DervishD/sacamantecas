@@ -870,7 +870,7 @@ class SingleUrlGateway(Gateway):
         path) by a visually unobtrusive character which is safe to use
         while keeping the path readable.
         """
-        return Path(re.sub(r'\W', '_', self.urls[0], flags=re.ASCII).rstrip('. ')).with_suffix(TEXTFILE_SUFFIX)
+        return Path(re.sub(r'\W', '_', self.urls[0], flags=re.ASCII)).with_suffix(TEXTFILE_SUFFIX)
 
 
 class TextFileGateway(Gateway):
