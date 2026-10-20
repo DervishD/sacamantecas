@@ -1349,7 +1349,7 @@ def main(*args: str) -> ExitCodes:  # pylint: disable=unused-variable
     """."""
     exitcode = ExitCodes.SUCCESS
 
-    if not args:
+    if not any(argument.strip() for argument in args):
         # Input arguments should be provided automatically when program
         # is used as a drag'n'drop target which is actually the intended
         # way of operation, generally speaking.
