@@ -637,7 +637,7 @@ def load_profiles(profiles_path: Path) -> dict[str, Profile]:
     """
     url_pattern_key = 'url'
 
-    config = configparser.ConfigParser()
+    config = configparser.ConfigParser(interpolation=None)
     logger.debug(Debug.LOADING_PROFILES.format(profiles_path))
     try:
         with profiles_path.open(encoding='utf-8-sig') as inifile:
