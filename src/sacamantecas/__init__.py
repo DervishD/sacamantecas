@@ -234,7 +234,7 @@ class ProfileError(Exception):
     """Raised for profile related errors."""
 
 class GatewayError(Exception):
-    """Raise for gateway-related errors."""
+    """Raised for gateway related errors."""
 
 class SkimmingError(Exception):
     """Raise for skimming-related errors."""
