@@ -146,6 +146,7 @@ class Messages(StrEnum):
     SKIMMING_ERROR_CONNECTION_FAILED = 'Se produjo un error de conexión «{}» accediendo al URL'
     SKIMMING_ERROR_CONNECTION_FAILED_UNKNOWN_REASON = 'Se produjo un error de conexión desconocido accediendo al URL'
     SKIMMING_ERROR_TIMEOUT = 'Se agotó el tiempo de espera accediendo al URL'
+    SKIMMING_ERROR_UNKNOWN_CHARSET = 'El charset «{}» es desconocido, es imposible decodificar los contenidos'
     SKIMMING_ERROR_INVALID_URL = 'El URL no tiene un formato válido'
     SKIMMING_ERROR_NO_CONTENTS = 'No se recibieron contenidos del URL'
     SKIMMING_ERROR_UNDECODABLE_CONTENTS = 'No se pudieron decodificar los contenidos con el charset «{}»'
@@ -1102,7 +1103,7 @@ def saca_las_mantecas(url: Url, parser: BaseParser) -> Metadata:
     Return obtained metadata as a dictionary.
     """
     try:
-        contents, encoding = retrieve_url(url)
+        contents = retrieve_url(url)
     except URLError as exc:
         # Depending on the particular error which happened, the reason
         # attribute of the 'URLError' exception can be a simple error
@@ -1129,7 +1130,11 @@ def saca_las_mantecas(url: Url, parser: BaseParser) -> Metadata:
         raise SkimmingError(Messages.SKIMMING_ERROR_CONNECTION_FAILED.format(error_code)) from exc
     except TimeoutError as exc:
         raise SkimmingError(Messages.SKIMMING_ERROR_TIMEOUT) from exc
-    except (LookupError, ValueError) as exc:
+    except UnicodeDecodeError as exc:
+        raise SkimmingError(Messages.SKIMMING_ERROR_UNDECODABLE_CONTENTS.format(exc.encoding)) from exc
+    except LookupError as exc:
+        raise SkimmingError(Messages.SKIMMING_ERROR_UNKNOWN_CHARSET) from exc
+    except ValueError as exc:
         raise SkimmingError(Messages.SKIMMING_ERROR_INVALID_URL) from exc
     except OSError as exc:
         # Must go after `URLError`, `ConnectionError` and `TimeoutError`
@@ -1139,19 +1144,14 @@ def saca_las_mantecas(url: Url, parser: BaseParser) -> Metadata:
     if not contents:
         raise SkimmingError(Messages.SKIMMING_ERROR_NO_CONTENTS)
 
-    try:
-        decoded_contents = contents.decode(encoding)
-    except UnicodeDecodeError as exc:
-        raise SkimmingError(Messages.SKIMMING_ERROR_UNDECODABLE_CONTENTS.format(encoding)) from exc
-
-    parser.feed(decoded_contents)
+    parser.feed(contents)
     parser.close()
     if retrieved_metadata := parser.get_metadata():
         return retrieved_metadata
     raise SkimmingError(Messages.SKIMMING_ERROR_NO_METADATA_FOUND)
 
 
-def retrieve_url(url: Url) -> tuple[bytes, str]:
+def retrieve_url(url: Url) -> str:
     """Retrieve contents from *url*.
 
     First resolve any `meta http-equiv="Refresh"` redirection for *url*
@@ -1159,7 +1159,7 @@ def retrieve_url(url: Url) -> tuple[bytes, str]:
 
     Then, detect the contents encoding (in HTML jargon, the charset).
 
-    Return a (contents, charset) tuple.
+    Return the decoded contents as a string.
     """
     current_url: Url | None = url
 
@@ -1192,7 +1192,7 @@ def retrieve_url(url: Url) -> tuple[bytes, str]:
         logger.debug(Debug.CHARSET_IN_HEADERS)
     logger.debug(Debug.CONTENTS_ENCODING.format(charset))
 
-    return contents, charset
+    return contents.decode(charset)
 
 
 def resolve_file_url(url: Url) -> Url:
