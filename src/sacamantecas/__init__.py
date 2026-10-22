@@ -141,7 +141,7 @@ class Messages(StrEnum):
     URL_ACCESS_REASON_OSLIKE_ERROR = '{}'
     URL_ACCESS_REASON_HTTP_ERROR = 'respuesta HTTP {}'
     URL_ACCESS_REASON_UNEXPECTED_ERROR = 'error inesperado'
-    SKIMMING_ERROR_TOO_MANY_REDIRECTIONS = 'Demasiadas redirecciones accediendo al URL'
+    SKIMMING_ERROR_TOO_MANY_REDIRECTIONS = 'Demasiadas redirecciones accediendo al URL (máximo: {})'
     SKIMMING_ERROR_ERROR_HTTP_RETRIEVAL = 'No se obtuvieron contenidos, error de protocolo HTTP «{}»'
     SKIMMING_ERROR_CONNECTION_FAILED = 'Se produjo un error de conexión «{}» accediendo al URL'
     SKIMMING_ERROR_CONNECTION_FAILED_UNKNOWN_REASON = 'Se produjo un error de conexión desconocido accediendo al URL'
@@ -230,6 +230,22 @@ class ExitCodes(IntEnum):
 
 logger = get_logger(PROGRAM_NAME)
 
+
+class UnknownCharsetError(LookupError):
+    """Raise when the charset of some contents is not recognized."""
+
+    def __init__(self, charset: str) -> None:
+        """."""
+        super().__init__(charset)
+        self.charset = charset
+
+class TooManyRedirectionsError(Exception):
+    """Raise when a URL redirects more times than allowed."""
+
+    def __init__(self, limit: int) -> None:
+        """."""
+        super().__init__(limit)
+        self.limit = limit
 
 class ProfileError(Exception):
     """Raised for profile related errors."""
@@ -1132,8 +1148,10 @@ def saca_las_mantecas(url: Url, parser: BaseParser) -> Metadata:
         raise SkimmingError(Messages.SKIMMING_ERROR_TIMEOUT) from exc
     except UnicodeDecodeError as exc:
         raise SkimmingError(Messages.SKIMMING_ERROR_UNDECODABLE_CONTENTS.format(exc.encoding)) from exc
-    except LookupError as exc:
-        raise SkimmingError(Messages.SKIMMING_ERROR_UNKNOWN_CHARSET) from exc
+    except UnknownCharsetError as exc:
+        raise SkimmingError(Messages.SKIMMING_ERROR_UNKNOWN_CHARSET.format(exc.charset)) from exc
+    except TooManyRedirectionsError as exc:
+        raise SkimmingError(Messages.SKIMMING_ERROR_TOO_MANY_REDIRECTIONS.format(exc.limit)) from exc
     except ValueError as exc:
         raise SkimmingError(Messages.SKIMMING_ERROR_INVALID_URL) from exc
     except OSError as exc:
@@ -1181,7 +1199,7 @@ def retrieve_url(url: Url) -> str:
         if current_url:
             redirections += 1
             if redirections > MAX_REDIRECTIONS:
-                raise SkimmingError(Messages.SKIMMING_ERROR_TOO_MANY_REDIRECTIONS)
+                raise TooManyRedirectionsError(MAX_REDIRECTIONS)
 
     # In this point, we have the contents as a byte string.
     # If the charset is 'None', it has to be determined the hard way.
@@ -1192,7 +1210,10 @@ def retrieve_url(url: Url) -> str:
         logger.debug(Debug.CHARSET_IN_HEADERS)
     logger.debug(Debug.CONTENTS_ENCODING.format(charset))
 
-    return contents.decode(charset)
+    try:
+        return contents.decode(charset)
+    except LookupError as exc:
+        raise UnknownCharsetError(charset) from exc
 
 
 def resolve_file_url(url: Url) -> Url:
