@@ -116,12 +116,12 @@ class Messages(StrEnum):
     PROFILE_ERROR_PROFILE_WRONG_PARAMETERS = 'El perfil «{}» no contiene parámetros correctos'
     PROFILE_ERROR_EMPTY_PROFILES = 'No hay perfiles definidos en el fichero de perfiles «{}»'
     PROFILE_ERROR_NO_MATCHING_PROFILE = 'No se encontró un perfil para procesar el URL'
-    PROFILE_ERROR_WRONG_REGEX = (
+    PROFILE_ERROR_INVALID_REGEX = (
         'Expresión regular incorrecta en el fichero de perfiles\n'
-        'Perfil «{}», clave «{}»:\n'
-        '  {}\n'
-        '  {:_<{}}^\n'
-        '  [{}: {}]\n'
+        'Perfil «{0.profile}», clave «{0.key}»:\n'
+        '  {0.pattern}\n'
+        '  {0.pattern:_<{0.marker_offset}.0}^\n'
+        '  [{0.error_name}: {0}]'
     )
 
     # Gateway errors.
@@ -230,6 +230,17 @@ class ExitCodes(IntEnum):
 
 logger = get_logger(PROGRAM_NAME)
 
+
+class InvalidProfilePatternError(re.PatternError):
+    """Raise when a profile contains an invalid regular expression."""
+
+    def __init__(self, section: str, key: str, pattern: str, original: re.PatternError) -> None:
+        """Include *section* and *key* for context."""
+        super().__init__(original.msg, pattern, original.pos)
+        self.profile = section
+        self.key = key
+        self.marker_offset = original.pos or 0
+        self.error_name = type(original).__name__
 
 class UnknownCharsetError(LookupError):
     """Raise when the charset of some contents is not recognized."""
@@ -616,10 +627,10 @@ def keyboard_interrupt_handler(function: Callable[..., ExitCodes]) -> Callable[.
 def build_parser_config(config: configparser.ConfigParser, section: str) -> ParserConfig:
     """Build parser config from *section* within *config*.
 
-    Empty values are silently skipped.
-    Regular expressions are compiled.
+    Empty values are silently skipped, regular expressions are compiled.
 
-    Raise `ProfilesError` if any value fails to compile as a regex.
+    Raise `InvalidProfilePatternError` if any value within *section* is
+    not a valid regular expression pattern and fails to compile.
     """
     parser_config: ParserConfig = {}
     for key, value in config[section].items():
@@ -628,12 +639,7 @@ def build_parser_config(config: configparser.ConfigParser, section: str) -> Pars
         try:
             parser_config[key] = re.compile(value, re.IGNORECASE)
         except re.PatternError as exc:
-            message = Messages.PROFILE_ERROR_WRONG_REGEX.format(
-                section, key,
-                exc.pattern,
-                '', exc.pos or 0,  # The empty string is needed as a placeholder!
-                type(exc).__name__, str(exc))
-            raise ProfileError(message) from exc
+            raise InvalidProfilePatternError(section, key, value, exc) from exc
     return parser_config
 
 
@@ -676,7 +682,10 @@ def load_profiles(profiles_path: Path) -> dict[str, Profile]:
     for section in config.sections():
         if not config[section]:
             continue
-        parser_config = build_parser_config(config, section)
+        try:
+            parser_config = build_parser_config(config, section)
+        except InvalidProfilePatternError as exc:
+            raise ProfileError(Messages.PROFILE_ERROR_INVALID_REGEX.format(exc)) from exc
         url_pattern = parser_config.pop(url_pattern_key, None)
         if url_pattern is None:
             raise ProfileError(Messages.PROFILE_ERROR_PROFILE_WITHOUT_URL.format(section))
