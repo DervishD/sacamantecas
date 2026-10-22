@@ -1121,13 +1121,13 @@ def saca_las_mantecas(url: Url, parser: BaseParser) -> Metadata:
     # are masked or wrapped by 'urllib', and documentation is not very
     # informative. So, just in case something weird happen, it is better
     # to handle these exception types here as well.
-    except HTTPException as exc:
-        raise SkimmingError(Messages.SKIMMING_ERROR_ERROR_HTTP_RETRIEVAL.format(type(exc).__name__)) from exc
     except ConnectionError as exc:
         error_code = errno.errorcode.get(exc.errno) if exc.errno else None
         if error_code is None:
             raise SkimmingError(Messages.SKIMMING_ERROR_CONNECTION_FAILED_UNKNOWN_REASON) from exc
         raise SkimmingError(Messages.SKIMMING_ERROR_CONNECTION_FAILED.format(error_code)) from exc
+    except HTTPException as exc:
+        raise SkimmingError(Messages.SKIMMING_ERROR_ERROR_HTTP_RETRIEVAL.format(type(exc).__name__)) from exc
     except TimeoutError as exc:
         raise SkimmingError(Messages.SKIMMING_ERROR_TIMEOUT) from exc
     except UnicodeDecodeError as exc:
