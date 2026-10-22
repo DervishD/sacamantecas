@@ -120,8 +120,8 @@ class Messages(StrEnum):
         'Expresión regular incorrecta en el fichero de perfiles\n'
         'Perfil «{0.profile}», clave «{0.key}»:\n'
         '  {0.pattern}\n'
-        '  {0.pattern:_<{0.marker_offset}.0}^\n'
-        '  [{0.error_name}: {0}]'
+        '  {0.pattern:_<{0.pos}.0}^\n'
+        '  [{0.error_name}: {0.msg}]'
     )
 
     # Gateway errors.
@@ -236,10 +236,9 @@ class InvalidProfilePatternError(re.PatternError):
 
     def __init__(self, section: str, key: str, pattern: str, original: re.PatternError) -> None:
         """Include *section* and *key* for context."""
-        super().__init__(original.msg, pattern, original.pos)
+        super().__init__(original.msg, pattern, original.pos or 0)
         self.profile = section
         self.key = key
-        self.marker_offset = original.pos or 0
         self.error_name = type(original).__name__
 
 class UnknownCharsetError(LookupError):
