@@ -220,7 +220,7 @@ class Debug(StrEnum):
 
 
 class ExitCodes(IntEnum):
-    """Standardized exit codes."""  # noqa: D204
+    """Standardized exit codes."""  # ruff: ignore[D204]
     SUCCESS = 0
     NO_ARGUMENTS = 1
     WARNING = 2
@@ -480,7 +480,7 @@ class BaratzParser(BaseParser):
         super().reset()
         self.within_meta = False
 
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:  # noqa: C901
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:  # ruff: ignore[C901]
         """Handle opening tags."""
         super().handle_starttag(tag, attrs)
         if not self.within_meta:
@@ -537,7 +537,7 @@ class BaratzParser(BaseParser):
 
 
 class Profile(NamedTuple):
-    """Abstraction for profiles."""  # noqa: D204
+    """Abstraction for profiles."""  # ruff: ignore[D204]
     url_pattern: re.Pattern[str]
     parser: BaseParser
     parser_config: ParserConfig
@@ -1221,7 +1221,7 @@ def retrieve_url(url: Url) -> str:
     redirections = 0
     while current_url:
         logger.debug(Debug.PROCESSING_URL.format(current_url))
-        with urlopen(Request(current_url, headers=headers), timeout=SOCKET_TIMEOUT) as response:  # noqa: S310
+        with urlopen(Request(current_url, headers=headers), timeout=SOCKET_TIMEOUT) as response:  # ruff: ignore[S310]
             # First, check if any redirection is needed and try to get
             # the charset the easy way.
             contents = response.read()
