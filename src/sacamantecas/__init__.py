@@ -1117,6 +1117,61 @@ def get_parser(url: Url, profiles: dict[str, Profile]) -> BaseParser:
     raise ProfileError(Messages.PROFILE_ERROR_NO_MATCHING_PROFILE)
 
 
+# pylint: disable-next=too-many-branches
+def retrieval_error_message(exc: Exception) -> str | None:  # ruff: ignore[C901,PLR0912]
+    """Return the end user message for *exc*.
+
+    *exc* is one of the many possible exceptions that can be raised when
+    retrieving a URL. In order to give the end user a set of meaningful
+    and coherent messages, instead of using the predefined message for
+    the exception, the corresponding `Messages.SKIMMING_ERROR_` message
+    is returned.
+
+    Return `None` if an appropriate message does not exist for *exc*, so
+    the caller can let it propagate unchanged.
+    """
+    match exc:
+        # Depending on the particular error which happened, the reason
+        # attribute of the 'URLError' exception can be a simple error
+        # message, an instance of some 'OSError' derived Exception, etc.
+        # So, in order to have useful messages, some discrimination has
+        # to be done here.
+        case HTTPError():
+            reason = Messages.URL_ACCESS_REASON_HTTP_ERROR.format(exc.code)
+            message = Messages.SKIMMING_ERROR_URL_ACCESS.format(reason)
+        case URLError(reason=OSError() as os_error):
+            reason = Messages.URL_ACCESS_REASON_OSLIKE_ERROR.format(type(os_error).__name__)
+            message = Messages.SKIMMING_ERROR_URL_ACCESS.format(reason)
+        case URLError():
+            reason = Messages.URL_ACCESS_REASON_UNEXPECTED_ERROR
+            message = Messages.SKIMMING_ERROR_URL_ACCESS.format(reason)
+        # Apparently, 'HTTPException', 'ConnectionError' and the subclasses
+        # are masked or wrapped by 'urllib', and documentation is not very
+        # informative. So, just in case something weird happen, it is better
+        # to handle these exception types here as well.
+        case ConnectionError(errno=errno_value) if isinstance(errno_value, int) and errno_value in errno.errorcode:
+            message = Messages.SKIMMING_ERROR_CONNECTION_FAILED.format(errno.errorcode[errno_value])
+        case ConnectionError():
+            message = Messages.SKIMMING_ERROR_CONNECTION_FAILED_UNKNOWN_REASON
+        case HTTPException():
+            message = Messages.SKIMMING_ERROR_ERROR_HTTP_RETRIEVAL.format(type(exc).__name__)
+        case TimeoutError():
+            message = Messages.SKIMMING_ERROR_TIMEOUT
+        case OSError():  # Must go after all its subclasses above.
+            message = Messages.SKIMMING_ERROR_CONNECTION_FAILED.format(type(exc).__name__)
+        case TooManyRedirectionsError(limit=limit):
+            message = Messages.SKIMMING_ERROR_TOO_MANY_REDIRECTIONS.format(limit)
+        case UnknownCharsetError(charset=charset):
+            message = Messages.SKIMMING_ERROR_UNKNOWN_CHARSET.format(charset)
+        case UnicodeDecodeError(encoding=charset):
+            message = Messages.SKIMMING_ERROR_UNDECODABLE_CONTENTS.format(charset)
+        case ValueError():  # For instance from 'Request' with a URL without scheme.
+            message = Messages.SKIMMING_ERROR_INVALID_URL
+        case _:
+            message = None
+    return message
+
+
 def saca_las_mantecas(url: Url, parser: BaseParser) -> Metadata:
     """Saca las mantecas.
 
@@ -1125,47 +1180,15 @@ def saca_las_mantecas(url: Url, parser: BaseParser) -> Metadata:
     any.
 
     Return obtained metadata as a dictionary.
+
+    Raises `SkimmingError` for any problem it finds.
     """
     try:
         contents = retrieve_url(url)
-    except URLError as exc:
-        # Depending on the particular error which happened, the reason
-        # attribute of the 'URLError' exception can be a simple error
-        # message, an instance of some 'OSError' derived Exception, etc.
-        # So, in order to have useful messages, some discrimination has
-        # to be done here.
-        if isinstance(exc.reason, OSError):
-            reason = Messages.URL_ACCESS_REASON_OSLIKE_ERROR.format(type(exc.reason).__name__)
-        elif isinstance(exc, HTTPError):
-            reason = Messages.URL_ACCESS_REASON_HTTP_ERROR.format(exc.code)
-        else:
-            reason = Messages.URL_ACCESS_REASON_UNEXPECTED_ERROR
-        raise SkimmingError(Messages.SKIMMING_ERROR_URL_ACCESS.format(reason)) from exc
-    # Apparently, 'HTTPException', 'ConnectionError' and the subclasses
-    # are masked or wrapped by 'urllib', and documentation is not very
-    # informative. So, just in case something weird happen, it is better
-    # to handle these exception types here as well.
-    except ConnectionError as exc:
-        error_code = errno.errorcode.get(exc.errno) if exc.errno else None
-        if error_code is None:
-            raise SkimmingError(Messages.SKIMMING_ERROR_CONNECTION_FAILED_UNKNOWN_REASON) from exc
-        raise SkimmingError(Messages.SKIMMING_ERROR_CONNECTION_FAILED.format(error_code)) from exc
-    except HTTPException as exc:
-        raise SkimmingError(Messages.SKIMMING_ERROR_ERROR_HTTP_RETRIEVAL.format(type(exc).__name__)) from exc
-    except TimeoutError as exc:
-        raise SkimmingError(Messages.SKIMMING_ERROR_TIMEOUT) from exc
-    except UnicodeDecodeError as exc:
-        raise SkimmingError(Messages.SKIMMING_ERROR_UNDECODABLE_CONTENTS.format(exc.encoding)) from exc
-    except UnknownCharsetError as exc:
-        raise SkimmingError(Messages.SKIMMING_ERROR_UNKNOWN_CHARSET.format(exc.charset)) from exc
-    except TooManyRedirectionsError as exc:
-        raise SkimmingError(Messages.SKIMMING_ERROR_TOO_MANY_REDIRECTIONS.format(exc.limit)) from exc
-    except ValueError as exc:
-        raise SkimmingError(Messages.SKIMMING_ERROR_INVALID_URL) from exc
-    except OSError as exc:
-        # Must go after `URLError`, `ConnectionError` and `TimeoutError`
-        # since all of them are subclasses of 'OSError'!
-        raise SkimmingError(Messages.SKIMMING_ERROR_CONNECTION_FAILED.format(type(exc).__name__)) from exc
+    except Exception as exc:
+        if (message := retrieval_error_message(exc)):
+            raise SkimmingError(message) from exc
+        raise
 
     if not contents:
         raise SkimmingError(Messages.SKIMMING_ERROR_NO_CONTENTS)
