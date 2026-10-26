@@ -77,6 +77,8 @@ class Messages(StrEnum):
     ERROR_PREFIX = '\n*** Error: '
     WARNING_PREFIX = '* Aviso: '
     STEP_MARKER = '·'
+    QUOTED = '«{}»'
+    LIST_SEPARATOR = ', '
 
     # General messages.
     PRESS_ANY_KEY = '\nPulse cualquier tecla para continuar...'
@@ -107,18 +109,13 @@ class Messages(StrEnum):
     )
 
     # Profile handling errors.
-    PROFILE_ERROR_FILE_NOT_FOUND = 'No se encontró el fichero de perfiles «{}»'
-    PROFILE_ERROR_FILE_NO_PERMISSION = 'No hay permisos suficientes para leer el fichero de perfiles «{}»'
-    PROFILE_ERROR_FILE_READ_FAILED = 'No se pudo leer el fichero de perfiles «{}»'
-    PROFILE_ERROR_FILE_NOT_UTF_8 = 'El fichero de perfiles «{}» no está codificado en UTF-8'
-    PROFILE_ERROR_PROFILES_WRONG_SYNTAX = 'Sintaxis incorrecta en el fichero de perfiles [{}]'
-    PROFILE_ERROR_PROFILE_WITHOUT_URL = 'El perfil «{}» no incluye un patrón de URL'
-    PROFILE_ERROR_PROFILE_WRONG_PARAMETERS = 'El perfil «{}» no contiene parámetros correctos'
-    PROFILE_ERROR_EMPTY_PROFILES = 'No hay perfiles definidos en el fichero de perfiles «{}»'
+    PROFILE_ERROR_PROFILE_WITHOUT_URL = f'El perfil {QUOTED} no incluye un patrón de URL'
+    PROFILE_ERROR_PROFILE_WRONG_PARAMETERS = f'El perfil {QUOTED} no contiene parámetros correctos'
+    PROFILE_ERROR_EMPTY_PROFILES = f'No hay perfiles definidos en el fichero de perfiles {QUOTED}'
     PROFILE_ERROR_NO_MATCHING_PROFILE = 'No se encontró un perfil para procesar el URL'
     PROFILE_ERROR_INVALID_REGEX = (
         'Expresión regular incorrecta en el fichero de perfiles\n'
-        'Perfil «{0.profile}», clave «{0.key}»:\n'
+        f'Perfil {QUOTED.format('{0.profile}')}, clave {QUOTED.format('{0.key}')}:\n'
         '  {0.pattern}\n'
         '  {0.pattern:_<{0.pos}.0}^\n'
         '  [{0.error_name}: {0.msg}]'
@@ -142,14 +139,15 @@ class Messages(StrEnum):
     URL_ACCESS_REASON_HTTP_ERROR = 'respuesta HTTP {}'
     URL_ACCESS_REASON_UNEXPECTED_ERROR = 'error inesperado'
     SKIMMING_ERROR_TOO_MANY_REDIRECTIONS = 'Demasiadas redirecciones accediendo al URL (máximo: {})'
-    SKIMMING_ERROR_ERROR_HTTP_RETRIEVAL = 'No se obtuvieron contenidos, error de protocolo HTTP «{}»'
-    SKIMMING_ERROR_CONNECTION_FAILED = 'Se produjo un error de conexión «{}» accediendo al URL'
+    SKIMMING_ERROR_ERROR_HTTP_RETRIEVAL = f'No se obtuvieron contenidos, error de protocolo HTTP {QUOTED}'
+    SKIMMING_ERROR_CONNECTION_FAILED = f'Se produjo un error de conexión {QUOTED} accediendo al URL'
     SKIMMING_ERROR_CONNECTION_FAILED_UNKNOWN_REASON = 'Se produjo un error de conexión desconocido accediendo al URL'
     SKIMMING_ERROR_TIMEOUT = 'Se agotó el tiempo de espera accediendo al URL'
-    SKIMMING_ERROR_UNKNOWN_CHARSET = 'El charset «{}» es desconocido, es imposible decodificar los contenidos'
+    SKIMMING_ERROR_UNKNOWN_CHARSET = f'El charset {QUOTED} es desconocido, es imposible decodificar los contenidos'
+    SKIMMING_ERROR_EMPTY_CHARSET = 'El charset está vacío, es imposible decodificar los contenidos'
     SKIMMING_ERROR_INVALID_URL = 'El URL no tiene un formato válido'
     SKIMMING_ERROR_NO_CONTENTS = 'No se recibieron contenidos del URL'
-    SKIMMING_ERROR_UNDECODABLE_CONTENTS = 'No se pudieron decodificar los contenidos con el charset «{}»'
+    SKIMMING_ERROR_UNDECODABLE_CONTENTS = f'No se pudieron decodificar los contenidos con el charset {QUOTED}'
     SKIMMING_ERROR_NO_METADATA_FOUND = 'No se obtuvieron metadatos'
 
 
@@ -162,59 +160,59 @@ class Debug(StrEnum):
     DEPENDENCY_BANNER = 'Usando paquete {}'
 
     # Exception logging.
-    EXCEPTION_LOG = 'Se lanzó una excepción «{}»'
+    EXCEPTION_LOG = f'Se lanzó una excepción {Messages.QUOTED}'
     EXCEPTION_LOG_NO_CONTEXT = 'La excepción no contiene contexto'
     EXCEPTION_LOG_CONTEXT = (
-        '  __context__ -> «{}»\n'
+        f'  __context__ -> {Messages.QUOTED}\n'
         '  __repr__    -> {}\n'
         '  __str__     -> {}\n'
     )
 
     # Argument parsing.
-    PROCESSING_ARG = 'Procesando argumento «{}»'
+    PROCESSING_ARG = f'Procesando argumento {Messages.QUOTED}'
     ARG_IS_SINGLE_URL = 'El argumento es de tipo single_url'
     ARG_IS_TEXTFILE = 'El argumento es de tipo textfile'
     ARG_IS_SPREADSHEET = 'El argumento es de tipo spreadsheet'
     ARG_IS_UNSUPPORTED = 'El argumento no es de un tipo admitido'
 
     # Profiles handling.
-    LOADING_PROFILES = 'Obteniendo perfiles desde «{}»'
+    PARSING_PROFILES = 'Procesando perfiles'
     FOUND_PROFILES = 'Se obtuvieron los siguientes perfiles: {}'
-    PROFILE_ID = 'Perfil y tipo de catálogo: «{}»/«{}»'
+    PROFILE_ID = f'Perfil y tipo de catálogo: {Messages.QUOTED}/{Messages.QUOTED}'
 
     # URL retrieval.
-    PROCESSING_URL = 'Procesando URL «{}»'
-    REDIRECTED_URL = 'URL redirigido a «{}»'
+    PROCESSING_URL = f'Procesando URL {Messages.QUOTED}'
+    REDIRECTED_URL = f'URL redirigido a {Messages.QUOTED}'
     CHARSET_NOT_IN_HEADERS = 'Charset no detectado en las cabeceras'
     CHARSET_FROM_HTTP_EQUIV = 'Charset detectado mediante meta http-equiv'
     CHARSET_FROM_META_CHARSET = 'Charset detectado mediante meta charset'
     CHARSET_FROM_DEFAULT = 'Charset no detectado, usando valor por defecto'
     CHARSET_IN_HEADERS = 'Charset detectado en las cabeceras'
-    CONTENTS_ENCODING = 'Contenidos codificados con charset «{}»'
+    CONTENTS_ENCODING = f'Contenidos codificados con charset {Messages.QUOTED}'
 
     # Gateways.
-    DUMPING_METADATA_TO_SINK = 'Volcando metadatos a «{}»'
-    DUMPING_METADATA_K_V = 'Añadiendo metadato «{}» con valor «{}»'
-    WORKING_SHEET = 'La hoja con la que se trabajará es «{}»'
+    DUMPING_METADATA_TO_SINK = f'Volcando metadatos a {Messages.QUOTED}'
+    DUMPING_METADATA_K_V = f'Añadiendo metadato {Messages.QUOTED} con valor {Messages.QUOTED}'
+    WORKING_SHEET = f'La hoja con la que se trabajará es {Messages.QUOTED}'
     PROCESSING_ROW = 'Procesando fila {}'
-    COPYING_WORKBOOK = 'Copiando workbook a «{}»'
+    COPYING_WORKBOOK = f'Copiando workbook a {Messages.QUOTED}'
     INSERTING_HEADING_ROW = 'Insertando fila de cabeceras'
-    NONSTRING_CELL = 'La celda «{}» no es de tipo cadena, será ignorada'
-    URL_FOUND_IN_CELL = 'Se encontró un URL en la celda «{}»: {}'
-    NEW_METADATA_FOUND = 'Se encontró un metadato nuevo, «{}»'
-    METADATA_STORED_IN_COLUMN = 'El metadato «{}» irá en la columna «{}»'
+    NONSTRING_CELL = f'La celda {Messages.QUOTED} no es de tipo cadena, será ignorada'
+    URL_FOUND_IN_CELL = f'Se encontró un URL en la celda {Messages.QUOTED}: {{}}'
+    NEW_METADATA_FOUND = f'Se encontró un metadato nuevo, {Messages.QUOTED}'
+    METADATA_STORED_IN_COLUMN = f'El metadato {Messages.QUOTED} irá en la columna {Messages.QUOTED}'
 
     # Parsers.
     HTML_START_TAG = '➜ HTML <{}{}{}>'
-    METADATA_KEY_FOUND = 'Se encontró la clave «{}»'
-    METADATA_VALUE_FOUND = 'Se encontró el valor «{}»'
+    METADATA_KEY_FOUND = f'Se encontró la clave {Messages.QUOTED}'
+    METADATA_VALUE_FOUND = f'Se encontró el valor {Messages.QUOTED}'
     METADATA_IS_EMPTY = 'Metadato vacío'
-    METADATA_MISSING_VALUE = 'Metadato «{}» incompleto, ignorando'
-    METADATA_MISSING_KEY = 'No se encontró una clave, usando «{}»'
-    METADATA_OK = 'Metadato correcto «{}: {}»'
-    METADATA_KEY_MARKER_FOUND = 'Se encontró una marca de clave «{}»'
-    METADATA_VALUE_MARKER_FOUND = 'Se encontró una marca de valor «{}»'
-    METADATA_MARKER_FOUND = 'Se encontró una marca de metadato «{}»'
+    METADATA_MISSING_VALUE = f'Metadato {Messages.QUOTED} incompleto, ignorando'
+    METADATA_MISSING_KEY = f'No se encontró una clave, usando {Messages.QUOTED}'
+    METADATA_OK = f'Metadato correcto {Messages.QUOTED}: {Messages.QUOTED}'
+    METADATA_KEY_MARKER_FOUND = f'Se encontró una marca de clave {Messages.QUOTED}'
+    METADATA_VALUE_MARKER_FOUND = f'Se encontró una marca de valor {Messages.QUOTED}'
+    METADATA_MARKER_FOUND = f'Se encontró una marca de metadato {Messages.QUOTED}'
     PARSER_NESTING_ERROR_K_IN_V = 'Problema de anidación (clave dentro de valor), restableciendo parser'
     PARSER_NESTING_ERROR_V_IN_K = 'Problema de anidación (valor dentro de clave), restableciendo parser'
 
@@ -241,8 +239,8 @@ class InvalidProfilePatternError(re.PatternError):
         self.key = key
         self.error_name = type(original).__name__
 
-class UnknownCharsetError(LookupError):
-    """Raise when the charset of some contents is not recognized."""
+class CharsetError(LookupError):
+    """Raise when the charset for content decoding is invalid."""
 
     def __init__(self, charset: str) -> None:
         """."""
@@ -1161,7 +1159,9 @@ def retrieval_error_message(exc: Exception) -> str | None:  # ruff: ignore[C901,
             message = Messages.SKIMMING_ERROR_CONNECTION_FAILED.format(type(exc).__name__)
         case TooManyRedirectionsError(limit=limit):
             message = Messages.SKIMMING_ERROR_TOO_MANY_REDIRECTIONS.format(limit)
-        case UnknownCharsetError(charset=charset):
+        case CharsetError(charset=charset) if not charset:
+            message = Messages.SKIMMING_ERROR_EMPTY_CHARSET
+        case CharsetError(charset=charset):
             message = Messages.SKIMMING_ERROR_UNKNOWN_CHARSET.format(charset)
         case UnicodeDecodeError(encoding=charset):
             message = Messages.SKIMMING_ERROR_UNDECODABLE_CONTENTS.format(charset)
@@ -1239,12 +1239,14 @@ def retrieve_url(url: Url) -> str:
         charset = detect_html_charset(contents)
     else:
         logger.debug(Debug.CHARSET_IN_HEADERS)
+
+    charset = charset.strip()
     logger.debug(Debug.CONTENTS_ENCODING.format(charset))
 
     try:
         return contents.decode(charset)
     except LookupError as exc:
-        raise UnknownCharsetError(charset) from exc
+        raise CharsetError(charset) from exc
 
 
 def resolve_file_url(url: Url) -> Url:
