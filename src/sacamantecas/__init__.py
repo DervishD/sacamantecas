@@ -85,9 +85,6 @@ TIMESTAMP_STEM = time.strftime('_%Y%m%d_%H%M%S')
 TEXTFILE_SUFFIX = '.txt'
 SPREADSHEET_SUFFIX = '.xlsx'
 
-SOCKET_TIMEOUT = 30
-MAX_REDIRECTIONS = 5
-
 
 class Paths:  # pylint: disable=too-few-public-methods
     """Program paths."""
@@ -1312,14 +1309,21 @@ def saca_las_mantecas(url: Url, parser: BaseParser) -> Metadata:
 def retrieve_url(url: Url) -> str:
     """Retrieve contents from *url*.
 
-    First resolve any `meta http-equiv="Refresh"` redirection for *url*
-    and then get the contents as a byte string.
+    Any URL access is aborted after the number of seconds specified in
+    `program_settings.url_retrieval_timeout_seconds`.
 
-    Then, detect the contents encoding (in HTML jargon, the charset).
+    First resolve any `meta http-equiv="Refresh"` redirection for *url*.
+    up to a maximum of `program_settings.max_redirections` hops.
+
+    Second, get the *url* contents as a byte string.
+
+    Third, detect the contents encoding (in HTML jargon, the charset).
 
     Return the decoded contents as a string.
     """
     current_url: Url | None = url
+    timeout = program_settings.url_retrieval_timeout_seconds
+    max_redirections = program_settings.max_url_redirections
 
     if url.startswith('file://'):
         current_url = resolve_file_url(url)
@@ -1330,7 +1334,7 @@ def retrieve_url(url: Url) -> str:
     redirections = 0
     while current_url:
         logger.debug(Debug.PROCESSING_URL.format(current_url))
-        with urlopen(Request(current_url, headers=headers), timeout=SOCKET_TIMEOUT) as response:  # ruff: ignore[S310]
+        with urlopen(Request(current_url, headers=headers), timeout=timeout) as response:  # ruff: ignore[S310]
             # First, check if any redirection is needed and try to get
             # the charset the easy way.
             contents = response.read()
@@ -1338,8 +1342,8 @@ def retrieve_url(url: Url) -> str:
         current_url = get_redirected_url(contents, current_url)
         if current_url:
             redirections += 1
-            if redirections > MAX_REDIRECTIONS:
-                raise TooManyRedirectionsError(MAX_REDIRECTIONS)
+            if redirections > max_redirections:
+                raise TooManyRedirectionsError(max_redirections)
 
     # In this point, we have the contents as a byte string.
     # If the charset is 'None', it has to be determined the hard way.
@@ -1512,6 +1516,7 @@ def save_results(gateway: Gateway, results: SkimResults) -> bool:
 @ensure_utf8_output
 def main(*args: str) -> ExitCodes:  # pylint: disable=unused-variable
     """."""
+    global program_settings  # pylint: disable=global-statement
     exitcode = ExitCodes.SUCCESS
 
     if not any(argument.strip() for argument in args):
