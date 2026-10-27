@@ -256,10 +256,10 @@ class TooManyRedirectionsError(Exception):
         self.limit = limit
 
 class ProfileError(Exception):
-    """Raised for profile related errors."""
+    """Raise for profile related errors."""
 
 class GatewayError(Exception):
-    """Raised for gateway related errors."""
+    """Raise for gateway related errors."""
 
 class SkimmingError(Exception):
     """Raise for skimming-related errors."""
@@ -766,12 +766,12 @@ class Gateway(ABC):
 
     @final
     def get_urls(self) -> list[Url]:
-        """Return the URLs found in this gateway's source.
+        """Obtain the URLs found in this gateway's source.
 
-        This returns *unique* URLs, in order of first appearance.
+        Raise `GatewayError` to wrap some `OSError` exceptions to give
+        some context and better precision.
 
-        Handles some `OSError` exceptions translating them to the more
-        precise corresponding `GatewayError'.
+        Return *unique* URLs, in order of first appearance.
         """
         try:
             unique_urls = list(dict.fromkeys(self._get_urls()))
@@ -1098,14 +1098,16 @@ class SpreadSheetGateway(Gateway):
 
 
 def get_parser(url: Url, profiles: dict[str, Profile]) -> BaseParser:
-    """Return the appropriate parser for the *url*.
+    """Obtain the appropriate parser for the *url*.
 
     The appropriate parser is retrieved by finding the needed profile
     within *profiles* whose 'url_pattern' matches the given *url*. Then,
     the parser is returned after being properly configured to handle the
     *url* contents.
 
-    Raises `ProfileError` if no matching profile is found for *url*.
+    Raise `ProfileError` if no matching profile is found for *url*.
+
+    Return the appropriate parser instance.
     """
     for profile_name, profile in profiles.items():
         if profile.url_pattern.search(url):
@@ -1117,7 +1119,7 @@ def get_parser(url: Url, profiles: dict[str, Profile]) -> BaseParser:
 
 # pylint: disable-next=too-many-branches
 def retrieval_error_message(exc: Exception) -> str | None:  # ruff: ignore[C901,PLR0912]
-    """Return the end user message for *exc*.
+    """Retrieve the end user message for *exc*.
 
     *exc* is one of the many possible exceptions that can be raised when
     retrieving a URL. In order to give the end user a set of meaningful
@@ -1125,8 +1127,8 @@ def retrieval_error_message(exc: Exception) -> str | None:  # ruff: ignore[C901,
     the exception, the corresponding `Messages.SKIMMING_ERROR_` message
     is returned.
 
-    Return `None` if an appropriate message does not exist for *exc*, so
-    the caller can let it propagate unchanged.
+    Return the appropriate message for *exc* or `None` if one does not
+    exist for *exc*, so the caller can let it propagate unchanged.
     """
     match exc:
         # Depending on the particular error which happened, the reason
@@ -1179,9 +1181,9 @@ def saca_las_mantecas(url: Url, parser: BaseParser) -> Metadata:
     parse them using *parser*, and obtain library catalogue metadata, if
     any.
 
-    Return obtained metadata as a dictionary.
+    Raise `SkimmingError` for any problem it finds.
 
-    Raises `SkimmingError` for any problem it finds.
+    Return obtained metadata as a dictionary.
     """
     try:
         contents = retrieve_url(url)
