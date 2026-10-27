@@ -8,7 +8,8 @@ if sys.platform != 'win32':
 
 # pylint: disable=wrong-import-position
 from abc import ABC, abstractmethod
-import configparser
+from configparser import ConfigParser, Error as ConfigParserError, UNNAMED_SECTION
+from dataclasses import asdict, dataclass, fields
 from enum import IntEnum, StrEnum
 import errno
 from functools import wraps
@@ -38,11 +39,38 @@ if TYPE_CHECKING:
     from openpyxl.worksheet.worksheet import Worksheet
 
 
+@dataclass
+class Config:
+    """Store program configuration."""   # ruff: ignore[D204]
+    DEFAULT_URL_RETRIEVAL_TIMEOUT_SECONDS: ClassVar[int] = 30
+    DEFAULT_MAX_URL_REDIRECTIONS: ClassVar[int] = 5
+    url_retrieval_timeout_seconds: int = DEFAULT_URL_RETRIEVAL_TIMEOUT_SECONDS
+    max_url_redirections: int = DEFAULT_MAX_URL_REDIRECTIONS
+
+
+class Profile(NamedTuple):
+    """Abstraction for profiles."""  # ruff: ignore[D204]
+    name: str
+    url_pattern: re.Pattern[str]
+    parser: BaseParser
+    parser_config: ParserConfig
+
+    def debug_log(self) -> None:
+        """Log debug information to default logger."""
+        logger.debug(Debug.PROFILE_NAME.format(self.name), stacklevel=2)
+        logger.debug(Debug.PROFILE_URL_PATTERN.format(self.url_pattern.pattern), stacklevel=2)
+        logger.debug(Debug.PROFILE_PARSER_TYPE.format(self.parser), stacklevel=2)
+        logger.debug(Debug.PROFILE_PARSER_PARAMETERS, stacklevel=2)
+        logger.indent()
+        for key, value in self.parser_config.items():
+            logger.debug(Debug.PROFILE_PARSER_PARAM.format(key, value.pattern), stacklevel=2)
+        logger.dedent()
+
+
 type MetadataKey = str
 type MetadataValue = str
 type Metadata = dict[MetadataKey, MetadataValue]
 type RawMetadata = dict[MetadataKey, list[MetadataValue]]
-
 type Url = str
 type SkimResults = dict[Url, Metadata]
 type ParserConfig = dict[str, re.Pattern[str]]
@@ -67,7 +95,7 @@ class Paths:  # pylint: disable=too-few-public-methods
     ROOT = Path(sys.executable if getattr(sys, 'frozen', False) else __file__).resolve().parent
     MAIN_LOG = ROOT / f'{PROGRAM_NAME}_log{"" if DEVELOPMENT_MODE else TIMESTAMP_STEM}{TEXTFILE_SUFFIX}'
     FULL_LOG = ROOT / f'{PROGRAM_NAME}_trace{"" if DEVELOPMENT_MODE else TIMESTAMP_STEM}{TEXTFILE_SUFFIX}'
-    INIFILE = ROOT / f'{PROGRAM_NAME}.ini'
+    CONFIG = ROOT / f'{PROGRAM_NAME}.ini'
 
 
 class Messages(StrEnum):
@@ -87,6 +115,7 @@ class Messages(StrEnum):
 
     # Main loop messages.
     GATEWAY_LABEL = 'Fuente: {}'
+    LOADING_INIFILE = f'Fichero de configuración: {QUOTED}'
     STEP_LOADING_URLS = f'{STEP_MARKER}Obteniendo URLs'
     STEP_PROCESSING_URLS = f'{STEP_MARKER}Sacando las mantecas'
     URLS_RESULT = '=> {}'
@@ -108,17 +137,28 @@ class Messages(StrEnum):
         'o bien proporcione los nombres de las fuentes de entrada como argumentos.'
     )
 
+    # INI file handling errors.
+    INIFILE_ERROR_FILE_NOT_FOUND = f'No se encontró el fichero de configuración {QUOTED}'
+    INIFILE_ERROR_FILE_NO_PERMISSION = f'No hay permisos suficientes para leer el fichero de configuración {QUOTED}'
+    INIFILE_ERROR_FILE_READ_FAILED = f'No se pudo leer el fichero de configuración {QUOTED}'
+    INIFILE_ERROR_FILE_NOT_UTF_8 = f'El fichero de configuración {QUOTED} no está codificado en UTF-8'
+    INIFILE_ERROR_NO_VALID_PROFILES = f'No se encontraron perfiles válidos en el fichero de configuración {QUOTED}'
+    INIFILE_ERROR_WRONG_SYNTAX = f'Sintaxis incorrecta {{}} en el fichero de configuración {QUOTED}'
+
+    # Config handling errors.
+    CONFIG_ERROR_UNKNOWN_CONFIG_KEYS = 'Opciones de configuración desconocidas ({})'
+    CONFIG_ERROR_INVALID_VALUE = f'La clave {QUOTED} tiene un valor con formato incorrecto ({QUOTED})'
+
     # Profile handling errors.
+    PROFILE_ERROR_EMPTY_PROFILE = f'El perfil {QUOTED} está vacío'
     PROFILE_ERROR_PROFILE_WITHOUT_URL = f'El perfil {QUOTED} no incluye un patrón de URL'
     PROFILE_ERROR_PROFILE_WRONG_PARAMETERS = f'El perfil {QUOTED} no contiene parámetros correctos'
-    PROFILE_ERROR_EMPTY_PROFILES = f'No hay perfiles definidos en el fichero de perfiles {QUOTED}'
     PROFILE_ERROR_NO_MATCHING_PROFILE = 'No se encontró un perfil para procesar el URL'
     PROFILE_ERROR_INVALID_REGEX = (
-        'Expresión regular incorrecta en el fichero de perfiles\n'
-        f'Perfil {QUOTED.format('{0.profile}')}, clave {QUOTED.format('{0.key}')}:\n'
-        '  {0.pattern}\n'
-        '  {0.pattern:_<{0.pos}.0}^\n'
-        '  [{0.error_name}: {0.msg}]'
+        f'Expresión regular incorrecta en el perfil {QUOTED.format('{0}')}, parámetro {QUOTED.format('{1}')}:\n'
+        '  {2}\n'
+        '  {2:_<{3}.0}^\n'
+        '  [{4}: {5}]'
     )
 
     # Gateway errors.
@@ -139,8 +179,8 @@ class Messages(StrEnum):
     URL_ACCESS_REASON_HTTP_ERROR = 'respuesta HTTP {}'
     URL_ACCESS_REASON_UNEXPECTED_ERROR = 'error inesperado'
     SKIMMING_ERROR_TOO_MANY_REDIRECTIONS = 'Demasiadas redirecciones accediendo al URL (máximo: {})'
-    SKIMMING_ERROR_ERROR_HTTP_RETRIEVAL = f'No se obtuvieron contenidos, error de protocolo HTTP {QUOTED}'
-    SKIMMING_ERROR_CONNECTION_FAILED = f'Se produjo un error de conexión {QUOTED} accediendo al URL'
+    SKIMMING_ERROR_ERROR_HTTP_RETRIEVAL = 'No se obtuvieron contenidos, error de protocolo HTTP {}'
+    SKIMMING_ERROR_CONNECTION_FAILED = 'Se produjo un error de conexión {} accediendo al URL'
     SKIMMING_ERROR_CONNECTION_FAILED_UNKNOWN_REASON = 'Se produjo un error de conexión desconocido accediendo al URL'
     SKIMMING_ERROR_TIMEOUT = 'Se agotó el tiempo de espera accediendo al URL'
     SKIMMING_ERROR_UNKNOWN_CHARSET = f'El charset {QUOTED} es desconocido, es imposible decodificar los contenidos'
@@ -175,9 +215,20 @@ class Debug(StrEnum):
     ARG_IS_SPREADSHEET = 'El argumento es de tipo spreadsheet'
     ARG_IS_UNSUPPORTED = 'El argumento no es de un tipo admitido'
 
+    # Configuration handling.
+    PARSING_CONFIG = 'Procesando configuración principal'
+    CONFIG_MAIN_SECTION_MISSING = f'El fichero {Messages.QUOTED} no contiene la sección principal'
+    FOUND_CONFIG = 'Se obtuvo la siguiente configuración:'
+    CONFIG_ITEM = '{} = {}'
+
     # Profiles handling.
     PARSING_PROFILES = 'Procesando perfiles'
-    FOUND_PROFILES = 'Se obtuvieron los siguientes perfiles: {}'
+    FOUND_PROFILES = 'Se obtuvieron los siguientes perfiles:'
+    PROFILE_NAME =        f'Nombre        : {Messages.QUOTED}'
+    PROFILE_URL_PATTERN = f'Patrón de URL : {Messages.QUOTED}'
+    PROFILE_PARSER_TYPE =  'Tipo de parser: {0.__class__.__name__}'
+    PROFILE_PARSER_PARAMETERS = 'Parámetros del parser:'
+    PROFILE_PARSER_PARAM = f'{Messages.QUOTED} = {Messages.QUOTED}'
     PROFILE_ID = f'Perfil y tipo de catálogo: {Messages.QUOTED}/{Messages.QUOTED}'
 
     # URL retrieval.
@@ -229,16 +280,6 @@ class ExitCodes(IntEnum):
 logger = get_logger(PROGRAM_NAME)
 
 
-class InvalidProfilePatternError(re.PatternError):
-    """Raise when a profile contains an invalid regular expression."""
-
-    def __init__(self, section: str, key: str, pattern: str, original: re.PatternError) -> None:
-        """Include *section* and *key* for context."""
-        super().__init__(original.msg, pattern, original.pos or 0)
-        self.profile = section
-        self.key = key
-        self.error_name = type(original).__name__
-
 class CharsetError(LookupError):
     """Raise when the charset for content decoding is invalid."""
 
@@ -254,6 +295,12 @@ class TooManyRedirectionsError(Exception):
         """."""
         super().__init__(limit)
         self.limit = limit
+
+class IniFileError(Exception):
+    """Raise for INI file related errors."""
+
+class ConfigError(Exception):
+    """Raise for configuration-related errors."""
 
 class ProfileError(Exception):
     """Raise for profile related errors."""
@@ -534,13 +581,6 @@ class BaratzParser(BaseParser):
             return
 
 
-class Profile(NamedTuple):
-    """Abstraction for profiles."""  # ruff: ignore[D204]
-    url_pattern: re.Pattern[str]
-    parser: BaseParser
-    parser_config: ParserConfig
-
-
 def error(message: str) -> None:
     """Preprocess and log error *message*.
 
@@ -621,80 +661,146 @@ def keyboard_interrupt_handler(function: Callable[..., ExitCodes]) -> Callable[.
     return handle_keyboard_interrupt_wrapper
 
 
-def build_parser_config(config: configparser.ConfigParser, section: str) -> ParserConfig:
-    """Build parser config from *section* within *config*.
+def parse_config(contents: dict[str, str]) -> Config:
+    """Parse program configuration from *contents*.
 
-    Empty values are silently skipped, regular expressions are compiled.
+    The *contents* are parsed using `Config` as the scheme, performing
+    type translation as needed.
 
-    Raise `InvalidProfilePatternError` if any value within *section* is
-    not a valid regular expression pattern and fails to compile.
+    Raise `ConfigError` if a key in *contents* does not correspond to an
+    attribute in `Config`.
+
+    Return a `Config` instance.
     """
-    parser_config: ParserConfig = {}
-    for key, value in config[section].items():
-        if not value:
-            continue
+    config: dict[str, Any] = {}
+    known_keys = {field.name for field in fields(Config)}
+    logger.debug(Debug.PARSING_CONFIG)
+
+    if extra_keys := [key for key in contents if key not in known_keys]:
+        key_list = Messages.LIST_SEPARATOR.join(Messages.QUOTED.format(key) for key in extra_keys)
+        raise ConfigError(Messages.CONFIG_ERROR_UNKNOWN_CONFIG_KEYS.format(key_list))
+
+    for config_field in fields(Config):
+        # NOTE: only `int` fields are supported for now, so the code is
+        # kept simple and validation is minimal. If in the future more
+        # data types are needed in the configuration, a more complex way
+        # of converting them will be implemented. Right now, it would be
+        # overkill.
+        key = config_field.name
+        value = contents[key]
         try:
-            parser_config[key] = re.compile(value, re.IGNORECASE)
-        except re.PatternError as exc:
-            raise InvalidProfilePatternError(section, key, value, exc) from exc
-    return parser_config
+            config[key] = int(value)
+        except ValueError as exc:
+            raise ConfigError(Messages.CONFIG_ERROR_INVALID_VALUE.format(key, value)) from exc
+
+    return Config(**config)
 
 
-def load_profiles(profiles_path: Path) -> dict[str, Profile]:
-    """Load the profiles from *profiles_path*.
+def parse_profiles(contents: dict[str, dict[str, str]]) -> tuple[Profile, ...]:
+    """Parse profile definitions from *contents* dictionary.
 
-    Read *profiles_path*, which contains profile definitions, and return
-    a processed list of the obtained profiles as a dictionary.
+    Each key in *contents* is a profile name and the corresponding value
+    is the profile definition. Profile definitions are dictionaries with
+    catalogue parser parameters as keys, and regular expression patterns
+    as values, where keys without value are silently ignored.
 
-    Dictionary keys are the obtained profile names, while the values are
-    the corresponding profile definitions as `Profile` named tuples.
+    If the parameters in a profile definition matches those belonging to
+    a known catalogue parser, a new `Profile` instance is built from the
+    data.
 
-    Raise `ProfilesError` if *profiles_path* cannot be found, read, has
-    syntax or encoding errors, etc.
+    Raise `ProfileError` if a profile does not contain any parameters, a
+    required one is missing, or they contain invalid values.
 
-    The returned dictionary will be empty if no profiles or only empty
-    profiles are present in *profiles_path*.
+    Return a tuple of the `Profile` instances built from *contents*.
     """
     url_pattern_key = 'url'
-
-    config = configparser.ConfigParser(interpolation=None)
-    logger.debug(Debug.LOADING_PROFILES.format(profiles_path))
-    try:
-        with profiles_path.open(encoding='utf-8-sig') as inifile:
-            config.read_file(inifile)
-    except FileNotFoundError as exc:
-        raise ProfileError(Messages.PROFILE_ERROR_FILE_NOT_FOUND.format(profiles_path)) from exc
-    except PermissionError as exc:
-        raise ProfileError(Messages.PROFILE_ERROR_FILE_NO_PERMISSION.format(profiles_path)) from exc
-    except OSError as exc:
-        raise ProfileError(Messages.PROFILE_ERROR_FILE_READ_FAILED.format(profiles_path)) from exc
-    except UnicodeDecodeError as exc:
-        raise ProfileError(Messages.PROFILE_ERROR_FILE_NOT_UTF_8.format(profiles_path)) from exc
-    except configparser.Error as exc:
-        errorname = type(exc).__name__.removesuffix(configparser.Error.__name__)
-        raise ProfileError(Messages.PROFILE_ERROR_PROFILES_WRONG_SYNTAX.format(errorname)) from exc
-
-    profiles: dict[str, Profile] = {}
+    profiles: list[Profile] = []
     parsers = [parser() for parser in BaseParser.__subclasses__()]
-    for section in config.sections():
-        if not config[section]:
-            continue
-        try:
-            parser_config = build_parser_config(config, section)
-        except InvalidProfilePatternError as exc:
-            raise ProfileError(Messages.PROFILE_ERROR_INVALID_REGEX.format(exc)) from exc
-        url_pattern = parser_config.pop(url_pattern_key, None)
-        if url_pattern is None:
-            raise ProfileError(Messages.PROFILE_ERROR_PROFILE_WITHOUT_URL.format(section))
+    logger.debug(Debug.PARSING_PROFILES)
+    for profile_name, profile_contents in contents.items():
+        if not profile_contents:
+            raise ProfileError(Messages.PROFILE_ERROR_EMPTY_PROFILE.format(profile_name))
+        parser_config: ParserConfig = {}
+        for key, pattern in profile_contents.items():
+            if not pattern:
+                continue
+            try:
+                parser_config[key] = re.compile(pattern, re.IGNORECASE)
+            except re.PatternError as exc:
+                message = Messages.PROFILE_ERROR_INVALID_REGEX.format(
+                    profile_name, key, pattern, exc.pos or 0, type(exc).__name__, exc.msg,
+                )
+                raise ProfileError(message) from exc
+        if (url_pattern := parser_config.pop(url_pattern_key, None)) is None:
+            raise ProfileError(Messages.PROFILE_ERROR_PROFILE_WITHOUT_URL.format(profile_name))
         for parser in parsers:
             if parser_config.keys() == parser.PARAMETERS:
                 break
         else:
-            raise ProfileError(Messages.PROFILE_ERROR_PROFILE_WRONG_PARAMETERS.format(section))
-        profiles[section] = Profile(url_pattern, parser, parser_config)
+            raise ProfileError(Messages.PROFILE_ERROR_PROFILE_WRONG_PARAMETERS.format(profile_name))
+        profiles.append(Profile(profile_name, url_pattern, parser, parser_config))
+
+    return tuple(profiles)
+
+
+def load_inifile(inifile_path: Path) -> tuple[Config, tuple[Profile, ...]]:
+    """Load the program INI file from *inifile_path*.
+
+    Read and process the INI file at *inifile_path*, containing program
+    configuration and profile definitions.
+
+    Raise `IniFileError` if *inifile_path* cannot be found, read, or if
+    it has syntax or encoding errors.
+
+    Raise `ConfigError` if program configuration cannot be obtained.
+
+    Raise `ProfileError` if profiles cannot be obtained.
+
+    Return a tuple of a `Config` instance and a tuple of the `Profile`
+    instances obtained from the INI file.
+    """
+    inifile_parser = ConfigParser(interpolation=None, allow_unnamed_section=True)
+
+    try:
+        with inifile_path.open(encoding='utf-8-sig') as inifile:
+            inifile_parser.read_file(inifile)
+    except FileNotFoundError as exc:
+        raise IniFileError(Messages.INIFILE_ERROR_FILE_NOT_FOUND.format(inifile_path)) from exc
+    except PermissionError as exc:
+        raise IniFileError(Messages.INIFILE_ERROR_FILE_NO_PERMISSION.format(inifile_path)) from exc
+    except OSError as exc:
+        raise IniFileError(Messages.INIFILE_ERROR_FILE_READ_FAILED.format(inifile_path)) from exc
+    except UnicodeDecodeError as exc:
+        raise IniFileError(Messages.INIFILE_ERROR_FILE_NOT_UTF_8.format(inifile_path)) from exc
+    except ConfigParserError as exc:
+        errorname = type(exc).__name__.removesuffix(ConfigParserError.__name__)
+        raise IniFileError(Messages.INIFILE_ERROR_WRONG_SYNTAX.format(errorname, inifile_path)) from exc
+
+    if not inifile_parser.has_section(UNNAMED_SECTION):
+        # NOTE: this is **NOT** considered an error because for now, all
+        # the main configuration values have defaults, so even when the
+        # entire section is missing, the program can run perfectly.
+        logger.debug(Debug.CONFIG_MAIN_SECTION_MISSING)
+
+    config = parse_config(dict(inifile_parser[UNNAMED_SECTION]))
+    logger.debug(Debug.FOUND_CONFIG)
+    logger.indent()
+    for key, value in asdict(config).items():
+        logger.debug(Debug.CONFIG_ITEM.format(key, value))
+    logger.dedent()
+
+    inifile_parser.remove_section(UNNAMED_SECTION)
+    profiles = parse_profiles({section: dict(inifile_parser[section]) for section in inifile_parser.sections()})
     if not profiles:
-        raise ProfileError(Messages.PROFILE_ERROR_EMPTY_PROFILES.format(profiles_path))
-    return profiles
+        raise ProfileError(Messages.INIFILE_ERROR_NO_VALID_PROFILES.format(inifile_path))
+
+    logger.debug(Debug.FOUND_PROFILES)
+    logger.indent()
+    for profile in profiles:
+        profile.debug_log()
+    logger.dedent()
+
+    return config, profiles
 
 
 def is_url(value: str) -> bool:
@@ -1097,7 +1203,7 @@ class SpreadSheetGateway(Gateway):
             sheet.cell(row + 1, self.known_metadata[key], value=value)
 
 
-def get_parser(url: Url, profiles: dict[str, Profile]) -> BaseParser:
+def get_parser(url: Url, profiles: tuple[Profile, ...]) -> BaseParser:
     """Obtain the appropriate parser for the *url*.
 
     The appropriate parser is retrieved by finding the needed profile
@@ -1109,9 +1215,9 @@ def get_parser(url: Url, profiles: dict[str, Profile]) -> BaseParser:
 
     Return the appropriate parser instance.
     """
-    for profile_name, profile in profiles.items():
+    for profile in profiles:
         if profile.url_pattern.search(url):
-            logger.debug(Debug.PROFILE_ID.format(profile_name, type(profile.parser).__name__))
+            logger.debug(Debug.PROFILE_ID.format(profile.name, type(profile.parser).__name__))
             profile.parser.configure(profile.parser_config)
             return profile.parser
     raise ProfileError(Messages.PROFILE_ERROR_NO_MATCHING_PROFILE)
@@ -1346,7 +1452,7 @@ def collect_urls(gateway: Gateway) -> list[Url]:
     return urls
 
 
-def process_urls(urls: list[Url], profiles: dict[str, Profile]) -> SkimResults:
+def process_urls(urls: list[Url], profiles: tuple[Profile, ...]) -> SkimResults:
     """Process *urls*, obtaining the metadata for each one.
 
     For every URL in *urls*, find the adequate parser using *profiles*,
@@ -1420,9 +1526,9 @@ def main(*args: str) -> ExitCodes:  # pylint: disable=unused-variable
         return ExitCodes.NO_ARGUMENTS
 
     try:
-        profiles = load_profiles(Paths.INIFILE)
-        logger.debug(Debug.FOUND_PROFILES.format(', '.join(profiles.keys())))
-    except ProfileError as exc:
+        logger.info(Messages.LOADING_INIFILE.format(Paths.CONFIG))
+        config, profiles = load_inifile(Paths.CONFIG)
+    except (IniFileError, ConfigError, ProfileError) as exc:
         log_exception(exc)
         error(str(exc))
         return ExitCodes.ERROR
