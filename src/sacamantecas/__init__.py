@@ -40,8 +40,8 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class Config:
-    """Store program configuration."""   # ruff: ignore[D204]
+class Settings:
+    """Store program settings."""   # ruff: ignore[D204]
     DEFAULT_URL_RETRIEVAL_TIMEOUT_SECONDS: ClassVar[int] = 30
     DEFAULT_MAX_URL_REDIRECTIONS: ClassVar[int] = 5
     url_retrieval_timeout_seconds: int = DEFAULT_URL_RETRIEVAL_TIMEOUT_SECONDS
@@ -95,7 +95,7 @@ class Paths:  # pylint: disable=too-few-public-methods
     ROOT = Path(sys.executable if getattr(sys, 'frozen', False) else __file__).resolve().parent
     MAIN_LOG = ROOT / f'{PROGRAM_NAME}_log{"" if DEVELOPMENT_MODE else TIMESTAMP_STEM}{TEXTFILE_SUFFIX}'
     FULL_LOG = ROOT / f'{PROGRAM_NAME}_trace{"" if DEVELOPMENT_MODE else TIMESTAMP_STEM}{TEXTFILE_SUFFIX}'
-    CONFIG = ROOT / f'{PROGRAM_NAME}.ini'
+    INIFILE = ROOT / f'{PROGRAM_NAME}.ini'
 
 
 class Messages(StrEnum):
@@ -145,9 +145,9 @@ class Messages(StrEnum):
     INIFILE_ERROR_NO_VALID_PROFILES = f'No se encontraron perfiles válidos en el fichero de configuración {QUOTED}'
     INIFILE_ERROR_WRONG_SYNTAX = f'Sintaxis incorrecta {{}} en el fichero de configuración {QUOTED}'
 
-    # Config handling errors.
-    CONFIG_ERROR_UNKNOWN_CONFIG_KEYS = 'Opciones de configuración desconocidas ({})'
-    CONFIG_ERROR_INVALID_VALUE = f'La clave {QUOTED} tiene un valor con formato incorrecto ({QUOTED})'
+    # Settings handling errors.
+    SETTINGS_ERROR_UNKNOWN_KEYS = 'Se encontraron claves de ajuste desconocidas: {}'
+    SETTINGS_ERROR_INVALID_VALUE = f'La clave de ajuste {QUOTED} tiene un valor con formato incorrecto ({QUOTED})'
 
     # Profile handling errors.
     PROFILE_ERROR_EMPTY_PROFILE = f'El perfil {QUOTED} está vacío'
@@ -215,11 +215,11 @@ class Debug(StrEnum):
     ARG_IS_SPREADSHEET = 'El argumento es de tipo spreadsheet'
     ARG_IS_UNSUPPORTED = 'El argumento no es de un tipo admitido'
 
-    # Configuration handling.
-    PARSING_CONFIG = 'Procesando configuración principal'
-    CONFIG_MAIN_SECTION_MISSING = f'El fichero {Messages.QUOTED} no contiene la sección principal'
-    FOUND_CONFIG = 'Se obtuvo la siguiente configuración:'
-    CONFIG_ITEM = '{} = {}'
+    # Settings handling.
+    PARSING_SETTINGS = 'Procesando ajustes del programa'
+    MISSING_SETTINGS = f'El fichero {Messages.QUOTED} no contiene ajustes para el programa'
+    FOUND_SETTINGS = 'Se obtuvieron los siguientes ajustes para el programa:'
+    SETTINGS_ITEM = '{} = {}'
 
     # Profiles handling.
     PARSING_PROFILES = 'Procesando perfiles'
@@ -278,6 +278,7 @@ class ExitCodes(IntEnum):
 
 
 logger = get_logger(PROGRAM_NAME)
+program_settings = Settings()
 
 
 class CharsetError(LookupError):
@@ -299,8 +300,8 @@ class TooManyRedirectionsError(Exception):
 class IniFileError(Exception):
     """Raise for INI file related errors."""
 
-class ConfigError(Exception):
-    """Raise for configuration-related errors."""
+class SettingsError(Exception):
+    """Raise for settings related errors."""
 
 class ProfileError(Exception):
     """Raise for profile related errors."""
@@ -661,39 +662,39 @@ def keyboard_interrupt_handler(function: Callable[..., ExitCodes]) -> Callable[.
     return handle_keyboard_interrupt_wrapper
 
 
-def parse_config(contents: dict[str, str]) -> Config:
-    """Parse program configuration from *contents*.
+def parse_settings(contents: dict[str, str]) -> Settings:
+    """Parse program settings from *contents*.
 
-    The *contents* are parsed using `Config` as the scheme, performing
+    The *contents* are parsed using `Settings` as the scheme, performing
     type translation as needed.
 
-    Raise `ConfigError` if a key in *contents* does not correspond to an
-    attribute in `Config`.
+    Raise `SettingsError` if a key in *contents* does not correspond to an
+    attribute in `Settings`.
 
-    Return a `Config` instance.
+    Return a `Settings` instance.
     """
-    config: dict[str, Any] = {}
-    known_keys = {field.name for field in fields(Config)}
-    logger.debug(Debug.PARSING_CONFIG)
+    settings: dict[str, int] = {}
+    known_keys = {field.name for field in fields(Settings)}
+    logger.debug(Debug.PARSING_SETTINGS)
 
     if extra_keys := [key for key in contents if key not in known_keys]:
         key_list = Messages.LIST_SEPARATOR.join(Messages.QUOTED.format(key) for key in extra_keys)
-        raise ConfigError(Messages.CONFIG_ERROR_UNKNOWN_CONFIG_KEYS.format(key_list))
+        raise SettingsError(Messages.SETTINGS_ERROR_UNKNOWN_KEYS.format(key_list))
 
-    for config_field in fields(Config):
+    for setting in fields(Settings):
         # NOTE: only `int` fields are supported for now, so the code is
         # kept simple and validation is minimal. If in the future more
-        # data types are needed in the configuration, a more complex way
-        # of converting them will be implemented. Right now, it would be
-        # overkill.
-        key = config_field.name
+        # data types are needed for the settings, a more complex way of
+        # converting them will be implemented. Right now, it would just
+        # be overkill.
+        key = setting.name
         value = contents[key]
         try:
-            config[key] = int(value)
+            settings[key] = int(value)
         except ValueError as exc:
-            raise ConfigError(Messages.CONFIG_ERROR_INVALID_VALUE.format(key, value)) from exc
+            raise SettingsError(Messages.SETTINGS_ERROR_INVALID_VALUE.format(key, value)) from exc
 
-    return Config(**config)
+    return Settings(**settings)
 
 
 def parse_profiles(contents: dict[str, dict[str, str]]) -> tuple[Profile, ...]:
@@ -743,20 +744,20 @@ def parse_profiles(contents: dict[str, dict[str, str]]) -> tuple[Profile, ...]:
     return tuple(profiles)
 
 
-def load_inifile(inifile_path: Path) -> tuple[Config, tuple[Profile, ...]]:
+def load_inifile(inifile_path: Path) -> tuple[Settings, tuple[Profile, ...]]:
     """Load the program INI file from *inifile_path*.
 
     Read and process the INI file at *inifile_path*, containing program
-    configuration and profile definitions.
+    settings and profile definitions.
 
     Raise `IniFileError` if *inifile_path* cannot be found, read, or if
     it has syntax or encoding errors.
 
-    Raise `ConfigError` if program configuration cannot be obtained.
+    Raise `SettingsError` if program settings cannot be obtained.
 
     Raise `ProfileError` if profiles cannot be obtained.
 
-    Return a tuple of a `Config` instance and a tuple of the `Profile`
+    Return a tuple of a `Settings` instance and a tuple of the `Profile`
     instances obtained from the INI file.
     """
     inifile_parser = ConfigParser(interpolation=None, allow_unnamed_section=True)
@@ -778,15 +779,15 @@ def load_inifile(inifile_path: Path) -> tuple[Config, tuple[Profile, ...]]:
 
     if not inifile_parser.has_section(UNNAMED_SECTION):
         # NOTE: this is **NOT** considered an error because for now, all
-        # the main configuration values have defaults, so even when the
-        # entire section is missing, the program can run perfectly.
-        logger.debug(Debug.CONFIG_MAIN_SECTION_MISSING)
+        # the settings have defaults, so the program will run perfectly
+        # even if the entire settings section is missing.
+        logger.debug(Debug.MISSING_SETTINGS)
 
-    config = parse_config(dict(inifile_parser[UNNAMED_SECTION]))
-    logger.debug(Debug.FOUND_CONFIG)
+    settings = parse_settings(dict(inifile_parser[UNNAMED_SECTION]))
+    logger.debug(Debug.FOUND_SETTINGS)
     logger.indent()
-    for key, value in asdict(config).items():
-        logger.debug(Debug.CONFIG_ITEM.format(key, value))
+    for key, value in asdict(settings).items():
+        logger.debug(Debug.SETTINGS_ITEM.format(key, value))
     logger.dedent()
 
     inifile_parser.remove_section(UNNAMED_SECTION)
@@ -800,7 +801,7 @@ def load_inifile(inifile_path: Path) -> tuple[Config, tuple[Profile, ...]]:
         profile.debug_log()
     logger.dedent()
 
-    return config, profiles
+    return settings, profiles
 
 
 def is_url(value: str) -> bool:
@@ -1525,10 +1526,10 @@ def main(*args: str) -> ExitCodes:  # pylint: disable=unused-variable
         error(Messages.ERROR_NO_ARGUMENTS)
         return ExitCodes.NO_ARGUMENTS
 
+    logger.info(Messages.LOADING_INIFILE.format(Paths.INIFILE))
     try:
-        logger.info(Messages.LOADING_INIFILE.format(Paths.CONFIG))
-        config, profiles = load_inifile(Paths.CONFIG)
-    except (IniFileError, ConfigError, ProfileError) as exc:
+        program_settings, profiles = load_inifile(Paths.INIFILE)
+    except (IniFileError, SettingsError, ProfileError) as exc:
         log_exception(exc)
         error(str(exc))
         return ExitCodes.ERROR
