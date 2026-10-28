@@ -9,8 +9,9 @@ In short, it *"saca las mantecas"*…
 The input can be:
 
 - an Excel file (xls/xlsx), containing a list of book titles, each one with its
-signature and URL. In this case the output will be another Excel file containing
-the original data and extra columns with the retrieved metadata.
+signature and URL. Only cells containing strings are processed. The output will
+be another Excel file containing the original data and extra columns with the
+retrieved metadata, but with Excel extensions removed.
 
 - a text file containing a list of URLs. In this mode of operation the output
 file will be another text file containing the retrieved metadata for each entry.
@@ -23,7 +24,9 @@ The URLs can be any scheme supported by `urllib`.
 The URLs are processed according to profiles, which indicate how to properly
 process the retrieved contents, depending on the bibliographic catalogue which
 is being processed. The proper profile is inferred from the URL itself and
-resides in the configuration file (`sacamantecas.ini`).
+resides in the configuration file (`sacamantecas.ini`). Please note that if more
+than one profile matches the URL, the one first appearing in the configuration
+file is used.
 
 And yes, while the code is commented in English, `sacamantecas` speaks only
 Spanish, sorry. Feel free to clone the repo and translate the code, because
@@ -37,8 +40,8 @@ the way. The second one is the same as the console output of the application.
 The following application exit codes are defined:
 
 - 0 for successful termination.
-- 1 for when no arguments are provided to the application.
-- 2 for when some warning condition happened during normal operation.
-- 3 for when some error condition caused abnormal termination.
-- 127 for when the user requests application termination (keyboard
+- 2 for when no arguments are provided to the application.
+- 3 for when some warning condition happened during normal operation.
+- 4 for when some error condition caused abnormal termination.
+- 130 for when the user requests application termination (keyboard
   interruption).
