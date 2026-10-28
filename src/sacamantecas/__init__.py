@@ -23,6 +23,7 @@ from typing import ClassVar, final, NamedTuple, TYPE_CHECKING
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, unquote, urlparse, urlunparse
 from urllib.request import Request, urlopen
+import warnings
 
 from legion import ensure_utf8_output, format_message, get_logger
 from openpyxl import load_workbook
@@ -35,6 +36,7 @@ from .about import BUILD, DEPENDENCIES, DEVELOPMENT_MODE, PROGRAM_NAME, REPOSITO
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator
 
+    from openpyxl.workbook.workbook import Workbook
     from openpyxl.worksheet.worksheet import Worksheet
 
 
@@ -241,6 +243,7 @@ class Debug(StrEnum):
     DUMPING_METADATA_TO_SINK = f'Volcando metadatos a {Messages.QUOTED}'
     DUMPING_METADATA_K_V = f'Añadiendo metadato {Messages.QUOTED} con valor {Messages.QUOTED}'
     WORKING_SHEET = f'La hoja con la que se trabajará es {Messages.QUOTED}'
+    WORKBOOK_WARNING = 'Advertencia {} al cargar el workbook «{}»: {}'
     PROCESSING_ROW = 'Procesando fila {}'
     COPYING_WORKBOOK = f'Copiando workbook a {Messages.QUOTED}'
     INSERTING_HEADING_ROW = 'Insertando fila de cabeceras'
@@ -1082,7 +1085,7 @@ class SpreadSheetGateway(Gateway):
         is the one where the URLs are.
         """
         try:
-            source_workbook = load_workbook(self.source_path)
+            source_workbook = self.__load_workbook(self.source_path)
         # NOTE: the `except` blocks below are a hack, true, but they are
         # the lesser evil. Unfortunately, openpyxl documentation is not
         # very thorough regarding the exceptions it raises for invalid
@@ -1117,7 +1120,7 @@ class SpreadSheetGateway(Gateway):
         logger.debug(Debug.COPYING_WORKBOOK.format(self.sink_path))
         copy2(self.source_path, self.sink_path)
 
-        sink_workbook = load_workbook(self.sink_path)
+        sink_workbook = self.__load_workbook(self.sink_path)
         self.sink_sheet = sink_workbook.worksheets[0]
 
         logger.debug(Debug.INSERTING_HEADING_ROW)
@@ -1130,6 +1133,28 @@ class SpreadSheetGateway(Gateway):
                     self.__store_metadata(row, results[url])
         sink_workbook.save(self.sink_path)
         sink_workbook.close()
+
+    @staticmethod
+    def __load_workbook(workbook_path: Path) -> Workbook:
+        """Load the workbook at *workbook_path*, logging warnings.
+
+        `openpyxl` reports unsupported features through the `warnings`
+        module, which would print to `sys.stderr`, outside the program
+        normal log, and only the first time per run.
+        """
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.simplefilter('always')
+            try:
+                return load_workbook(workbook_path)
+            finally:
+                for caught_warning in caught_warnings:
+                    logger.debug(
+                        Debug.WORKBOOK_WARNING.format(
+                            caught_warning.category.__name__,
+                            workbook_path,
+                            caught_warning.message,
+                        ), stacklevel=2,
+                    )
 
     @staticmethod
     def __get_url_from_row(row: tuple[Cell | MergedCell, ...]) -> Url | None:
