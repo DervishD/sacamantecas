@@ -102,7 +102,7 @@ class Messages(StrEnum):
     # Helpers.
     ERROR_PREFIX = '\n*** Error: '
     WARNING_PREFIX = '* Aviso: '
-    STEP_MARKER = '·'
+    MARKER = '·'
     QUOTED = '«{}»'
     LIST_SEPARATOR = ', '
 
@@ -112,21 +112,23 @@ class Messages(StrEnum):
     PROCESS_DONE = 'Proceso finalizado'
 
     # Main loop messages.
+    LOADING_INIFILE = f'Leyendo fichero de configuración {QUOTED}'
+    SETTING_LABEL = 'Ajuste: {} = {}'
+    PROFILE_LABEL = f'Perfil: {QUOTED.format('{0}')} ({{1.__class__.__name__}})'
     GATEWAY_LABEL = 'Fuente: {}'
-    LOADING_INIFILE = f'Fichero de configuración: {QUOTED}'
-    STEP_LOADING_URLS = f'{STEP_MARKER}Obteniendo URLs'
-    STEP_PROCESSING_URLS = f'{STEP_MARKER}Sacando las mantecas'
+    STEP_LOADING_URLS = f'{MARKER}Obteniendo URLs'
+    STEP_PROCESSING_URLS = f'{MARKER}Sacando las mantecas'
     URLS_RESULT = '=> {}'
     URLS_RESULT_NONE = 'Ninguna URL procesada de un total de {1}'
     URLS_RESULT_ONE = '1 URL procesada de un total de {1}'
     URLS_RESULT_MANY = '{0} URLs procesadas de un total de {1}'
-    STEP_SAVING_RESULTS = f'{STEP_MARKER}Guardando metadatos'
+    STEP_SAVING_RESULTS = f'{MARKER}Guardando metadatos'
 
     # Warning messages.
     WARNING_KEYBOARD_INTERRUPT = 'El usuario interrumpió la operación de la aplicación.'
     WARNING_GATEWAY_EMPTY = 'La fuente no contiene ningún URL'
 
-    # Generic error messages:
+    # Generic error messages.
     ERROR_UNHANDLED_EXCEPTION = 'Excepción sin gestionar'
     ERROR_NO_ARGUMENTS = (
         'No se han especificado fuentes de entrada para ser procesadas.\n'
@@ -214,14 +216,11 @@ class Debug(StrEnum):
     ARG_IS_UNSUPPORTED = 'El argumento no es de un tipo admitido'
 
     # Settings handling.
-    PARSING_SETTINGS = 'Procesando ajustes del programa'
-    MISSING_SETTINGS = f'El fichero {Messages.QUOTED} no contiene ajustes para el programa'
-    FOUND_SETTINGS = 'Se obtuvieron los siguientes ajustes para el programa:'
-    SETTINGS_ITEM = '{} = {}'
+    PARSING_SETTINGS = 'Procesando ajustes'
+    MISSING_SETTINGS = f'El fichero {Messages.QUOTED} no contiene ajustes'
 
     # Profiles handling.
     PARSING_PROFILES = 'Procesando perfiles'
-    FOUND_PROFILES = 'Se obtuvieron los siguientes perfiles:'
     PROFILE_NAME =        f'Nombre        : {Messages.QUOTED}'
     PROFILE_URL_PATTERN = f'Patrón de URL : {Messages.QUOTED}'
     PROFILE_PARSER_TYPE =  'Tipo de parser: {0.__class__.__name__}'
@@ -593,6 +592,7 @@ def error(message: str) -> None:
 
     The result is logged using `logger.error()`.
     """
+    logger.set_indent(0)
     heading, _, remaining = message.partition('\n')
     heading = f'{Messages.ERROR_PREFIX}{heading[0].lower()}{heading[1:]}'
     logger.error(format_message(heading, remaining, indentation=' ' * Messages.ERROR_PREFIX.index(' ')))
@@ -777,29 +777,24 @@ def load_inifile(inifile_path: Path) -> tuple[Settings, tuple[Profile, ...]]:
         errorname = type(exc).__name__.removesuffix(ConfigParserError.__name__)
         raise IniFileError(Messages.INIFILE_ERROR_WRONG_SYNTAX.format(errorname, inifile_path)) from exc
 
-    if not inifile_parser.has_section(UNNAMED_SECTION):
+    if inifile_parser.has_section(UNNAMED_SECTION):
+        settings = parse_settings(dict(inifile_parser[UNNAMED_SECTION]))
+        for key, value in asdict(settings).items():
+            logger.info(Messages.SETTING_LABEL.format(key, value))
+        inifile_parser.remove_section(UNNAMED_SECTION)
+    else:
         # NOTE: this is **NOT** considered an error because for now, all
         # the settings have defaults, so the program will run perfectly
         # even if the entire settings section is missing.
         logger.debug(Debug.MISSING_SETTINGS)
-
-    settings = parse_settings(dict(inifile_parser[UNNAMED_SECTION]))
-    logger.debug(Debug.FOUND_SETTINGS)
-    logger.indent()
-    for key, value in asdict(settings).items():
-        logger.debug(Debug.SETTINGS_ITEM.format(key, value))
-    logger.dedent()
-
-    inifile_parser.remove_section(UNNAMED_SECTION)
+        settings = Settings()
     profiles = parse_profiles({section: dict(inifile_parser[section]) for section in inifile_parser.sections()})
     if not profiles:
         raise ProfileError(Messages.INIFILE_ERROR_NO_VALID_PROFILES.format(inifile_path))
 
-    logger.debug(Debug.FOUND_PROFILES)
-    logger.indent()
     for profile in profiles:
+        logger.info(Messages.PROFILE_LABEL.format(profile.name, profile.parser))
         profile.debug_log()
-    logger.dedent()
 
     return settings, profiles
 
@@ -1556,9 +1551,12 @@ def main(*args: str) -> ExitCodes:  # pylint: disable=unused-variable
         error(Messages.ERROR_NO_ARGUMENTS)
         return ExitCodes.NO_ARGUMENTS
 
+    logger.info('')
     logger.info(Messages.LOADING_INIFILE.format(Paths.INIFILE))
     try:
+        logger.indent()
         program_settings, profiles = load_inifile(Paths.INIFILE)
+        logger.dedent()
     except (IniFileError, SettingsError, ProfileError) as exc:
         log_exception(exc)
         error(str(exc))
