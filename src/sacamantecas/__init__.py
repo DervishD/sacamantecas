@@ -2,9 +2,7 @@
 import sys
 
 if sys.platform != 'win32':
-    sys.stdout.write('\nThis program is compatible only with the Win32 platform.\n')
-    sys.stdout.flush()
-    sys.exit(None)
+    sys.exit('\nThis program is compatible only with the Win32 platform.')
 
 # pylint: disable=wrong-import-position
 from abc import ABC, abstractmethod
@@ -19,6 +17,7 @@ import logging
 from pathlib import Path
 import re
 from shutil import copy2
+import signal
 import time
 from typing import ClassVar, final, NamedTuple, TYPE_CHECKING
 from urllib.error import HTTPError, URLError
@@ -266,12 +265,13 @@ class Debug(StrEnum):
 
 
 class ExitCodes(IntEnum):
-    """Standardized exit codes."""  # ruff: ignore[D204]
+    """Customized exit codes."""  # ruff: ignore[D204]
     SUCCESS = 0
-    NO_ARGUMENTS = 1
-    WARNING = 2
-    ERROR = 3
-    KEYBOARD_INTERRUPT = 127
+    # 1 is reserved, used as exitcode by Python unhandled exceptions.
+    NO_ARGUMENTS = 2
+    WARNING = 3
+    ERROR = 4
+    KEYBOARD_INTERRUPT = 128 + signal.SIGINT
 
 
 logger = get_logger(PROGRAM_NAME)
