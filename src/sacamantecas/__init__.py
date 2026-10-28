@@ -115,7 +115,7 @@ class Messages(StrEnum):
     LOADING_INIFILE = f'Leyendo fichero de configuración {QUOTED}'
     SETTING_LABEL = 'Ajuste: {} = {}'
     PROFILE_LABEL = f'Perfil: {QUOTED.format('{0}')} ({{1.__class__.__name__}})'
-    GATEWAY_LABEL = 'Fuente: {}'
+    PROCESSING_GATEWAY = 'Procesando fuente: {}'
     STEP_LOADING_URLS = f'{MARKER}Obteniendo URLs'
     STEP_PROCESSING_URLS = f'{MARKER}Sacando las mantecas'
     URLS_RESULT = '=> {}'
@@ -146,8 +146,8 @@ class Messages(StrEnum):
     INIFILE_ERROR_WRONG_SYNTAX = f'Sintaxis incorrecta {{}} en el fichero de configuración {QUOTED}'
 
     # Settings handling errors.
-    SETTINGS_ERROR_UNKNOWN_KEYS = 'Se encontraron claves de ajuste desconocidas: {}'
-    SETTINGS_ERROR_INVALID_VALUE = f'La clave de ajuste {QUOTED} tiene un valor con formato incorrecto ({QUOTED})'
+    SETTINGS_ERROR_UNKNOWN_KEYS = 'Se encontraron ajustes desconocido: {}'
+    SETTINGS_ERROR_INVALID_VALUE = f'El ajuste {QUOTED} tiene un valor con formato incorrecto ({QUOTED})'
 
     # Profile handling errors.
     PROFILE_ERROR_EMPTY_PROFILE = f'El perfil {QUOTED} está vacío'
@@ -1464,7 +1464,6 @@ def collect_urls(gateway: Gateway) -> list[Url]:
     could not be read or its source contains no URLs.
     """
     urls: list[Url] = []
-    logger.indent()
     try:
         urls = gateway.get_urls()
     except GatewayError as exc:
@@ -1473,7 +1472,6 @@ def collect_urls(gateway: Gateway) -> list[Url]:
     else:
         if not urls:
             warning(Messages.WARNING_GATEWAY_EMPTY)
-    logger.dedent()
     return urls
 
 
@@ -1494,7 +1492,6 @@ def process_urls(urls: list[Url], profiles: tuple[Profile, ...]) -> SkimResults:
     no URL could be processed.
     """
     results: SkimResults = {}
-    logger.indent()
     for url in urls:
         logger.info(url)
         try:
@@ -1511,7 +1508,6 @@ def process_urls(urls: list[Url], profiles: tuple[Profile, ...]) -> SkimResults:
     )
     summary = summary_template.format(len(results), len(urls))
     logger.info(Messages.URLS_RESULT.format(summary))
-    logger.dedent()
     return results
 
 
@@ -1564,21 +1560,28 @@ def main(*args: str) -> ExitCodes:  # pylint: disable=unused-variable
 
     for gateway in parse_arguments(*args):
         logger.info('')
-        logger.info(Messages.GATEWAY_LABEL.format(gateway.label))
-        logger.indent()
+        logger.info(Messages.PROCESSING_GATEWAY.format(gateway.label))
 
+        logger.indent()
         logger.info(Messages.STEP_LOADING_URLS)
+
+        logger.indent()
         urls = collect_urls(gateway)
+        logger.dedent()
+
         if urls:
             logger.info(Messages.STEP_PROCESSING_URLS)
+            logger.indent()
             results = process_urls(urls, profiles)
+            logger.dedent()
             if len(results) != len(urls):
                 exitcode = ExitCodes.WARNING
             if results:
                 logger.info(Messages.STEP_SAVING_RESULTS)
-                success = save_results(gateway, results)
-                if not success:
+                logger.indent()
+                if not save_results(gateway, results):
                     exitcode = ExitCodes.WARNING
+                logger.dedent()
         else:
             exitcode = ExitCodes.WARNING
         logger.dedent()
