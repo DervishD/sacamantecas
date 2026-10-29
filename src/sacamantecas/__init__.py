@@ -1432,18 +1432,18 @@ def detect_html_charset(contents: bytes) -> str:
     webpages this program will generally process.
     """
     fallback_charset = 'ISO-8859-1'
-    meta_http_equiv_charset_re = rb'<meta http-equiv="content-type".*charset="([^"]+)"'
-    meta_charset_re = rb'<meta charset="([^"]+)"'
+    meta_http_equiv_charset_re = rb'<meta http-equiv=(["\'])content-type\1.*?charset=(["\'])([^"\']+)\2'
+    meta_charset_re = rb'<meta charset=(["\'])([^"\']+)\1'
 
     charset = fallback_charset
     if match := re.search(meta_http_equiv_charset_re, contents, re.IGNORECASE):
         # Next best thing, from the meta http-equiv="content-type".
         logger.debug(Debug.CHARSET_FROM_HTTP_EQUIV)
-        charset = match.group(1).decode('ascii')
+        charset = match.group(3).decode('ascii')
     elif match := re.search(meta_charset_re, contents, re.IGNORECASE):
         # Last resort, from some meta charset, if any…
         logger.debug(Debug.CHARSET_FROM_META_CHARSET)
-        charset = match.group(1).decode('ascii')
+        charset = match.group(2).decode('ascii')
     else:
         logger.debug(Debug.CHARSET_FROM_DEFAULT)
     return charset
