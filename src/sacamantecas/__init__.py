@@ -850,18 +850,22 @@ class Gateway(ABC):
     def __init__(self, source: str, *args: object, **kwargs: object) -> None:
         """."""
         super().__init__(*args, **kwargs)
-        self.source_path = Path(source)
-        self.sink_path = self.generate_sink_path()
-        self.urls: list[Url]= []
         self._label = source.strip()
+        self.urls: list[Url]= []
+        self.source_path = self.generate_source_path()
+        self.sink_path = self.generate_sink_path()
 
     @property
     def label(self) -> str:
         """."""
         return self._label
 
+    def generate_source_path(self) -> Path:
+        """Generate the source file path from `self.label`."""
+        return Path(self.label)
+
     def generate_sink_path(self) -> Path:
-        """Generate the sink file path from `self.source`."""
+        """Generate the sink file path from `self.source_path`."""
         return self.source_path.with_stem(self.source_path.stem + self.SINK_STEM)
 
     @final
@@ -953,12 +957,18 @@ class SingleUrlGateway(Gateway):
     HEADER = '{}\n\n'
     METADATA_PAIR = '[{:{width}}] {}\n'
 
-    def __init__(self, source: str, *args: object, **kwargs: object) -> None:
-        """."""
-        super().__init__(source, *args, **kwargs)
-        self.urls = self._get_urls()
-        self.source_path = self.__url_to_path()
-        self.sink_path = self.generate_sink_path()
+    def generate_source_path(self) -> Path:
+        """Convert the URL to a valid path with *.txt* suffix.
+
+        The URL is actually stored at `self._label`, as it is the source
+        for this gateway.
+
+        The method is quite crude but it works: replace every ASCII non
+        word characters (potentially unsafe when they are present in a
+        path) by a visually unobtrusive character which is safe to use
+        while keeping the path readable.
+        """
+        return Path(re.sub(r'\W', '_', self.label, flags=re.ASCII)).with_suffix('.txt')
 
     def _get_urls(self) -> list[Url]:
         """Return this gateway's single URL."""
@@ -966,7 +976,7 @@ class SingleUrlGateway(Gateway):
 
     def _save_metadata(self, results: SkimResults) -> None:
         """Save *results* metadata to a text file sink."""
-        metadata = results.get(self.urls[0])
+        metadata = results.get(self.label)
         if not metadata:
             return
 
@@ -984,16 +994,6 @@ class SingleUrlGateway(Gateway):
                 logger.info(message.rstrip())
                 logger.dedent()
                 sink.write(message)
-
-    def __url_to_path(self) -> Path:
-        """Convert the *url* to a valid path with *.txt* suffix.
-
-        The method is quite crude but it works: replace every ASCII non
-        word characters (potentially unsafe when they are present in a
-        path) by a visually unobtrusive character which is safe to use
-        while keeping the path readable.
-        """
-        return Path(re.sub(r'\W', '_', self.urls[0], flags=re.ASCII)).with_suffix('.txt')
 
 
 class TextFileGateway(Gateway):
