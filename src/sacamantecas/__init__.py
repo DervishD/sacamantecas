@@ -19,7 +19,7 @@ import re
 from shutil import copy2
 import signal
 import time
-from typing import ClassVar, final, NamedTuple, TYPE_CHECKING
+from typing import ClassVar, Final, final, NamedTuple, TYPE_CHECKING
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, unquote, urlparse, urlunparse
 from urllib.request import Request, urlopen
@@ -79,18 +79,17 @@ type ParserConfig = dict[str, re.Pattern[str]]
 
 USER_AGENT = f'{PROGRAM_NAME}/{VERSION} (bot; +{REPOSITORY})'
 
-URL_PATTERN = re.compile(r'[a-z][a-z0-9+.-]+://', re.IGNORECASE)
-
-TIMESTAMP_STEM = time.strftime('_%Y%m%d_%H%M%S')
-
 
 class Paths:  # pylint: disable=too-few-public-methods
     """Program paths."""
 
-    ROOT = Path(sys.executable if getattr(sys, 'frozen', False) else __file__).resolve().parent
-    MAIN_LOG = ROOT / f'{PROGRAM_NAME}_log{"" if DEVELOPMENT_MODE else TIMESTAMP_STEM}.txt'
-    FULL_LOG = ROOT / f'{PROGRAM_NAME}_trace{"" if DEVELOPMENT_MODE else TIMESTAMP_STEM}.txt'
-    INIFILE = ROOT / f'{PROGRAM_NAME}.ini'
+    _PROGRAM_ROOT: Final[Path] = Path(sys.executable if getattr(sys, 'frozen', False) else __file__).resolve().parent
+    _LOGFILE_STEM: Final[str] = '' if DEVELOPMENT_MODE else time.strftime('_%Y%m%d_%H%M%S')
+    _LOGFILE_SUFFIX: Final[str] = '.txt'
+
+    MAIN_LOG: Final[Path] = _PROGRAM_ROOT / f'{PROGRAM_NAME}_log{_LOGFILE_STEM}{_LOGFILE_SUFFIX}'
+    FULL_LOG: Final[Path] = _PROGRAM_ROOT / f'{PROGRAM_NAME}_trace{_LOGFILE_STEM}{_LOGFILE_SUFFIX}'
+    INIFILE: Final[Path] = _PROGRAM_ROOT / f'{PROGRAM_NAME}.ini'
 
 
 class Messages(StrEnum):
@@ -805,7 +804,8 @@ def is_url(value: str) -> bool:
 
     Only the shape is checked, not the actual validity.
     """
-    return URL_PATTERN.match(value) is not None
+    url_scheme_re = re.compile(r'[a-z][a-z0-9+.-]+://', re.IGNORECASE)
+    return url_scheme_re.match(value) is not None
 
 
 def parse_arguments(*args: str) -> Generator[Gateway]:
