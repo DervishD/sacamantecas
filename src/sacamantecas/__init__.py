@@ -1078,7 +1078,7 @@ class SpreadSheetGateway(Gateway):
         is the one where the URLs are.
         """
         try:
-            source_workbook = self.__load_workbook(self.source_path)
+            source_workbook = self._load_workbook(self.source_path)
         # NOTE: the `except` blocks below are a hack, true, but they are
         # the lesser evil. Unfortunately, openpyxl documentation is not
         # very thorough regarding the exceptions it raises for invalid
@@ -1100,7 +1100,7 @@ class SpreadSheetGateway(Gateway):
             if not row_number:
                 continue
             logger.debug(Debug.PROCESSING_ROW.format(row_number))
-            if (url := self.__get_url_from_row(row)) is None:
+            if (url := self._get_url_from_row(row)) is None:
                 continue
             url = url.strip()
             all_urls.append(url)
@@ -1113,7 +1113,7 @@ class SpreadSheetGateway(Gateway):
         logger.debug(Debug.COPYING_WORKBOOK.format(self.sink_path))
         copy2(self.source_path, self.sink_path)
 
-        sink_workbook = self.__load_workbook(self.sink_path)
+        sink_workbook = self._load_workbook(self.sink_path)
         self.sink_sheet = sink_workbook.worksheets[0]
 
         logger.debug(Debug.INSERTING_HEADING_ROW)
@@ -1123,12 +1123,12 @@ class SpreadSheetGateway(Gateway):
         for url, rows in self.url_rows.items():
             if url in results:
                 for row in rows:
-                    self.__store_metadata(row, results[url])
+                    self._store_metadata(row, results[url])
         sink_workbook.save(self.sink_path)
         sink_workbook.close()
 
     @staticmethod
-    def __load_workbook(workbook_path: Path) -> Workbook:
+    def _load_workbook(workbook_path: Path) -> Workbook:
         """Load the workbook at *workbook_path*, logging warnings.
 
         `openpyxl` reports unsupported features through the `warnings`
@@ -1150,7 +1150,7 @@ class SpreadSheetGateway(Gateway):
                     )
 
     @staticmethod
-    def __get_url_from_row(row: tuple[Cell | MergedCell, ...]) -> Url | None:
+    def _get_url_from_row(row: tuple[Cell | MergedCell, ...]) -> Url | None:
         """Find first URL in row."""
         url = None
         for cell in row:
@@ -1164,7 +1164,7 @@ class SpreadSheetGateway(Gateway):
                 break  # Only the FIRST URL found is considered.
         return url
 
-    def __store_metadata(self, row: int, metadata: Metadata) -> None:
+    def _store_metadata(self, row: int, metadata: Metadata) -> None:
         """Store *metadata* in *self.sink_sheet* at given *row*.
 
         For new metadata keys a new column is added to *self.sink_sheet*
