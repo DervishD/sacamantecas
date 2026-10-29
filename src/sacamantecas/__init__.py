@@ -34,7 +34,7 @@ from openpyxl.utils.cell import get_column_letter
 from .about import BUILD, DEPENDENCIES, DEVELOPMENT_MODE, PROGRAM_NAME, REPOSITORY, USER_AGENT, VERSION
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Generator
+    from collections.abc import Callable, Iterator
 
     from openpyxl.workbook.workbook import Workbook
     from openpyxl.worksheet.worksheet import Worksheet
@@ -809,7 +809,7 @@ def is_url(value: str) -> bool:
     return url_scheme_re.match(value) is not None
 
 
-def parse_arguments(*args: str) -> Generator[Gateway]:
+def parse_arguments(*args: str) -> Iterator[Gateway]:
     """Parse **args*.
 
     Parse each argument in **args*, identify its type and check if it is
