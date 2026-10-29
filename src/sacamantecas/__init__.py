@@ -680,14 +680,12 @@ def parse_settings(contents: dict[str, str]) -> Settings:
         key_list = Messages.LIST_SEPARATOR.join(Messages.QUOTED.format(key) for key in extra_keys)
         raise SettingsError(Messages.SETTINGS_ERROR_UNKNOWN_KEYS.format(key_list))
 
-    for setting in fields(Settings):
+    for key, value in contents.items():
         # NOTE: only `int` fields are supported for now, so the code is
         # kept simple and validation is minimal. If in the future more
         # data types are needed for the settings, a more complex way of
         # converting them will be implemented. Right now, it would just
         # be overkill.
-        key = setting.name
-        value = contents[key]
         try:
             settings[key] = int(value)
         except ValueError as exc:
