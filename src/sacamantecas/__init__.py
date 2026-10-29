@@ -1067,9 +1067,7 @@ class SpreadSheetGateway(Gateway):
     def __init__(self, source: str, *args: object, **kwargs: object) -> None:
         """."""
         super().__init__(source, *args, **kwargs)
-        self.sink_sheet: Worksheet | None = None
         self.url_rows: dict[Url, list[int]] = {}
-        self.known_metadata: dict[MetadataKey, int] = {}
 
     def _get_urls(self) -> list[Url]:
         """Return all URLs in the input file, stripped.
@@ -1114,16 +1112,16 @@ class SpreadSheetGateway(Gateway):
         copy2(self.source_path, self.sink_path)
 
         sink_workbook = self._load_workbook(self.sink_path)
-        self.sink_sheet = sink_workbook.worksheets[0]
+        sink_sheet = sink_workbook.worksheets[0]
 
         logger.debug(Debug.INSERTING_HEADING_ROW)
-        self.sink_sheet.insert_rows(1, 1)
+        sink_sheet.insert_rows(1, 1)
 
-        self.known_metadata = {}
+        known_metadata: dict[MetadataKey, int] = {}
         for url, rows in self.url_rows.items():
             if url in results:
                 for row in rows:
-                    self._store_metadata(row, results[url])
+                    self._store_metadata(sink_sheet, row, results[url], known_metadata)
         sink_workbook.save(self.sink_path)
         sink_workbook.close()
 
@@ -1164,12 +1162,20 @@ class SpreadSheetGateway(Gateway):
                 break  # Only the FIRST URL found is considered.
         return url
 
-    def _store_metadata(self, row: int, metadata: Metadata) -> None:
-        """Store *metadata* in *self.sink_sheet* at given *row*.
+    def _store_metadata(self,
+        sheet: Worksheet,
+        row: int,
+        metadata: Metadata,
+        known_metadata: dict[MetadataKey, int],
+    ) -> None:
+        """Store *metadata* in *sheet* at given *row*.
 
-        For new metadata keys a new column is added to *self.sink_sheet*
-        and the value is added there. For already existing metadata keys
-        the value is added to the corresponding existing column.
+        For new metadata keys a new column is added to *sink_sheet*, and
+        the value is added there. For already existing metadata keys the
+        value is added to the corresponding existing column.
+
+        The *known_metadata* argument serves to track existing metadata
+        keys, to know in which column are they stored.
 
         The new columns are marked with a prefix so they are easier to
         recognize, filter and process later.
@@ -1178,15 +1184,12 @@ class SpreadSheetGateway(Gateway):
         cell_color = self.ADDED_CELLS_COLOR
         cell_fill = self.ADDED_CELLS_FILL
 
-        sheet = self.sink_sheet
-        if sheet is None:
-            return
         for key, value in metadata.items():
-            if key not in self.known_metadata:
+            if key not in known_metadata:
                 column_header = self.ADDED_METADATA_COLUMN_HEADER.format(key)
                 logger.debug(Debug.NEW_METADATA_FOUND.format(key))
                 column = sheet.max_column + 1
-                self.known_metadata[key] = column
+                known_metadata[key] = column
                 logger.debug(Debug.METADATA_STORED_IN_COLUMN.format(key, get_column_letter(column)))
                 cell = sheet.cell(row=1, column=column, value=column_header)
                 cell.font = Font(name=cell_font)
@@ -1216,7 +1219,7 @@ class SpreadSheetGateway(Gateway):
                 sheet.column_dimensions[get_column_letter(column)].max = column
             logger.debug(Debug.DUMPING_METADATA_K_V.format(key, value))
             # There is a one row offset because of the added headers.
-            sheet.cell(row + 1, self.known_metadata[key], value=value)
+            sheet.cell(row + 1, known_metadata[key], value=value)
 
 
 def get_parser(url: Url, profiles: tuple[Profile, ...]) -> BaseParser:
