@@ -17,10 +17,10 @@ ALLOWED_UNREFACTORED_STRINGS = (
     '_%Y%m%d_%H%M%S',
     # Empty strings.
     ' ', '',
-    # Punctuation.
-    '.', ', ', '"',
     # Miscellaneous strings.
-    'file://', 'utf-8', 'ascii', '==', ' v', r'\W', '_', ':/', '/',
+    'file://', '.txt', '.xlsx', 'utf-8', 'ascii', '==', ' v', r'\W',
+    # Punctuation.
+    '_', ':/', '/', '. ', ', ', '\n',
 )
 
 

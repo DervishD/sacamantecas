@@ -83,16 +83,13 @@ URL_PATTERN = re.compile(r'[a-z][a-z0-9+.-]+://', re.IGNORECASE)
 
 TIMESTAMP_STEM = time.strftime('_%Y%m%d_%H%M%S')
 
-TEXTFILE_SUFFIX = '.txt'
-SPREADSHEET_SUFFIX = '.xlsx'
-
 
 class Paths:  # pylint: disable=too-few-public-methods
     """Program paths."""
 
     ROOT = Path(sys.executable if getattr(sys, 'frozen', False) else __file__).resolve().parent
-    MAIN_LOG = ROOT / f'{PROGRAM_NAME}_log{"" if DEVELOPMENT_MODE else TIMESTAMP_STEM}{TEXTFILE_SUFFIX}'
-    FULL_LOG = ROOT / f'{PROGRAM_NAME}_trace{"" if DEVELOPMENT_MODE else TIMESTAMP_STEM}{TEXTFILE_SUFFIX}'
+    MAIN_LOG = ROOT / f'{PROGRAM_NAME}_log{"" if DEVELOPMENT_MODE else TIMESTAMP_STEM}.txt'
+    FULL_LOG = ROOT / f'{PROGRAM_NAME}_trace{"" if DEVELOPMENT_MODE else TIMESTAMP_STEM}.txt'
     INIFILE = ROOT / f'{PROGRAM_NAME}.ini'
 
 
@@ -828,10 +825,10 @@ def parse_arguments(*args: str) -> Generator[Gateway]:
         if is_url(clean_arg):
             logger.debug(Debug.ARG_IS_SINGLE_URL)
             gateway = SingleUrlGateway(clean_arg)
-        elif lowercase_arg.endswith(TEXTFILE_SUFFIX):
+        elif lowercase_arg.endswith('.txt'):
             logger.debug(Debug.ARG_IS_TEXTFILE)
             gateway = TextFileGateway(clean_arg)
-        elif lowercase_arg.endswith(SPREADSHEET_SUFFIX):
+        elif lowercase_arg.endswith('.xlsx'):
             logger.debug(Debug.ARG_IS_SPREADSHEET)
             gateway = SpreadSheetGateway(clean_arg)
         else:
@@ -988,14 +985,14 @@ class SingleUrlGateway(Gateway):
                 sink.write(message)
 
     def __url_to_path(self) -> Path:
-        """Convert the *url* to a valid path with the correct suffix.
+        """Convert the *url* to a valid path with *.txt* suffix.
 
         The method is quite crude but it works: replace every ASCII non
         word characters (potentially unsafe when they are present in a
         path) by a visually unobtrusive character which is safe to use
         while keeping the path readable.
         """
-        return Path(re.sub(r'\W', '_', self.urls[0], flags=re.ASCII)).with_suffix(TEXTFILE_SUFFIX)
+        return Path(re.sub(r'\W', '_', self.urls[0], flags=re.ASCII)).with_suffix('.txt')
 
 
 class TextFileGateway(Gateway):
