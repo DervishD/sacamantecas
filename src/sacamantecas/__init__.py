@@ -103,6 +103,8 @@ class Messages(StrEnum):
     PRESS_ANY_KEY = '\nPulse cualquier tecla para continuar...'
     PROGRAM_BANNER = f'{PROGRAM_NAME} versión {BUILD if DEVELOPMENT_MODE else VERSION} ({REPOSITORY})'
     PROCESS_DONE = 'Proceso finalizado'
+    DEFAULT_ERROR_MESSAGE = 'No hay más información sobre el error'
+    DEFAULT_WARNING_MESSAGE = 'No hay más información sobre el aviso'
 
     # Main loop messages.
     LOADING_INIFILE = f'Leyendo fichero de configuración {QUOTED}'
@@ -588,6 +590,8 @@ def error(message: str) -> None:
     """
     logger.set_indent(0)
     heading, _, remaining = message.partition('\n')
+    if not heading:
+        heading = Messages.DEFAULT_ERROR_MESSAGE
     heading = f'{Messages.ERROR_PREFIX}{heading[0].lower()}{heading[1:]}'
     logger.error(format_message(heading, remaining, indentation=' ' * Messages.ERROR_PREFIX.index(' ')))
 
@@ -617,7 +621,8 @@ def warning(message: str) -> None:
 
     The result is then logged using `logger.warning()`.
     """
-    logger.warning('%s', Messages.WARNING_PREFIX + message[0].lower() + message[1:])
+    processed_message = message or Messages.DEFAULT_WARNING_MESSAGE
+    logger.warning('%s', f'{Messages.WARNING_PREFIX}{processed_message[0].lower() + processed_message[1:]}')
 
 
 def loggerize(function: Callable[..., ExitCodes]) -> Callable[..., ExitCodes]:
