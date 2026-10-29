@@ -375,8 +375,8 @@ class BaseParser(HTMLParser):
         self.reset()
         self.config = {key: value for key, value in config.items() if key in self.PARAMETERS}
 
-    def store_metadata(self) -> None:
-        """Store found metadata, handling missing parts."""
+    def commit_metadata(self) -> None:
+        """Commit found metadata, handling missing parts."""
         if not self.current_k and not self.current_v:
             logger.debug(Debug.METADATA_IS_EMPTY)
         if self.current_k and not self.current_v:
@@ -482,7 +482,7 @@ class OldRegimeParser(BaseParser):
         if self.within_v and tag == self.current_v_tag:
             self.within_v = False
             self.current_v_tag = None
-            self.store_metadata()
+            self.commit_metadata()
             return
 
 
@@ -573,7 +573,7 @@ class BaratzParser(BaseParser):
             return
         if self.within_v and tag == self.V_TAG:
             self.within_v = False
-            self.store_metadata()
+            self.commit_metadata()
             return
 
 
@@ -1121,7 +1121,7 @@ class SpreadSheetGateway(Gateway):
         for url, rows in self.url_rows.items():
             if url in results:
                 for row in rows:
-                    self._store_metadata(sink_sheet, row, results[url], known_metadata)
+                    self._write_row_metadata(sink_sheet, row, results[url], known_metadata)
         sink_workbook.save(self.sink_path)
         sink_workbook.close()
 
@@ -1162,13 +1162,13 @@ class SpreadSheetGateway(Gateway):
                 break  # Only the FIRST URL found is considered.
         return url
 
-    def _store_metadata(self,
+    def _write_row_metadata(self,
         sheet: Worksheet,
         row: int,
         metadata: Metadata,
         known_metadata: dict[MetadataKey, int],
     ) -> None:
-        """Store *metadata* in *sheet* at given *row*.
+        """Write *metadata* to *sheet* at given *row*.
 
         For new metadata keys a new column is added to *sink_sheet*, and
         the value is added there. For already existing metadata keys the
