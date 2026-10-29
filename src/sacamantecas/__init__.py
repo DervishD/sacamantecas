@@ -31,7 +31,7 @@ from openpyxl.cell.cell import Cell, MergedCell, TYPE_STRING as CELLTYPE_STRING
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils.cell import get_column_letter
 
-from .about import BUILD, DEPENDENCIES, DEVELOPMENT_MODE, PROGRAM_NAME, REPOSITORY, VERSION
+from .about import BUILD, DEPENDENCIES, DEVELOPMENT_MODE, PROGRAM_NAME, REPOSITORY, USER_AGENT, VERSION
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator
@@ -77,9 +77,6 @@ type SkimResults = dict[Url, Metadata]
 type ParserConfig = dict[str, re.Pattern[str]]
 
 
-USER_AGENT = f'{PROGRAM_NAME}/{VERSION} (bot; +{REPOSITORY})'
-
-
 class Paths:  # pylint: disable=too-few-public-methods
     """Program paths."""
 
@@ -104,7 +101,7 @@ class Messages(StrEnum):
 
     # General messages.
     PRESS_ANY_KEY = '\nPulse cualquier tecla para continuar...'
-    PROGRAM_BANNER = f'{PROGRAM_NAME} versión {BUILD} ({REPOSITORY})'
+    PROGRAM_BANNER = f'{PROGRAM_NAME} versión {BUILD if DEVELOPMENT_MODE else VERSION} ({REPOSITORY})'
     PROCESS_DONE = 'Proceso finalizado'
 
     # Main loop messages.
@@ -194,6 +191,7 @@ class Debug(StrEnum):
     DEBUGGING_INIT = 'Registro de depuración iniciado'
     DEBUGGING_DONE = 'Registro de depuración finalizado'
     DEPENDENCY_BANNER = 'Usando paquete {}'
+    USER_AGENT_LABEL = f'User-Agent: {USER_AGENT}'
 
     # Exception logging.
     EXCEPTION_LOG = 'Se lanzó una excepción {}'
@@ -632,7 +630,7 @@ def loggerize(function: Callable[..., ExitCodes]) -> Callable[..., ExitCodes]:
         logger.info(Messages.PROGRAM_BANNER)
         for required_package in DEPENDENCIES:
             logger.debug(Debug.DEPENDENCY_BANNER.format(required_package.replace('==', ' v')))
-        logger.debug(USER_AGENT)
+        logger.debug(Debug.USER_AGENT_LABEL)
 
         status = function(*args)
 

@@ -65,6 +65,7 @@ colophon.template = '''
     DEVELOPMENT_MODE = not bool({version[release]!r})
     REPOSITORY = {project[urls][source]!r}
     DEPENDENCIES = {project[dependencies]!r}
+    USER_AGENT = '{project[name]}/{local[version]} (bot; +{project[urls][source]})'
 '''
 
 [tool.setuptools.dynamic]
