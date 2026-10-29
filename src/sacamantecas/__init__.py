@@ -1180,10 +1180,6 @@ class SpreadSheetGateway(Gateway):
         The new columns are marked with a prefix so they are easier to
         recognize, filter and process later.
         """
-        cell_font = self.ADDED_CELLS_FONT
-        cell_color = self.ADDED_CELLS_COLOR
-        cell_fill = self.ADDED_CELLS_FILL
-
         for key, value in metadata.items():
             if key not in known_metadata:
                 column_header = self.ADDED_METADATA_COLUMN_HEADER.format(key)
@@ -1192,8 +1188,8 @@ class SpreadSheetGateway(Gateway):
                 known_metadata[key] = column
                 logger.debug(Debug.METADATA_STORED_IN_COLUMN.format(key, get_column_letter(column)))
                 cell = sheet.cell(row=1, column=column, value=column_header)
-                cell.font = Font(name=cell_font)
-                cell.fill = PatternFill(fgColor=cell_color, fill_type=cell_fill)
+                cell.font = Font(name=self.ADDED_CELLS_FONT)
+                cell.fill = PatternFill(fgColor=self.ADDED_CELLS_COLOR, fill_type=self.ADDED_CELLS_FILL)
                 # Set column width.
                 #
                 # As per Excel specification, the width of the zero char
