@@ -805,8 +805,8 @@ def is_url(value: str) -> bool:
 
     Only the shape is checked, not the actual validity.
     """
-    url_scheme_re = re.compile(r'[a-z][a-z0-9+.-]+://', re.IGNORECASE)
-    return url_scheme_re.match(value) is not None
+    url_scheme_re = r'[a-z][a-z0-9+.-]+://'
+    return re.prefixmatch(url_scheme_re, value, re.IGNORECASE) is not None
 
 
 def parse_arguments(*args: str) -> Iterator[Gateway]:
