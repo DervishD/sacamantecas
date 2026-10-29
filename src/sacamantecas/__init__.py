@@ -21,7 +21,7 @@ import signal
 import time
 from typing import ClassVar, Final, final, NamedTuple, TYPE_CHECKING
 from urllib.error import HTTPError, URLError
-from urllib.parse import quote, unquote, urlparse, urlunparse
+from urllib.parse import quote, unquote, urljoin, urlparse
 from urllib.request import Request, urlopen
 import warnings
 
@@ -1399,20 +1399,14 @@ def get_redirected_url(contents: bytes, base_url: Url) -> Url | None:
     Return redirected URL, or `None` if there is no redirection pragma.
     """
     meta_refresh_re = rb'<meta http-equiv="refresh" content="(?:[^;]+;\s+)?URL=([^"]+)"'
-    url_fields_to_reuse = ('scheme', 'netloc')
 
     if match := re.search(meta_refresh_re, contents, re.IGNORECASE):
-        parsed_url = urlparse(base_url)
-        redirected_url = urlparse(match.group(1).decode('ascii', errors='replace'))
-        for field in parsed_url._fields:
-            value = getattr(parsed_url, field)
-            # If not specified in the obtained redirected URL, both the
-            # scheme and netloc will be reused from the base URL. Any
-            # other field will be obtained from the redirected URL and
-            # used, no matter if it is empty.
-            if field in url_fields_to_reuse and not getattr(redirected_url, field):
-                redirected_url = redirected_url._replace(**{field: value})
-        redirected_url = urlunparse(redirected_url)
+        target_url = match.group(1).decode('ascii', errors='replace')
+        # If not specified in the obtained redirected URL, both the
+        # scheme and netloc will be reused from the base URL. Any
+        # other field will be obtained from the redirected URL and
+        # used, no matter if it is empty.
+        redirected_url = urljoin(base_url, target_url)
         logger.debug(Debug.REDIRECTED_URL.format(redirected_url))
         return redirected_url
     return None
