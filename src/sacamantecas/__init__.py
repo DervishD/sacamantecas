@@ -1328,6 +1328,8 @@ def retrieval_error_message(exc: Exception) -> str | None:  # ruff: ignore[C901,
         case HTTPError():
             reason = Messages.URL_ACCESS_REASON_HTTP_ERROR.format(exc.code)
             message = Messages.SKIMMING_ERROR_URL_ACCESS.format(reason)
+        case URLError(reason=TimeoutError()):
+            message = Messages.SKIMMING_ERROR_TIMEOUT
         case URLError(reason=OSError() as os_error):
             reason = Messages.URL_ACCESS_REASON_OSLIKE_ERROR.format(type(os_error).__name__)
             message = Messages.SKIMMING_ERROR_URL_ACCESS.format(reason)
