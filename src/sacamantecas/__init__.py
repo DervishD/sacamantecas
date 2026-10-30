@@ -825,7 +825,7 @@ def load_inifile(inifile_path: Path) -> tuple[Settings, tuple[Profile, ...]]:
         errorname = type(exc).__name__.removesuffix(ConfigParserError.__name__)
         raise IniFileError(Messages.INIFILE_ERROR_WRONG_SYNTAX.format(errorname, inifile_path)) from exc
 
-    if inifile_parser[UNNAMED_SECTION]:
+    if inifile_parser.has_section(UNNAMED_SECTION) and inifile_parser[UNNAMED_SECTION]:
         settings = parse_settings(dict(inifile_parser[UNNAMED_SECTION]))
     else:
         # NOTE: this is **NOT** considered an error because for now, all
