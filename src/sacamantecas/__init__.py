@@ -433,8 +433,8 @@ class OldRegimeParser(BaseParser):
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Initialize object."""
-        self.current_k_tag: str|None
-        self.current_v_tag: str|None
+        self.current_k_tag: str | None
+        self.current_v_tag: str | None
         super().__init__(*args, **kwargs)
 
     def reset(self) -> None:
@@ -704,7 +704,7 @@ def parse_settings(contents: dict[str, str]) -> Settings:
     type translation as needed.
 
     Raise `SettingsError` if a key in *contents* does not correspond to
-    an field in `Settings` of if its value is non-integer.
+    a field in `Settings` or if its value is non-integer.
 
     The settings that are in `Settings` but are not in *contents* keep
     their default values.
@@ -1078,7 +1078,7 @@ class TextFileGateway(Gateway):
     METADATA_FOOTER = '\n'
 
     def _get_urls(self) -> list[Url]:
-        """Return all urls in the input file, stripped."""
+        """Return all URLs in the input file, stripped."""
         try:
             with self.source_path.open(encoding='utf-8-sig') as source_file:
                 lines = source_file.read().splitlines()
