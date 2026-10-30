@@ -590,9 +590,7 @@ def error(message: str) -> None:
     """
     logger.set_indent(0)
     heading, _, remaining = message.partition('\n')
-    if not heading:
-        heading = Messages.DEFAULT_ERROR_MESSAGE
-    heading = f'{Messages.ERROR_PREFIX}{heading[0].lower()}{heading[1:]}'
+    heading = f'{Messages.ERROR_PREFIX}{lowercase_first_letter(heading or Messages.DEFAULT_ERROR_MESSAGE)}'
     logger.error(format_message(heading, remaining, indentation=' ' * Messages.ERROR_PREFIX.index(' ')))
 
 
@@ -621,8 +619,23 @@ def warning(message: str) -> None:
 
     The result is then logged using `logger.warning()`.
     """
-    processed_message = message or Messages.DEFAULT_WARNING_MESSAGE
-    logger.warning('%s', f'{Messages.WARNING_PREFIX}{processed_message[0].lower() + processed_message[1:]}')
+    processed_message = lowercase_first_letter(message or Messages.DEFAULT_WARNING_MESSAGE)
+    logger.warning('%s', f'{Messages.WARNING_PREFIX}{processed_message}')
+
+
+def lowercase_first_letter(message: str) -> str:
+    """Return *message* with its first alphabetic character lowercased.
+
+    Any characters before it are kept as they are, and if *message* has
+    no alphabetic character, it is returned unchanged.
+
+    NOTE: if *message* starts with an acronym, the first character will
+    be lowercased anyway!
+    """
+    for index, character in enumerate(message):
+        if character.isalpha():
+            return message[:index] + character.lower() + message[index + 1:]
+    return message
 
 
 def loggerize(function: Callable[..., ExitCodes]) -> Callable[..., ExitCodes]:
