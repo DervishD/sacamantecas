@@ -597,6 +597,9 @@ def error(message: str) -> None:
     `legion.format_message()`, that is, the remaining lines of *message*
     are indented below the heading.
 
+    The logging indentation is reset, in order to keep the message clear
+    and separated from the rest of the output.
+
     The result is then logged using `logger.error()`.
     """
     logger.set_indent(0)
@@ -1403,9 +1406,9 @@ def retrieve_url(url: Url) -> str:
     `program_settings.url_retrieval_timeout_seconds`.
 
     Any `meta http-equiv="Refresh"` redirections for *url* are resolved
-    up to a maximum of `program_settings.max_url_redirections` hops, the
-    the *url* contents are retrieved as a byte string, and the contents
-    encoding (in HTML jargon, the charset), is detected.
+    up to a maximum of `program_settings.max_url_redirections` hops. The
+    *url* contents are retrieved as a byte string, and the encoding (in
+    HTML jargon, the charset) is detected.
 
     Raise `CharsetError` for unknown charsets.
 
@@ -1461,7 +1464,8 @@ def retrieve_url(url: Url) -> str:
 def resolve_file_url(url: Url) -> Url:
     """Resolve relative paths in `file:` *url*.
 
-    The path is **ALWAYS** considered relative and resolved as such!
+    The first slash is removed from the path, so unless it also contains
+    a drive specification, it is considered relative.
     """
     parsed_url = urlparse(url)
     resolved_path = unquote(parsed_url.path[1:])
@@ -1505,6 +1509,8 @@ def detect_html_charset(contents: bytes) -> str:
 
     So, the default is based on the encoding most frequently used by the
     webpages this program will generally process.
+
+    Return the detected charset from *contents* or the sane fallback.
     """
     fallback_charset = 'ISO-8859-1'
     meta_http_equiv_charset_re = rb'<meta http-equiv=(["\'])content-type\1.*?charset=(["\'])([^"\']+)\2'
