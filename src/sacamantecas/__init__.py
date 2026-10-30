@@ -395,7 +395,11 @@ class BaseParser(HTMLParser):
         self.current_v = self.DEFAULT_V
 
     def get_metadata(self) -> Metadata:
-        """Get the metadata retrieved so far."""
+        """Get the metadata retrieved so far.
+
+        When several values have been retrieved for the same key, they
+        are joined using `self.MULTIVALUE_SEPARATOR`.
+        """
         processed_metadata: Metadata = {}
         for key, value in self.retrieved_metadata.items():
             processed_metadata[key] = self.MULTIVALUE_SEPARATOR.join(value)
@@ -580,13 +584,14 @@ class BaratzParser(BaseParser):
 def error(message: str) -> None:
     """Preprocess and log error *message*.
 
-    First, the initial letter of *message* is lowercased. Then, a fixed
-    prefix is prepended. Finally, the resulting string is formatted by
-    using `legion.format_message()`, that is, if *message* has multiple
-    lines, then the first one is considered a heading, and the remaining
-    lines are indented.
+    If *message* has no heading (it is empty or starts with a newline),
+    then `Messages.DEFAULT_ERROR_MESSAGE` is used instead as a default.
+    The first alphabetic character of the heading is lowercased, and a
+    fixed prefix is prepended to it. The result is then formatted with
+    `legion.format_message()`, that is, the remaining lines of *message*
+    are indented below the heading.
 
-    The result is logged using `logger.error()`.
+    The result is then logged using `logger.error()`.
     """
     logger.set_indent(0)
     heading, _, remaining = message.partition('\n')
@@ -614,8 +619,9 @@ def log_exception(exc: Exception) -> None:
 def warning(message: str) -> None:
     """Preprocess and log warning *message*.
 
-    First, the initial letter of *message* is lowercased. Then, a fixed
-    prefix is prepended to *message*.
+    If *message* is empty, `Messages.DEFAULT_WARNING_MESSAGE` is used as
+    a default explanation instead. Then, its first alphabetic character
+    is lowercased and a fixed prefix is prepended to it.
 
     The result is then logged using `logger.warning()`.
     """
@@ -639,7 +645,14 @@ def lowercase_first_letter(message: str) -> str:
 
 
 def loggerize(function: Callable[..., ExitCodes]) -> Callable[..., ExitCodes]:
-    """Decorate *function* so it runs with logging enabled."""
+    """Decorate *function* so it runs with logging enabled.
+
+    This function also adds some banners for the end user, and logs some
+    debugging information into the trace logfile, like the dependencies
+    used, the `User-Agent` string, etc.
+
+    It shuts down the logging system after the function has run.
+    """
     @wraps(function)
     def loggerize_wrapper(*args: str) -> ExitCodes:
         logger.config(main_log_output=Paths.MAIN_LOG, full_log_output=Paths.FULL_LOG)
@@ -661,7 +674,11 @@ def loggerize(function: Callable[..., ExitCodes]) -> Callable[..., ExitCodes]:
 
 
 def keyboard_interrupt_handler(function: Callable[..., ExitCodes]) -> Callable[..., ExitCodes]:
-    """Decorate *function* so it handles `KeyboardInterrupt`."""
+    """Decorate *function* so it handles `KeyboardInterrupt`.
+
+    If `KeyboardInterrupt` is caught, a warning message is shown and the
+    program exits with `ExitCodes.KEYBOARD_INTERRUPT` status.
+    """
     @wraps(function)
     def handle_keyboard_interrupt_wrapper(*args: str) -> ExitCodes:
         try:
@@ -677,11 +694,14 @@ def keyboard_interrupt_handler(function: Callable[..., ExitCodes]) -> Callable[.
 def parse_settings(contents: dict[str, str]) -> Settings:
     """Parse program settings from *contents*.
 
-    The *contents* are parsed using `Settings` as the scheme, performing
+    The *contents* are parsed using `Settings` as the schema, performing
     type translation as needed.
 
-    Raise `SettingsError` if a key in *contents* does not correspond to an
-    attribute in `Settings`.
+    Raise `SettingsError` if a key in *contents* does not correspond to
+    an field in `Settings` of if its value is non-integer.
+
+    The settings that are in `Settings` but are not in *contents* keep
+    their default values.
 
     Return a `Settings` instance.
     """
@@ -715,9 +735,15 @@ def parse_profiles(contents: dict[str, dict[str, str]]) -> tuple[Profile, ...]:
     catalogue parser parameters as keys, and regular expression patterns
     as values, where keys without value are silently ignored.
 
-    If the parameters in a profile definition matches those belonging to
-    a known catalogue parser, a new `Profile` instance is built from the
-    data.
+    If the parameters in a profile definition match those belonging to a
+    known catalogue parser, then a new `Profile` instance is built from
+    the data.
+
+    The `url` key is **mandatory** for a profile definition, but it does
+    not affect the profile definition matching, as it is not considered
+    part of the profile parameters.
+
+    NOTE: all patterns are compiled using `re.IGNORECASE`.
 
     Raise `ProfileError` if a profile does not contain any parameters, a
     required one is missing, or they contain invalid values.
@@ -759,6 +785,9 @@ def load_inifile(inifile_path: Path) -> tuple[Settings, tuple[Profile, ...]]:
 
     Read and process the INI file at *inifile_path*, containing program
     settings and profile definitions.
+
+    It logs the found settings and profiles with `logging.INFO` level,
+    and the profile details with `logging.DEBUG` level.
 
     Raise `IniFileError` if *inifile_path* cannot be found, read, or if
     it has syntax or encoding errors.
@@ -823,10 +852,14 @@ def is_url(value: str) -> bool:
 
 
 def parse_arguments(*args: str) -> Iterator[Gateway]:
-    """Parse **args*.
+    """Parse the arguments in *args*, returning an `Iterator`.
 
-    Parse each argument in **args*, identify its type and check if it is
+    Parse each argument in *args*, identify its type and check if it is
     supported. If so, build the corresponding `Gateway` and yield it.
+
+    Unsupported ones yield an `UnsupportedGateway` instance.
+
+    Blank ones are silently skipped.
     """
     for arg in args:
         clean_arg = arg.strip()
@@ -885,8 +918,12 @@ class Gateway(ABC):
     def get_urls(self) -> list[Url]:
         """Obtain the URLs found in this gateway's source.
 
+        Sets `self.urls` as a side-effect.
+
         Raise `GatewayError` to wrap some `OSError` exceptions to give
         some context and better precision.
+
+        Propagates exceptions raised by `self._get_urls()`.
 
         Return *unique* URLs, in order of first appearance.
         """
@@ -973,13 +1010,16 @@ class SingleUrlGateway(Gateway):
     def generate_source_path(self) -> Path:
         """Convert the URL to a valid path with *.txt* suffix.
 
-        The URL is actually stored at `self._label`, as it is the source
+        The URL is actually stored at `self.label`, as it is the source
         for this gateway.
 
         The method is quite crude but it works: replace every ASCII non
         word characters (potentially unsafe when they are present in a
         path) by a visually unobtrusive character which is safe to use
         while keeping the path readable.
+
+        NOTE: the returned `Path` is not an actual file, it is just the
+        basis for building `self.sink_path` later.
         """
         return Path(re.sub(r'\W', '_', self.label, flags=re.ASCII)).with_suffix('.txt')
 
@@ -1085,6 +1125,12 @@ class SpreadSheetGateway(Gateway):
     def _get_urls(self) -> list[Url]:
         """Return all URLs in the input file, stripped.
 
+        Fills `self.url_rows` as a side-effect.
+
+        Raise `GatewayError` for invalid workbooks.
+
+        `OSError` exceptions are propagated.
+
         NOTE: only the first sheet is processed, because (allegedly…) it
         is the one where the URLs are.
         """
@@ -1143,7 +1189,7 @@ class SpreadSheetGateway(Gateway):
         """Load the workbook at *workbook_path*, logging warnings.
 
         `openpyxl` reports unsupported features through the `warnings`
-        module, which would print to `sys.stderr`, outside the program
+        module, which would print to `sys.stderr`, outside the program's
         normal log, and only the first time per run.
         """
         with warnings.catch_warnings(record=True) as caught_warnings:
@@ -1183,12 +1229,13 @@ class SpreadSheetGateway(Gateway):
     ) -> None:
         """Write *metadata* to *sheet* at given *row*.
 
-        For new metadata keys a new column is added to *sink_sheet*, and
-        the value is added there. For already existing metadata keys the
+        For new metadata keys a new column is added to *sheet*, and the
+        value is added there. When existing metadata keys are found, the
         value is added to the corresponding existing column.
 
         The *known_metadata* argument serves to track existing metadata
-        keys, to know in which column are they stored.
+        keys, to know in which column are they stored. It is updated in
+        place, when needed.
 
         The new columns are marked with a prefix so they are easier to
         recognize, filter and process later.
@@ -1317,6 +1364,9 @@ def saca_las_mantecas(url: Url, parser: BaseParser) -> Metadata:
 
     Raise `SkimmingError` for any problem it finds.
 
+    Retrieval errors without a corresponding `Messages.SKIMMING_ERROR`
+    message are propagated without change.
+
     Return obtained metadata as a dictionary.
     """
     try:
@@ -1342,12 +1392,18 @@ def retrieve_url(url: Url) -> str:
     Any URL access is aborted after the number of seconds specified in
     `program_settings.url_retrieval_timeout_seconds`.
 
-    First resolve any `meta http-equiv="Refresh"` redirection for *url*.
-    up to a maximum of `program_settings.max_redirections` hops.
+    Any `meta http-equiv="Refresh"` redirections for *url* are resolved
+    up to a maximum of `program_settings.max_url_redirections` hops, the
+    the *url* contents are retrieved as a byte string, and the contents
+    encoding (in HTML jargon, the charset), is detected.
 
-    Second, get the *url* contents as a byte string.
+    Raise `CharsetError` for unknown charsets.
 
-    Third, detect the contents encoding (in HTML jargon, the charset).
+    Raise `TooManyRedirectionsError` if redirection limit is exceeded.
+
+    `UnicodeDecodeError` exceptions are propagated.
+
+    Exceptions from `urllib` are propagated.
 
     Return the decoded contents as a string.
     """
@@ -1393,7 +1449,10 @@ def retrieve_url(url: Url) -> str:
 
 
 def resolve_file_url(url: Url) -> Url:
-    """Resolve relative paths in `file:` *url*."""
+    """Resolve relative paths in `file:` *url*.
+
+    The path is **ALWAYS** considered relative and resolved as such!
+    """
     parsed_url = urlparse(url)
     resolved_path = unquote(parsed_url.path[1:])
     resolved_path = Path(resolved_path).resolve().as_posix()
@@ -1425,7 +1484,7 @@ def get_redirected_url(contents: bytes, base_url: Url) -> Url | None:
 
 
 def detect_html_charset(contents: bytes) -> str:
-    """Obtain charset for *content* from HTML tags, if any.
+    """Obtain charset for *contents* from HTML tags, if any.
 
     If the charset can not be determined a sane fallback (ISO-8859-1) is
     used. It may look like UTF-8 would be such a sane fallback, because
@@ -1535,7 +1594,19 @@ def save_results(gateway: Gateway, results: SkimResults) -> bool:
 @keyboard_interrupt_handler
 @ensure_utf8_output
 def main(*args: str) -> ExitCodes:  # pylint: disable=unused-variable
-    """."""
+    """Run the program for the sources given in *args*.
+
+    The INI file is loaded first. Then, for each source, its URLs are
+    collected and processed, and the resulting metadata is saved.
+
+    Return values:
+    - `ExitCodes.NO_ARGUMENTS` if there are no non-blank arguments.
+    - `ExitCodes.ERROR` if the INI file cannot be loaded.
+    - `ExitCodes.WARNING` if any source could not be fully processed.
+    - `ExitCodes.SUCCESS` otherwise.
+
+    NOTE: this function rebinds the global `program_settings`.
+    """
     global program_settings  # pylint: disable=global-statement
     exitcode = ExitCodes.SUCCESS
 
