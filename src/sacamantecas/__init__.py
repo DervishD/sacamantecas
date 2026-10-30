@@ -433,8 +433,8 @@ class OldRegimeParser(BaseParser):
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         """Initialize object."""
-        self.current_k_tag = None
-        self.current_v_tag = None
+        self.current_k_tag: str|None
+        self.current_v_tag: str|None
         super().__init__(*args, **kwargs)
 
     def reset(self) -> None:
