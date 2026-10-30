@@ -40,7 +40,7 @@ if TYPE_CHECKING:
     from openpyxl.worksheet.worksheet import Worksheet
 
 
-@dataclass
+@dataclass(frozen=True)
 class Settings:
     """Store program settings."""   # ruff: ignore[D204]
     DEFAULT_URL_RETRIEVAL_TIMEOUT_SECONDS: ClassVar[int] = 30
@@ -141,7 +141,7 @@ class Messages(StrEnum):
     INIFILE_ERROR_WRONG_SYNTAX = f'Sintaxis incorrecta {{}} en el fichero de configuración {QUOTED}'
 
     # Settings handling errors.
-    SETTINGS_ERROR_UNKNOWN_KEYS = 'Se encontraron ajustes desconocido: {}'
+    SETTINGS_ERROR_UNKNOWN_KEYS = 'Se encontraron ajustes desconocidos: {}'
     SETTINGS_ERROR_INVALID_VALUE = f'El ajuste {QUOTED} tiene un valor con formato incorrecto ({QUOTED})'
 
     # Profile handling errors.
@@ -213,7 +213,7 @@ class Debug(StrEnum):
 
     # Settings handling.
     PARSING_SETTINGS = 'Procesando ajustes'
-    MISSING_SETTINGS = f'El fichero {Messages.QUOTED} no contiene ajustes'
+    MISSING_SETTINGS = f'No se encontraron ajustes en {Messages.QUOTED}'
 
     # Profiles handling.
     PARSING_PROFILES = 'Procesando perfiles'
@@ -238,7 +238,7 @@ class Debug(StrEnum):
     DUMPING_METADATA_TO_SINK = f'Volcando metadatos a {Messages.QUOTED}'
     DUMPING_METADATA_K_V = f'Añadiendo metadato {Messages.QUOTED} con valor {Messages.QUOTED}'
     WORKING_SHEET = f'La hoja con la que se trabajará es {Messages.QUOTED}'
-    WORKBOOK_WARNING = 'Advertencia {} al cargar el workbook «{}»: {}'
+    WORKBOOK_WARNING = f'Advertencia {{}} al cargar el workbook {Messages.QUOTED}: {{}}'
     PROCESSING_ROW = 'Procesando fila {}'
     COPYING_WORKBOOK = f'Copiando workbook a {Messages.QUOTED}'
     INSERTING_HEADING_ROW = 'Insertando fila de cabeceras'
@@ -284,6 +284,7 @@ class CharsetError(LookupError):
         super().__init__(charset)
         self.charset = charset
 
+
 class TooManyRedirectionsError(Exception):
     """Raise when a URL redirects more times than allowed."""
 
@@ -292,17 +293,22 @@ class TooManyRedirectionsError(Exception):
         super().__init__(limit)
         self.limit = limit
 
+
 class IniFileError(Exception):
     """Raise for INI file related errors."""
+
 
 class SettingsError(Exception):
     """Raise for settings related errors."""
 
+
 class ProfileError(Exception):
     """Raise for profile related errors."""
 
+
 class GatewayError(Exception):
     """Raise for gateway related errors."""
+
 
 class SkimmingError(Exception):
     """Raise for skimming-related errors."""
@@ -816,17 +822,19 @@ def load_inifile(inifile_path: Path) -> tuple[Settings, tuple[Profile, ...]]:
         errorname = type(exc).__name__.removesuffix(ConfigParserError.__name__)
         raise IniFileError(Messages.INIFILE_ERROR_WRONG_SYNTAX.format(errorname, inifile_path)) from exc
 
-    if inifile_parser.has_section(UNNAMED_SECTION):
+    if inifile_parser[UNNAMED_SECTION]:
         settings = parse_settings(dict(inifile_parser[UNNAMED_SECTION]))
-        for key, value in asdict(settings).items():
-            logger.info(Messages.SETTING_LABEL.format(key, value))
-        inifile_parser.remove_section(UNNAMED_SECTION)
     else:
         # NOTE: this is **NOT** considered an error because for now, all
         # the settings have defaults, so the program will run perfectly
         # even if the entire settings section is missing.
-        logger.debug(Debug.MISSING_SETTINGS)
+        logger.debug(Debug.MISSING_SETTINGS.format(inifile_path))
         settings = Settings()
+
+    for key, value in asdict(settings).items():
+        logger.info(Messages.SETTING_LABEL.format(key, value))
+
+    inifile_parser.remove_section(UNNAMED_SECTION)
     profiles = parse_profiles({section: dict(inifile_parser[section]) for section in inifile_parser.sections()})
     if not profiles:
         raise ProfileError(Messages.INIFILE_ERROR_NO_VALID_PROFILES.format(inifile_path))
@@ -862,13 +870,13 @@ def parse_arguments(*args: str) -> Iterator[Gateway]:
     Blank ones are silently skipped.
     """
     for arg in args:
-        clean_arg = arg.strip()
+        if not (clean_arg := arg.strip()):
+            continue
+
         lowercase_arg = clean_arg.lower()
 
         logger.debug(Debug.PROCESSING_ARG.format(clean_arg))
         gateway: Gateway
-        if not clean_arg:
-            continue
         if is_url(clean_arg):
             logger.debug(Debug.ARG_IS_SINGLE_URL)
             gateway = SingleUrlGateway(clean_arg)
@@ -897,7 +905,7 @@ class Gateway(ABC):
         """."""
         super().__init__(*args, **kwargs)
         self._label = source.strip()
-        self.urls: list[Url]= []
+        self.urls: list[Url] = []
         self.source_path = self.generate_source_path()
         self.sink_path = self.generate_sink_path()
 
