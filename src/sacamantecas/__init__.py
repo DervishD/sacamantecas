@@ -1419,7 +1419,7 @@ def retrieve_url(url: Url) -> str:
     timeout = program_settings.url_retrieval_timeout_seconds
     max_redirections = program_settings.max_url_redirections
 
-    if url.startswith('file://'):
+    if urlparse(url).scheme == 'file':
         current_url = resolve_file_url(url)
 
     contents = b''
