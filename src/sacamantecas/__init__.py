@@ -40,41 +40,35 @@ if TYPE_CHECKING:
     from openpyxl.worksheet.worksheet import Worksheet
 
 
-@dataclass(frozen=True)
-class Settings:
-    """Store program settings."""   # ruff: ignore[D204]
-    DEFAULT_URL_RETRIEVAL_TIMEOUT_SECONDS: ClassVar[int] = 30
-    DEFAULT_MAX_URL_REDIRECTIONS: ClassVar[int] = 5
-    url_retrieval_timeout_seconds: int = DEFAULT_URL_RETRIEVAL_TIMEOUT_SECONDS
-    max_url_redirections: int = DEFAULT_MAX_URL_REDIRECTIONS
-
-
-class Profile(NamedTuple):
-    """Abstraction for profiles."""  # ruff: ignore[D204]
-    name: str
-    url_pattern: re.Pattern[str]
-    parser: BaseParser
-    parser_config: ParserConfig
-
-    def debug_log(self) -> None:
-        """Log debug information to default logger."""
-        logger.debug(Debug.PROFILE_NAME.format(self.name), stacklevel=2)
-        logger.debug(Debug.PROFILE_URL_PATTERN.format(self.url_pattern.pattern), stacklevel=2)
-        logger.debug(Debug.PROFILE_PARSER_TYPE.format(self.parser), stacklevel=2)
-        logger.debug(Debug.PROFILE_PARSER_PARAMETERS, stacklevel=2)
-        logger.indent()
-        for key, value in self.parser_config.items():
-            logger.debug(Debug.PROFILE_PARSER_PARAM.format(key, value.pattern), stacklevel=2)
-        logger.dedent()
-
-
+type Url = str
+type ParserConfig = dict[str, re.Pattern[str]]
 type MetadataKey = str
 type MetadataValue = str
 type Metadata = dict[MetadataKey, MetadataValue]
 type RawMetadata = dict[MetadataKey, list[MetadataValue]]
-type Url = str
 type SkimResults = dict[Url, Metadata]
-type ParserConfig = dict[str, re.Pattern[str]]
+class IniFileError(Exception):
+    """Raise for INI file related errors."""
+class SettingsError(Exception):
+    """Raise for settings related errors."""
+class ProfileError(Exception):
+    """Raise for profile related errors."""
+class GatewayError(Exception):
+    """Raise for gateway related errors."""
+class SkimmingError(Exception):
+    """Raise for skimming-related errors."""
+class CharsetError(LookupError):
+    """Raise when the charset for content decoding is invalid."""  # ruff: ignore[D204]
+    def __init__(self, charset: str) -> None:
+        """."""
+        super().__init__(charset)
+        self.charset = charset
+class TooManyRedirectionsError(Exception):
+    """Raise when a URL redirects more times than allowed."""  # ruff: ignore[D204]
+    def __init__(self, limit: int) -> None:
+        """."""
+        super().__init__(limit)
+        self.limit = limit
 
 
 class Paths:  # pylint: disable=too-few-public-methods
@@ -87,6 +81,16 @@ class Paths:  # pylint: disable=too-few-public-methods
     MAIN_LOG: Final[Path] = _PROGRAM_ROOT / f'{PROGRAM_NAME}_log{_LOGFILE_STEM}{_LOGFILE_SUFFIX}'
     FULL_LOG: Final[Path] = _PROGRAM_ROOT / f'{PROGRAM_NAME}_trace{_LOGFILE_STEM}{_LOGFILE_SUFFIX}'
     INIFILE: Final[Path] = _PROGRAM_ROOT / f'{PROGRAM_NAME}.ini'
+
+
+class ExitCodes(IntEnum):
+    """Customized exit codes."""  # ruff: ignore[D204]
+    SUCCESS = 0
+    # 1 is reserved, used as exitcode by Python unhandled exceptions.
+    NO_ARGUMENTS = 2
+    WARNING = 3
+    ERROR = 4
+    KEYBOARD_INTERRUPT = 128 + signal.SIGINT
 
 
 class Messages(StrEnum):
@@ -262,56 +266,32 @@ class Debug(StrEnum):
     PARSER_NESTING_ERROR_V_IN_K = 'Problema de anidación (valor dentro de clave), restableciendo parser'
 
 
-class ExitCodes(IntEnum):
-    """Customized exit codes."""  # ruff: ignore[D204]
-    SUCCESS = 0
-    # 1 is reserved, used as exitcode by Python unhandled exceptions.
-    NO_ARGUMENTS = 2
-    WARNING = 3
-    ERROR = 4
-    KEYBOARD_INTERRUPT = 128 + signal.SIGINT
+@dataclass(frozen=True)
+class Settings:
+    """Store program settings."""   # ruff: ignore[D204]
+    DEFAULT_URL_RETRIEVAL_TIMEOUT_SECONDS: ClassVar[int] = 30
+    DEFAULT_MAX_URL_REDIRECTIONS: ClassVar[int] = 5
+    url_retrieval_timeout_seconds: int = DEFAULT_URL_RETRIEVAL_TIMEOUT_SECONDS
+    max_url_redirections: int = DEFAULT_MAX_URL_REDIRECTIONS
 
 
-logger = get_logger(PROGRAM_NAME)
-program_settings = Settings()
+class Profile(NamedTuple):
+    """Abstraction for profiles."""  # ruff: ignore[D204]
+    name: str
+    url_pattern: re.Pattern[str]
+    parser: BaseParser
+    parser_config: ParserConfig
 
-
-class CharsetError(LookupError):
-    """Raise when the charset for content decoding is invalid."""
-
-    def __init__(self, charset: str) -> None:
-        """."""
-        super().__init__(charset)
-        self.charset = charset
-
-
-class TooManyRedirectionsError(Exception):
-    """Raise when a URL redirects more times than allowed."""
-
-    def __init__(self, limit: int) -> None:
-        """."""
-        super().__init__(limit)
-        self.limit = limit
-
-
-class IniFileError(Exception):
-    """Raise for INI file related errors."""
-
-
-class SettingsError(Exception):
-    """Raise for settings related errors."""
-
-
-class ProfileError(Exception):
-    """Raise for profile related errors."""
-
-
-class GatewayError(Exception):
-    """Raise for gateway related errors."""
-
-
-class SkimmingError(Exception):
-    """Raise for skimming-related errors."""
+    def debug_log(self) -> None:
+        """Log debug information to default logger."""
+        logger.debug(Debug.PROFILE_NAME.format(self.name), stacklevel=2)
+        logger.debug(Debug.PROFILE_URL_PATTERN.format(self.url_pattern.pattern), stacklevel=2)
+        logger.debug(Debug.PROFILE_PARSER_TYPE.format(self.parser), stacklevel=2)
+        logger.debug(Debug.PROFILE_PARSER_PARAMETERS, stacklevel=2)
+        logger.indent()
+        for key, value in self.parser_config.items():
+            logger.debug(Debug.PROFILE_PARSER_PARAM.format(key, value.pattern), stacklevel=2)
+        logger.dedent()
 
 
 class BaseParser(HTMLParser):
@@ -585,314 +565,6 @@ class BaratzParser(BaseParser):
             self.within_v = False
             self.commit_metadata()
             return
-
-
-def error(message: str) -> None:
-    """Preprocess and log error *message*.
-
-    If *message* has no heading (it is empty or starts with a newline),
-    then `Messages.DEFAULT_ERROR_MESSAGE` is used instead as a default.
-    The first alphabetic character of the heading is lowercased, and a
-    fixed prefix is prepended to it. The result is then formatted with
-    `legion.format_message()`, that is, the remaining lines of *message*
-    are indented below the heading.
-
-    The logging indentation is reset, in order to keep the message clear
-    and separated from the rest of the output.
-
-    The result is then logged using `logger.error()`.
-    """
-    logger.set_indent(0)
-    heading, _, remaining = message.partition('\n')
-    heading = f'{Messages.ERROR_PREFIX}{lowercase_first_letter(heading or Messages.DEFAULT_ERROR_MESSAGE)}'
-    logger.error(format_message(heading, remaining, indentation=' ' * Messages.ERROR_PREFIX.index(' ')))
-
-
-def log_exception(exc: Exception) -> None:
-    """Log *exc* with `logger.debug()`.
-
-    If *exc* has `__context__` it is dumped, too.
-    """
-    logger.debug(Debug.EXCEPTION_LOG.format(type(exc).__name__))
-    if exc.__context__:
-        message = Debug.EXCEPTION_LOG_CONTEXT.format(
-            type(exc.__context__).__name__,
-            repr(exc.__context__),
-            str(exc.__context__),
-        )
-    else:
-        message = Debug.EXCEPTION_LOG_NO_CONTEXT
-    logger.debug(message)
-
-
-def warning(message: str) -> None:
-    """Preprocess and log warning *message*.
-
-    If *message* is empty, `Messages.DEFAULT_WARNING_MESSAGE` is used as
-    a default explanation instead. Then, its first alphabetic character
-    is lowercased and a fixed prefix is prepended to it.
-
-    The result is then logged using `logger.warning()`.
-    """
-    processed_message = lowercase_first_letter(message or Messages.DEFAULT_WARNING_MESSAGE)
-    logger.warning('%s', f'{Messages.WARNING_PREFIX}{processed_message}')
-
-
-def lowercase_first_letter(message: str) -> str:
-    """Return *message* with its first alphabetic character lowercased.
-
-    Any characters before it are kept as they are, and if *message* has
-    no alphabetic character, it is returned unchanged.
-
-    NOTE: if *message* starts with an acronym, the first character will
-    be lowercased anyway!
-    """
-    for index, character in enumerate(message):
-        if character.isalpha():
-            return message[:index] + character.lower() + message[index + 1:]
-    return message
-
-
-def loggerize(function: Callable[..., ExitCodes]) -> Callable[..., ExitCodes]:
-    """Decorate *function* so it runs with logging enabled.
-
-    This function also adds some banners for the end user, and logs some
-    debugging information into the trace logfile, like the dependencies
-    used, the `User-Agent` string, etc.
-
-    It shuts down the logging system after the function has run.
-    """
-    @wraps(function)
-    def loggerize_wrapper(*args: str) -> ExitCodes:
-        logger.config(main_log_output=Paths.MAIN_LOG, full_log_output=Paths.FULL_LOG)
-
-        logger.debug(Debug.DEBUGGING_INIT)
-        logger.info(Messages.PROGRAM_BANNER)
-        for required_package in DEPENDENCIES:
-            logger.debug(Debug.DEPENDENCY_BANNER.format(required_package.replace('==', ' v')))
-        logger.debug(Debug.USER_AGENT_LABEL)
-
-        status = function(*args)
-
-        logger.info('')
-        logger.info(Messages.PROCESS_DONE)
-        logger.debug(Debug.DEBUGGING_DONE)
-        logging.shutdown()
-        return status
-    return loggerize_wrapper
-
-
-def keyboard_interrupt_handler(function: Callable[..., ExitCodes]) -> Callable[..., ExitCodes]:
-    """Decorate *function* so it handles `KeyboardInterrupt`.
-
-    If `KeyboardInterrupt` is caught, a warning message is shown and the
-    program exits with `ExitCodes.KEYBOARD_INTERRUPT` status.
-    """
-    @wraps(function)
-    def handle_keyboard_interrupt_wrapper(*args: str) -> ExitCodes:
-        try:
-            return function(*args)
-        except KeyboardInterrupt:
-            logger.set_indent(0)
-            logger.warning('')
-            warning(Messages.WARNING_KEYBOARD_INTERRUPT)
-            return ExitCodes.KEYBOARD_INTERRUPT
-    return handle_keyboard_interrupt_wrapper
-
-
-def parse_settings(contents: dict[str, str]) -> Settings:
-    """Parse program settings from *contents*.
-
-    The *contents* are parsed using `Settings` as the schema, performing
-    type translation as needed.
-
-    Raise `SettingsError` if a key in *contents* does not correspond to
-    a field in `Settings` or if its value is non-integer.
-
-    The settings that are in `Settings` but are not in *contents* keep
-    their default values.
-
-    Return a `Settings` instance.
-    """
-    settings: dict[str, int] = {}
-    known_keys = {field.name for field in fields(Settings)}
-    logger.debug(Debug.PARSING_SETTINGS)
-
-    if extra_keys := [key for key in contents if key not in known_keys]:
-        key_list = Messages.LIST_SEPARATOR.join(Messages.QUOTED.format(key) for key in extra_keys)
-        raise SettingsError(Messages.SETTINGS_ERROR_UNKNOWN_KEYS.format(key_list))
-
-    for key, value in contents.items():
-        # NOTE: only `int` fields are supported for now, so the code is
-        # kept simple and validation is minimal. If in the future more
-        # data types are needed for the settings, a more complex way of
-        # converting them will be implemented. Right now, it would just
-        # be overkill.
-        try:
-            settings[key] = int(value)
-        except ValueError as exc:
-            raise SettingsError(Messages.SETTINGS_ERROR_INVALID_VALUE.format(key, value)) from exc
-
-    return Settings(**settings)
-
-
-def parse_profiles(contents: dict[str, dict[str, str]]) -> tuple[Profile, ...]:
-    """Parse profile definitions from *contents* dictionary.
-
-    Each key in *contents* is a profile name and the corresponding value
-    is the profile definition. Profile definitions are dictionaries with
-    catalogue parser parameters as keys, and regular expression patterns
-    as values, where keys without value are silently ignored.
-
-    If the parameters in a profile definition match those belonging to a
-    known catalogue parser, then a new `Profile` instance is built from
-    the data.
-
-    The `url` key is **mandatory** for a profile definition, but it does
-    not affect the profile definition matching, as it is not considered
-    part of the profile parameters.
-
-    NOTE: all patterns are compiled using `re.IGNORECASE`.
-
-    Raise `ProfileError` if a profile does not contain any parameters, a
-    required one is missing, or they contain invalid values.
-
-    Return a tuple of the `Profile` instances built from *contents*.
-    """
-    url_pattern_key = 'url'
-    profiles: list[Profile] = []
-    parsers = [parser() for parser in BaseParser.__subclasses__()]
-    logger.debug(Debug.PARSING_PROFILES)
-    for profile_name, profile_contents in contents.items():
-        if not profile_contents:
-            raise ProfileError(Messages.PROFILE_ERROR_EMPTY_PROFILE.format(profile_name))
-        parser_config: ParserConfig = {}
-        for key, pattern in profile_contents.items():
-            if not pattern:
-                continue
-            try:
-                parser_config[key] = re.compile(pattern, re.IGNORECASE)
-            except re.PatternError as exc:
-                message = Messages.PROFILE_ERROR_INVALID_REGEX.format(
-                    profile_name, key, pattern, exc.pos or 0, type(exc).__name__, exc.msg,
-                )
-                raise ProfileError(message) from exc
-        if (url_pattern := parser_config.pop(url_pattern_key, None)) is None:
-            raise ProfileError(Messages.PROFILE_ERROR_PROFILE_WITHOUT_URL.format(profile_name))
-        for parser in parsers:
-            if parser_config.keys() == parser.PARAMETERS:
-                break
-        else:
-            raise ProfileError(Messages.PROFILE_ERROR_PROFILE_WRONG_PARAMETERS.format(profile_name))
-        profiles.append(Profile(profile_name, url_pattern, parser, parser_config))
-
-    return tuple(profiles)
-
-
-def load_inifile(inifile_path: Path) -> tuple[Settings, tuple[Profile, ...]]:
-    """Load the program INI file from *inifile_path*.
-
-    Read and process the INI file at *inifile_path*, containing program
-    settings and profile definitions.
-
-    It logs the found settings and profiles with `logging.INFO` level,
-    and the profile details with `logging.DEBUG` level.
-
-    Raise `IniFileError` if *inifile_path* cannot be found, read, or if
-    it has syntax or encoding errors.
-
-    Raise `SettingsError` if program settings cannot be obtained.
-
-    Raise `ProfileError` if profiles cannot be obtained.
-
-    Return a tuple of a `Settings` instance and a tuple of the `Profile`
-    instances obtained from the INI file.
-    """
-    inifile_parser = ConfigParser(interpolation=None, allow_unnamed_section=True)
-
-    try:
-        with inifile_path.open(encoding='utf-8-sig') as inifile:
-            inifile_parser.read_file(inifile)
-    except FileNotFoundError as exc:
-        raise IniFileError(Messages.INIFILE_ERROR_FILE_NOT_FOUND.format(inifile_path)) from exc
-    except PermissionError as exc:
-        raise IniFileError(Messages.INIFILE_ERROR_FILE_NO_PERMISSION.format(inifile_path)) from exc
-    except OSError as exc:
-        raise IniFileError(Messages.INIFILE_ERROR_FILE_READ_FAILED.format(inifile_path)) from exc
-    except UnicodeDecodeError as exc:
-        raise IniFileError(Messages.INIFILE_ERROR_FILE_NOT_UTF_8.format(inifile_path)) from exc
-    except ConfigParserError as exc:
-        errorname = type(exc).__name__.removesuffix(ConfigParserError.__name__)
-        raise IniFileError(Messages.INIFILE_ERROR_WRONG_SYNTAX.format(errorname, inifile_path)) from exc
-
-    if inifile_parser.has_section(UNNAMED_SECTION) and inifile_parser[UNNAMED_SECTION]:
-        settings = parse_settings(dict(inifile_parser[UNNAMED_SECTION]))
-    else:
-        # NOTE: this is **NOT** considered an error because for now, all
-        # the settings have defaults, so the program will run perfectly
-        # even if the entire settings section is missing.
-        logger.debug(Debug.MISSING_SETTINGS.format(inifile_path))
-        settings = Settings()
-
-    for key, value in asdict(settings).items():
-        logger.info(Messages.SETTING_LABEL.format(key, value))
-
-    inifile_parser.remove_section(UNNAMED_SECTION)
-    profiles = parse_profiles({section: dict(inifile_parser[section]) for section in inifile_parser.sections()})
-    if not profiles:
-        raise ProfileError(Messages.INIFILE_ERROR_NO_VALID_PROFILES.format(inifile_path))
-
-    for profile in profiles:
-        logger.info(Messages.PROFILE_LABEL.format(profile.name, profile.parser))
-        profile.debug_log()
-
-    return settings, profiles
-
-
-def is_url(value: str) -> bool:
-    """Check whether *value* is a URL, for this program's needs.
-
-    A URL is a string starting with a scheme of at least two characters
-    followed by `://`. The two-character minimum keeps a Windows drive
-    letter from being taken for a scheme.
-
-    Only the shape is checked, not the actual validity.
-    """
-    url_scheme_re = r'[a-z][a-z0-9+.-]+://'
-    return re.prefixmatch(url_scheme_re, value, re.IGNORECASE) is not None
-
-
-def parse_arguments(*args: str) -> Iterator[Gateway]:
-    """Parse the arguments in *args*, returning an `Iterator`.
-
-    Parse each argument in *args*, identify its type and check if it is
-    supported. If so, build the corresponding `Gateway` and yield it.
-
-    Unsupported ones yield an `UnsupportedGateway` instance.
-
-    Blank ones are silently skipped.
-    """
-    for arg in args:
-        if not (clean_arg := arg.strip()):
-            continue
-
-        lowercase_arg = clean_arg.lower()
-
-        logger.debug(Debug.PROCESSING_ARG.format(clean_arg))
-        gateway: Gateway
-        if is_url(clean_arg):
-            logger.debug(Debug.ARG_IS_SINGLE_URL)
-            gateway = SingleUrlGateway(clean_arg)
-        elif lowercase_arg.endswith('.txt'):
-            logger.debug(Debug.ARG_IS_TEXTFILE)
-            gateway = TextFileGateway(clean_arg)
-        elif lowercase_arg.endswith('.xlsx'):
-            logger.debug(Debug.ARG_IS_SPREADSHEET)
-            gateway = SpreadSheetGateway(clean_arg)
-        else:
-            logger.debug(Debug.ARG_IS_UNSUPPORTED)
-            gateway = UnsupportedGateway(clean_arg)
-        yield gateway
 
 
 class Gateway(ABC):
@@ -1289,6 +961,385 @@ class SpreadSheetGateway(Gateway):
             sheet.cell(row + 1, known_metadata[key], value=value)
 
 
+def loggerize(function: Callable[..., ExitCodes]) -> Callable[..., ExitCodes]:
+    """Decorate *function* so it runs with logging enabled.
+
+    This function also adds some banners for the end user, and logs some
+    debugging information into the trace logfile, like the dependencies
+    used, the `User-Agent` string, etc.
+
+    It shuts down the logging system after the function has run.
+    """
+    @wraps(function)
+    def loggerize_wrapper(*args: str) -> ExitCodes:
+        logger.config(main_log_output=Paths.MAIN_LOG, full_log_output=Paths.FULL_LOG)
+
+        logger.debug(Debug.DEBUGGING_INIT)
+        logger.info(Messages.PROGRAM_BANNER)
+        for required_package in DEPENDENCIES:
+            logger.debug(Debug.DEPENDENCY_BANNER.format(required_package.replace('==', ' v')))
+        logger.debug(Debug.USER_AGENT_LABEL)
+
+        status = function(*args)
+
+        logger.info('')
+        logger.info(Messages.PROCESS_DONE)
+        logger.debug(Debug.DEBUGGING_DONE)
+        logging.shutdown()
+        return status
+    return loggerize_wrapper
+
+
+def keyboard_interrupt_handler(function: Callable[..., ExitCodes]) -> Callable[..., ExitCodes]:
+    """Decorate *function* so it handles `KeyboardInterrupt`.
+
+    If `KeyboardInterrupt` is caught, a warning message is shown and the
+    program exits with `ExitCodes.KEYBOARD_INTERRUPT` status.
+    """
+    @wraps(function)
+    def handle_keyboard_interrupt_wrapper(*args: str) -> ExitCodes:
+        try:
+            return function(*args)
+        except KeyboardInterrupt:
+            logger.set_indent(0)
+            logger.warning('')
+            warning(Messages.WARNING_KEYBOARD_INTERRUPT)
+            return ExitCodes.KEYBOARD_INTERRUPT
+    return handle_keyboard_interrupt_wrapper
+
+
+logger = get_logger(PROGRAM_NAME)
+program_settings = Settings()
+
+
+@loggerize
+@keyboard_interrupt_handler
+@ensure_utf8_output
+def main(*args: str) -> ExitCodes:  # pylint: disable=unused-variable
+    """Run the program for the sources given in *args*.
+
+    The INI file is loaded first. Then, for each source, its URLs are
+    collected and processed, and the resulting metadata is saved.
+
+    Return values:
+    - `ExitCodes.NO_ARGUMENTS` if there are no non-blank arguments.
+    - `ExitCodes.ERROR` if the INI file cannot be loaded.
+    - `ExitCodes.WARNING` if any source could not be fully processed.
+    - `ExitCodes.SUCCESS` otherwise.
+
+    NOTE: this function rebinds the global `program_settings`.
+    """
+    global program_settings  # pylint: disable=global-statement
+    exitcode = ExitCodes.SUCCESS
+
+    if not any(argument.strip() for argument in args):
+        # Input arguments should be provided automatically when program
+        # is used as a drag'n'drop target which is actually the intended
+        # way of operation, generally speaking.
+        #
+        # But the program can be also run by hand from a command prompt,
+        # so it is better to signal the end user with an error and give
+        # an explanation if no input arguments are provided, as soon as
+        # possible.
+        error(Messages.ERROR_NO_ARGUMENTS)
+        return ExitCodes.NO_ARGUMENTS
+
+    logger.info('')
+    logger.info(Messages.LOADING_INIFILE.format(Paths.INIFILE))
+    try:
+        logger.indent()
+        program_settings, profiles = load_inifile(Paths.INIFILE)
+        logger.dedent()
+    except (IniFileError, SettingsError, ProfileError) as exc:
+        log_exception(exc)
+        error(str(exc))
+        return ExitCodes.ERROR
+
+    for gateway in parse_arguments(*args):
+        logger.info('')
+        logger.info(Messages.PROCESSING_GATEWAY.format(gateway.label))
+
+        logger.indent()
+        logger.info(Messages.STEP_LOADING_URLS)
+
+        logger.indent()
+        urls = collect_urls(gateway)
+        logger.dedent()
+
+        if urls:
+            logger.info(Messages.STEP_PROCESSING_URLS)
+            logger.indent()
+            results = process_urls(urls, profiles)
+            logger.dedent()
+            if len(results) != len(urls):
+                exitcode = ExitCodes.WARNING
+            if results:
+                logger.info(Messages.STEP_SAVING_RESULTS)
+                logger.indent()
+                if not save_results(gateway, results):
+                    exitcode = ExitCodes.WARNING
+                logger.dedent()
+        else:
+            exitcode = ExitCodes.WARNING
+        logger.dedent()
+    return exitcode
+
+
+def load_inifile(inifile_path: Path) -> tuple[Settings, tuple[Profile, ...]]:
+    """Load the program INI file from *inifile_path*.
+
+    Read and process the INI file at *inifile_path*, containing program
+    settings and profile definitions.
+
+    It logs the found settings and profiles with `logging.INFO` level,
+    and the profile details with `logging.DEBUG` level.
+
+    Raise `IniFileError` if *inifile_path* cannot be found, read, or if
+    it has syntax or encoding errors.
+
+    Raise `SettingsError` if program settings cannot be obtained.
+
+    Raise `ProfileError` if profiles cannot be obtained.
+
+    Return a tuple of a `Settings` instance and a tuple of the `Profile`
+    instances obtained from the INI file.
+    """
+    inifile_parser = ConfigParser(interpolation=None, allow_unnamed_section=True)
+
+    try:
+        with inifile_path.open(encoding='utf-8-sig') as inifile:
+            inifile_parser.read_file(inifile)
+    except FileNotFoundError as exc:
+        raise IniFileError(Messages.INIFILE_ERROR_FILE_NOT_FOUND.format(inifile_path)) from exc
+    except PermissionError as exc:
+        raise IniFileError(Messages.INIFILE_ERROR_FILE_NO_PERMISSION.format(inifile_path)) from exc
+    except OSError as exc:
+        raise IniFileError(Messages.INIFILE_ERROR_FILE_READ_FAILED.format(inifile_path)) from exc
+    except UnicodeDecodeError as exc:
+        raise IniFileError(Messages.INIFILE_ERROR_FILE_NOT_UTF_8.format(inifile_path)) from exc
+    except ConfigParserError as exc:
+        errorname = type(exc).__name__.removesuffix(ConfigParserError.__name__)
+        raise IniFileError(Messages.INIFILE_ERROR_WRONG_SYNTAX.format(errorname, inifile_path)) from exc
+
+    if inifile_parser.has_section(UNNAMED_SECTION) and inifile_parser[UNNAMED_SECTION]:
+        settings = parse_settings(dict(inifile_parser[UNNAMED_SECTION]))
+    else:
+        # NOTE: this is **NOT** considered an error because for now, all
+        # the settings have defaults, so the program will run perfectly
+        # even if the entire settings section is missing.
+        logger.debug(Debug.MISSING_SETTINGS.format(inifile_path))
+        settings = Settings()
+
+    for key, value in asdict(settings).items():
+        logger.info(Messages.SETTING_LABEL.format(key, value))
+
+    inifile_parser.remove_section(UNNAMED_SECTION)
+    profiles = parse_profiles({section: dict(inifile_parser[section]) for section in inifile_parser.sections()})
+    if not profiles:
+        raise ProfileError(Messages.INIFILE_ERROR_NO_VALID_PROFILES.format(inifile_path))
+
+    for profile in profiles:
+        logger.info(Messages.PROFILE_LABEL.format(profile.name, profile.parser))
+        profile.debug_log()
+
+    return settings, profiles
+
+
+def parse_settings(contents: dict[str, str]) -> Settings:
+    """Parse program settings from *contents*.
+
+    The *contents* are parsed using `Settings` as the schema, performing
+    type translation as needed.
+
+    Raise `SettingsError` if a key in *contents* does not correspond to
+    a field in `Settings` or if its value is non-integer.
+
+    The settings that are in `Settings` but are not in *contents* keep
+    their default values.
+
+    Return a `Settings` instance.
+    """
+    settings: dict[str, int] = {}
+    known_keys = {field.name for field in fields(Settings)}
+    logger.debug(Debug.PARSING_SETTINGS)
+
+    if extra_keys := [key for key in contents if key not in known_keys]:
+        key_list = Messages.LIST_SEPARATOR.join(Messages.QUOTED.format(key) for key in extra_keys)
+        raise SettingsError(Messages.SETTINGS_ERROR_UNKNOWN_KEYS.format(key_list))
+
+    for key, value in contents.items():
+        # NOTE: only `int` fields are supported for now, so the code is
+        # kept simple and validation is minimal. If in the future more
+        # data types are needed for the settings, a more complex way of
+        # converting them will be implemented. Right now, it would just
+        # be overkill.
+        try:
+            settings[key] = int(value)
+        except ValueError as exc:
+            raise SettingsError(Messages.SETTINGS_ERROR_INVALID_VALUE.format(key, value)) from exc
+
+    return Settings(**settings)
+
+
+def parse_profiles(contents: dict[str, dict[str, str]]) -> tuple[Profile, ...]:
+    """Parse profile definitions from *contents* dictionary.
+
+    Each key in *contents* is a profile name and the corresponding value
+    is the profile definition. Profile definitions are dictionaries with
+    catalogue parser parameters as keys, and regular expression patterns
+    as values, where keys without value are silently ignored.
+
+    If the parameters in a profile definition match those belonging to a
+    known catalogue parser, then a new `Profile` instance is built from
+    the data.
+
+    The `url` key is **mandatory** for a profile definition, but it does
+    not affect the profile definition matching, as it is not considered
+    part of the profile parameters.
+
+    NOTE: all patterns are compiled using `re.IGNORECASE`.
+
+    Raise `ProfileError` if a profile does not contain any parameters, a
+    required one is missing, or they contain invalid values.
+
+    Return a tuple of the `Profile` instances built from *contents*.
+    """
+    url_pattern_key = 'url'
+    profiles: list[Profile] = []
+    parsers = [parser() for parser in BaseParser.__subclasses__()]
+    logger.debug(Debug.PARSING_PROFILES)
+    for profile_name, profile_contents in contents.items():
+        if not profile_contents:
+            raise ProfileError(Messages.PROFILE_ERROR_EMPTY_PROFILE.format(profile_name))
+        parser_config: ParserConfig = {}
+        for key, pattern in profile_contents.items():
+            if not pattern:
+                continue
+            try:
+                parser_config[key] = re.compile(pattern, re.IGNORECASE)
+            except re.PatternError as exc:
+                message = Messages.PROFILE_ERROR_INVALID_REGEX.format(
+                    profile_name, key, pattern, exc.pos or 0, type(exc).__name__, exc.msg,
+                )
+                raise ProfileError(message) from exc
+        if (url_pattern := parser_config.pop(url_pattern_key, None)) is None:
+            raise ProfileError(Messages.PROFILE_ERROR_PROFILE_WITHOUT_URL.format(profile_name))
+        for parser in parsers:
+            if parser_config.keys() == parser.PARAMETERS:
+                break
+        else:
+            raise ProfileError(Messages.PROFILE_ERROR_PROFILE_WRONG_PARAMETERS.format(profile_name))
+        profiles.append(Profile(profile_name, url_pattern, parser, parser_config))
+
+    return tuple(profiles)
+
+
+def parse_arguments(*args: str) -> Iterator[Gateway]:
+    """Parse the arguments in *args*, returning an `Iterator`.
+
+    Parse each argument in *args*, identify its type and check if it is
+    supported. If so, build the corresponding `Gateway` and yield it.
+
+    Unsupported ones yield an `UnsupportedGateway` instance.
+
+    Blank ones are silently skipped.
+    """
+    for arg in args:
+        if not (clean_arg := arg.strip()):
+            continue
+
+        lowercase_arg = clean_arg.lower()
+
+        logger.debug(Debug.PROCESSING_ARG.format(clean_arg))
+        gateway: Gateway
+        if is_url(clean_arg):
+            logger.debug(Debug.ARG_IS_SINGLE_URL)
+            gateway = SingleUrlGateway(clean_arg)
+        elif lowercase_arg.endswith('.txt'):
+            logger.debug(Debug.ARG_IS_TEXTFILE)
+            gateway = TextFileGateway(clean_arg)
+        elif lowercase_arg.endswith('.xlsx'):
+            logger.debug(Debug.ARG_IS_SPREADSHEET)
+            gateway = SpreadSheetGateway(clean_arg)
+        else:
+            logger.debug(Debug.ARG_IS_UNSUPPORTED)
+            gateway = UnsupportedGateway(clean_arg)
+        yield gateway
+
+
+def is_url(value: str) -> bool:
+    """Check whether *value* is a URL, for this program's needs.
+
+    A URL is a string starting with a scheme of at least two characters
+    followed by `://`. The two-character minimum keeps a Windows drive
+    letter from being taken for a scheme.
+
+    Only the shape is checked, not the actual validity.
+    """
+    url_scheme_re = r'[a-z][a-z0-9+.-]+://'
+    return re.prefixmatch(url_scheme_re, value, re.IGNORECASE) is not None
+
+
+def collect_urls(gateway: Gateway) -> list[Url]:
+    """Collect URLs from a gateway, handling errors.
+
+    Retrieve the URLs from *gateway* using its `get_urls()` method. If
+    that raises a `GatewayError`, log the exception, emit a warning and
+    treat the result as empty.
+
+    If *gateway* provides no URLs, a warning is emitted, too.
+
+    Return the list of collected URLs, which is empty if the *gateway*
+    could not be read or its source contains no URLs.
+    """
+    urls: list[Url] = []
+    try:
+        urls = gateway.get_urls()
+    except GatewayError as exc:
+        log_exception(exc)
+        warning(str(exc))
+    else:
+        if not urls:
+            warning(Messages.WARNING_GATEWAY_EMPTY)
+    return urls
+
+
+def process_urls(urls: list[Url], profiles: tuple[Profile, ...]) -> SkimResults:
+    """Process *urls*, obtaining the metadata for each one.
+
+    For every URL in *urls*, find the adequate parser using *profiles*,
+    retrieve its contents and extract the metadata. Progress is logged
+    as each URL gets processed.
+
+    A URL for which no metadata can be obtained is logged as a warning
+    and left out of the results while processing continues.
+
+    A summary is logged after processing is done.
+
+    Return a dictionary mapping each successfully processed URL to its
+    metadata, in the same order as *urls*. The dictionary is empty if
+    no URL could be processed.
+    """
+    results: SkimResults = {}
+    for url in urls:
+        logger.info(url)
+        try:
+            results[url] = saca_las_mantecas(url, get_parser(url, profiles))
+        except (ProfileError, SkimmingError) as exc:
+            log_exception(exc)
+            logger.indent()
+            warning(str(exc))
+            logger.dedent()
+    summary_template = (
+        Messages.URLS_RESULT_NONE if not results
+        else Messages.URLS_RESULT_ONE if len(results) == 1
+        else Messages.URLS_RESULT_MANY
+    )
+    summary = summary_template.format(len(results), len(urls))
+    logger.info(Messages.URLS_RESULT.format(summary))
+    return results
+
+
 def get_parser(url: Url, profiles: tuple[Profile, ...]) -> BaseParser:
     """Obtain the appropriate parser for the *url*.
 
@@ -1307,65 +1358,6 @@ def get_parser(url: Url, profiles: tuple[Profile, ...]) -> BaseParser:
             profile.parser.configure(profile.parser_config)
             return profile.parser
     raise ProfileError(Messages.PROFILE_ERROR_NO_MATCHING_PROFILE)
-
-
-# pylint: disable-next=too-many-branches
-def retrieval_error_message(exc: Exception) -> str | None:  # ruff: ignore[C901,PLR0912]
-    """Retrieve the end user message for *exc*.
-
-    *exc* is one of the many possible exceptions that can be raised when
-    retrieving a URL. In order to give the end user a set of meaningful
-    and coherent messages, instead of using the predefined message for
-    the exception, the corresponding `Messages.SKIMMING_ERROR_` message
-    is returned.
-
-    Return the appropriate message for *exc* or `None` if one does not
-    exist for *exc*, so the caller can let it propagate unchanged.
-    """
-    match exc:
-        # Depending on the particular error which happened, the reason
-        # attribute of the 'URLError' exception can be a simple error
-        # message, an instance of some 'OSError' derived Exception, etc.
-        # So, in order to have useful messages, some discrimination has
-        # to be done here.
-        case HTTPError():
-            reason = Messages.URL_ACCESS_REASON_HTTP_ERROR.format(exc.code)
-            message = Messages.SKIMMING_ERROR_URL_ACCESS.format(reason)
-        case URLError(reason=TimeoutError()):
-            message = Messages.SKIMMING_ERROR_TIMEOUT
-        case URLError(reason=OSError() as os_error):
-            reason = Messages.URL_ACCESS_REASON_OSLIKE_ERROR.format(type(os_error).__name__)
-            message = Messages.SKIMMING_ERROR_URL_ACCESS.format(reason)
-        case URLError():
-            reason = Messages.URL_ACCESS_REASON_UNEXPECTED_ERROR
-            message = Messages.SKIMMING_ERROR_URL_ACCESS.format(reason)
-        # Apparently, 'HTTPException', 'ConnectionError' and the subclasses
-        # are masked or wrapped by 'urllib', and documentation is not very
-        # informative. So, just in case something weird happen, it is better
-        # to handle these exception types here as well.
-        case ConnectionError(errno=errno_value) if isinstance(errno_value, int) and errno_value in errno.errorcode:
-            message = Messages.SKIMMING_ERROR_CONNECTION_FAILED.format(errno.errorcode[errno_value])
-        case ConnectionError():
-            message = Messages.SKIMMING_ERROR_CONNECTION_FAILED_UNKNOWN_REASON
-        case HTTPException():
-            message = Messages.SKIMMING_ERROR_ERROR_HTTP_RETRIEVAL.format(type(exc).__name__)
-        case TimeoutError():
-            message = Messages.SKIMMING_ERROR_TIMEOUT
-        case OSError():  # Must go after all its subclasses above.
-            message = Messages.SKIMMING_ERROR_CONNECTION_FAILED.format(type(exc).__name__)
-        case TooManyRedirectionsError(limit=limit):
-            message = Messages.SKIMMING_ERROR_TOO_MANY_REDIRECTIONS.format(limit)
-        case CharsetError(charset=charset) if not charset:
-            message = Messages.SKIMMING_ERROR_EMPTY_CHARSET
-        case CharsetError(charset=charset):
-            message = Messages.SKIMMING_ERROR_UNKNOWN_CHARSET.format(charset)
-        case UnicodeDecodeError(encoding=charset):
-            message = Messages.SKIMMING_ERROR_UNDECODABLE_CONTENTS.format(charset)
-        case ValueError():  # For instance from 'Request' with a URL without scheme.
-            message = Messages.SKIMMING_ERROR_INVALID_URL
-        case _:
-            message = None
-    return message
 
 
 def saca_las_mantecas(url: Url, parser: BaseParser) -> Metadata:
@@ -1530,64 +1522,63 @@ def detect_html_charset(contents: bytes) -> str:
     return charset
 
 
-def collect_urls(gateway: Gateway) -> list[Url]:
-    """Collect URLs from a gateway, handling errors.
+# pylint: disable-next=too-many-branches
+def retrieval_error_message(exc: Exception) -> str | None:  # ruff: ignore[C901,PLR0912]
+    """Retrieve the end user message for *exc*.
 
-    Retrieve the URLs from *gateway* using its `get_urls()` method. If
-    that raises a `GatewayError`, log the exception, emit a warning and
-    treat the result as empty.
+    *exc* is one of the many possible exceptions that can be raised when
+    retrieving a URL. In order to give the end user a set of meaningful
+    and coherent messages, instead of using the predefined message for
+    the exception, the corresponding `Messages.SKIMMING_ERROR_` message
+    is returned.
 
-    If *gateway* provides no URLs, a warning is emitted, too.
-
-    Return the list of collected URLs, which is empty if the *gateway*
-    could not be read or its source contains no URLs.
+    Return the appropriate message for *exc* or `None` if one does not
+    exist for *exc*, so the caller can let it propagate unchanged.
     """
-    urls: list[Url] = []
-    try:
-        urls = gateway.get_urls()
-    except GatewayError as exc:
-        log_exception(exc)
-        warning(str(exc))
-    else:
-        if not urls:
-            warning(Messages.WARNING_GATEWAY_EMPTY)
-    return urls
-
-
-def process_urls(urls: list[Url], profiles: tuple[Profile, ...]) -> SkimResults:
-    """Process *urls*, obtaining the metadata for each one.
-
-    For every URL in *urls*, find the adequate parser using *profiles*,
-    retrieve its contents and extract the metadata. Progress is logged
-    as each URL gets processed.
-
-    A URL for which no metadata can be obtained is logged as a warning
-    and left out of the results while processing continues.
-
-    A summary is logged after processing is done.
-
-    Return a dictionary mapping each successfully processed URL to its
-    metadata, in the same order as *urls*. The dictionary is empty if
-    no URL could be processed.
-    """
-    results: SkimResults = {}
-    for url in urls:
-        logger.info(url)
-        try:
-            results[url] = saca_las_mantecas(url, get_parser(url, profiles))
-        except (ProfileError, SkimmingError) as exc:
-            log_exception(exc)
-            logger.indent()
-            warning(str(exc))
-            logger.dedent()
-    summary_template = (
-        Messages.URLS_RESULT_NONE if not results
-        else Messages.URLS_RESULT_ONE if len(results) == 1
-        else Messages.URLS_RESULT_MANY
-    )
-    summary = summary_template.format(len(results), len(urls))
-    logger.info(Messages.URLS_RESULT.format(summary))
-    return results
+    match exc:
+        # Depending on the particular error which happened, the reason
+        # attribute of the 'URLError' exception can be a simple error
+        # message, an instance of some 'OSError' derived Exception, etc.
+        # So, in order to have useful messages, some discrimination has
+        # to be done here.
+        case HTTPError():
+            reason = Messages.URL_ACCESS_REASON_HTTP_ERROR.format(exc.code)
+            message = Messages.SKIMMING_ERROR_URL_ACCESS.format(reason)
+        case URLError(reason=TimeoutError()):
+            message = Messages.SKIMMING_ERROR_TIMEOUT
+        case URLError(reason=OSError() as os_error):
+            reason = Messages.URL_ACCESS_REASON_OSLIKE_ERROR.format(type(os_error).__name__)
+            message = Messages.SKIMMING_ERROR_URL_ACCESS.format(reason)
+        case URLError():
+            reason = Messages.URL_ACCESS_REASON_UNEXPECTED_ERROR
+            message = Messages.SKIMMING_ERROR_URL_ACCESS.format(reason)
+        # Apparently, 'HTTPException', 'ConnectionError' and the subclasses
+        # are masked or wrapped by 'urllib', and documentation is not very
+        # informative. So, just in case something weird happen, it is better
+        # to handle these exception types here as well.
+        case ConnectionError(errno=errno_value) if isinstance(errno_value, int) and errno_value in errno.errorcode:
+            message = Messages.SKIMMING_ERROR_CONNECTION_FAILED.format(errno.errorcode[errno_value])
+        case ConnectionError():
+            message = Messages.SKIMMING_ERROR_CONNECTION_FAILED_UNKNOWN_REASON
+        case HTTPException():
+            message = Messages.SKIMMING_ERROR_ERROR_HTTP_RETRIEVAL.format(type(exc).__name__)
+        case TimeoutError():
+            message = Messages.SKIMMING_ERROR_TIMEOUT
+        case OSError():  # Must go after all its subclasses above.
+            message = Messages.SKIMMING_ERROR_CONNECTION_FAILED.format(type(exc).__name__)
+        case TooManyRedirectionsError(limit=limit):
+            message = Messages.SKIMMING_ERROR_TOO_MANY_REDIRECTIONS.format(limit)
+        case CharsetError(charset=charset) if not charset:
+            message = Messages.SKIMMING_ERROR_EMPTY_CHARSET
+        case CharsetError(charset=charset):
+            message = Messages.SKIMMING_ERROR_UNKNOWN_CHARSET.format(charset)
+        case UnicodeDecodeError(encoding=charset):
+            message = Messages.SKIMMING_ERROR_UNDECODABLE_CONTENTS.format(charset)
+        case ValueError():  # For instance from 'Request' with a URL without scheme.
+            message = Messages.SKIMMING_ERROR_INVALID_URL
+        case _:
+            message = None
+    return message
 
 
 def save_results(gateway: Gateway, results: SkimResults) -> bool:
@@ -1606,74 +1597,67 @@ def save_results(gateway: Gateway, results: SkimResults) -> bool:
     return True
 
 
-@loggerize
-@keyboard_interrupt_handler
-@ensure_utf8_output
-def main(*args: str) -> ExitCodes:  # pylint: disable=unused-variable
-    """Run the program for the sources given in *args*.
+def log_exception(exc: Exception) -> None:
+    """Log *exc* with `logger.debug()`.
 
-    The INI file is loaded first. Then, for each source, its URLs are
-    collected and processed, and the resulting metadata is saved.
-
-    Return values:
-    - `ExitCodes.NO_ARGUMENTS` if there are no non-blank arguments.
-    - `ExitCodes.ERROR` if the INI file cannot be loaded.
-    - `ExitCodes.WARNING` if any source could not be fully processed.
-    - `ExitCodes.SUCCESS` otherwise.
-
-    NOTE: this function rebinds the global `program_settings`.
+    If *exc* has `__context__` it is dumped, too.
     """
-    global program_settings  # pylint: disable=global-statement
-    exitcode = ExitCodes.SUCCESS
+    logger.debug(Debug.EXCEPTION_LOG.format(type(exc).__name__))
+    if exc.__context__:
+        message = Debug.EXCEPTION_LOG_CONTEXT.format(
+            type(exc.__context__).__name__,
+            repr(exc.__context__),
+            str(exc.__context__),
+        )
+    else:
+        message = Debug.EXCEPTION_LOG_NO_CONTEXT
+    logger.debug(message)
 
-    if not any(argument.strip() for argument in args):
-        # Input arguments should be provided automatically when program
-        # is used as a drag'n'drop target which is actually the intended
-        # way of operation, generally speaking.
-        #
-        # But the program can be also run by hand from a command prompt,
-        # so it is better to signal the end user with an error and give
-        # an explanation if no input arguments are provided, as soon as
-        # possible.
-        error(Messages.ERROR_NO_ARGUMENTS)
-        return ExitCodes.NO_ARGUMENTS
 
-    logger.info('')
-    logger.info(Messages.LOADING_INIFILE.format(Paths.INIFILE))
-    try:
-        logger.indent()
-        program_settings, profiles = load_inifile(Paths.INIFILE)
-        logger.dedent()
-    except (IniFileError, SettingsError, ProfileError) as exc:
-        log_exception(exc)
-        error(str(exc))
-        return ExitCodes.ERROR
+def error(message: str) -> None:
+    """Preprocess and log error *message*.
 
-    for gateway in parse_arguments(*args):
-        logger.info('')
-        logger.info(Messages.PROCESSING_GATEWAY.format(gateway.label))
+    If *message* has no heading (it is empty or starts with a newline),
+    then `Messages.DEFAULT_ERROR_MESSAGE` is used instead as a default.
+    The first alphabetic character of the heading is lowercased, and a
+    fixed prefix is prepended to it. The result is then formatted with
+    `legion.format_message()`, that is, the remaining lines of *message*
+    are indented below the heading.
 
-        logger.indent()
-        logger.info(Messages.STEP_LOADING_URLS)
+    The logging indentation is reset, in order to keep the message clear
+    and separated from the rest of the output.
 
-        logger.indent()
-        urls = collect_urls(gateway)
-        logger.dedent()
+    The result is then logged using `logger.error()`.
+    """
+    logger.set_indent(0)
+    heading, _, remaining = message.partition('\n')
+    heading = f'{Messages.ERROR_PREFIX}{lowercase_first_letter(heading or Messages.DEFAULT_ERROR_MESSAGE)}'
+    logger.error(format_message(heading, remaining, indentation=' ' * Messages.ERROR_PREFIX.index(' ')))
 
-        if urls:
-            logger.info(Messages.STEP_PROCESSING_URLS)
-            logger.indent()
-            results = process_urls(urls, profiles)
-            logger.dedent()
-            if len(results) != len(urls):
-                exitcode = ExitCodes.WARNING
-            if results:
-                logger.info(Messages.STEP_SAVING_RESULTS)
-                logger.indent()
-                if not save_results(gateway, results):
-                    exitcode = ExitCodes.WARNING
-                logger.dedent()
-        else:
-            exitcode = ExitCodes.WARNING
-        logger.dedent()
-    return exitcode
+
+def warning(message: str) -> None:
+    """Preprocess and log warning *message*.
+
+    If *message* is empty, `Messages.DEFAULT_WARNING_MESSAGE` is used as
+    a default explanation instead. Then, its first alphabetic character
+    is lowercased and a fixed prefix is prepended to it.
+
+    The result is then logged using `logger.warning()`.
+    """
+    processed_message = lowercase_first_letter(message or Messages.DEFAULT_WARNING_MESSAGE)
+    logger.warning('%s', f'{Messages.WARNING_PREFIX}{processed_message}')
+
+
+def lowercase_first_letter(message: str) -> str:
+    """Return *message* with its first alphabetic character lowercased.
+
+    Any characters before it are kept as they are, and if *message* has
+    no alphabetic character, it is returned unchanged.
+
+    NOTE: if *message* starts with an acronym, the first character will
+    be lowercased anyway!
+    """
+    for index, character in enumerate(message):
+        if character.isalpha():
+            return message[:index] + character.lower() + message[index + 1:]
+    return message
