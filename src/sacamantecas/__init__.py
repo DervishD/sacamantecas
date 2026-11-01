@@ -1638,13 +1638,15 @@ def error(message: str) -> None:
 def warning(message: str) -> None:
     """Preprocess and log warning *message*.
 
-    If *message* is empty, `Messages.DEFAULT_WARNING_MESSAGE` is used as
-    a default explanation instead. Then, its first alphabetic character
-    is lowercased and a fixed prefix is prepended to it.
+    If *message* is empty or consists **ONLY** of whitespace the default
+    explanation `Messages.DEFAULT_WARNING_MESSAGE` is used instead. Any
+    other message is used as it is, without stripping its whitespace.
 
-    The result is then logged using `logger.warning()`.
+    The first alphabetic character of the resulting text is lowercased,
+    a fixed prefix is prepended to it, and the result is logged using
+    `logger.warning()`.
     """
-    processed_message = lowercase_first_letter(message or Messages.DEFAULT_WARNING_MESSAGE)
+    processed_message = lowercase_first_letter(message if message.strip() else Messages.DEFAULT_WARNING_MESSAGE)
     logger.warning('%s', f'{Messages.WARNING_PREFIX}{processed_message}')
 
 
