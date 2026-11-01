@@ -1277,7 +1277,7 @@ def is_url(value: str) -> bool:
     Only the shape is checked, not the actual validity.
     """
     url_scheme_re = r'[a-z][a-z0-9+.-]+://'
-    return re.prefixmatch(url_scheme_re, value, re.IGNORECASE) is not None
+    return re.prefixmatch(url_scheme_re, value, re.IGNORECASE|re.ASCII) is not None
 
 
 def collect_urls(gateway: Gateway) -> list[Url]:
