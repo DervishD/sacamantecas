@@ -1617,12 +1617,18 @@ def log_exception(exc: Exception) -> None:
 def error(message: str) -> None:
     """Preprocess and log error *message*.
 
-    If *message* has no heading (it is empty or starts with a newline),
-    then `Messages.DEFAULT_ERROR_MESSAGE` is used instead as a default.
-    The first alphabetic character of the heading is lowercased, and a
-    fixed prefix is prepended to it. The result is then formatted with
-    `legion.format_message()`, that is, the remaining lines of *message*
-    are indented below the heading.
+    If *message* is empty or consists **ONLY** of whitespace, including
+    newlines, the default explanation `Messages.DEFAULT_ERROR_MESSAGE`
+    is used instead. Any other message is used as it is.
+
+    The message is split into two parts: a heading (its first line) and
+    the remaining lines. The first alphabetic character of the heading
+    is lowercased, and a fixed prefix is prepended to it. The result is
+    formatted with `legion.format_message()`, that is, all the remaining
+    lines are indented below the heading.
+
+    A message may start with a newline on purpose, leaving its heading
+    empty, when the cause is not worth listing but the explanation is.
 
     The logging indentation is reset, in order to keep the message clear
     and separated from the rest of the output.
@@ -1630,8 +1636,9 @@ def error(message: str) -> None:
     The result is then logged using `logger.error()`.
     """
     logger.set_indent(0)
-    heading, _, remaining = message.partition('\n')
-    heading = f'{Messages.ERROR_PREFIX}{lowercase_first_letter(heading or Messages.DEFAULT_ERROR_MESSAGE)}'
+    processed_message = message if message.strip() else Messages.DEFAULT_ERROR_MESSAGE
+    heading, _, remaining = processed_message.partition('\n')
+    heading = f'{Messages.ERROR_PREFIX}{lowercase_first_letter(heading)}'
     logger.error(format_message(heading, remaining, indentation=' ' * Messages.ERROR_PREFIX.index(' ')))
 
 
