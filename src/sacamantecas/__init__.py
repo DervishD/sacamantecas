@@ -1639,7 +1639,8 @@ def error(message: str) -> None:
     processed_message = message if message.strip() else Messages.DEFAULT_ERROR_MESSAGE
     heading, _, remaining = processed_message.partition('\n')
     heading = f'{Messages.ERROR_PREFIX}{lowercase_first_letter(heading)}'
-    logger.error(format_message(heading, remaining, indentation=' ' * Messages.ERROR_PREFIX.index(' ')))
+    indentation = ' ' * (Messages.ERROR_PREFIX.strip().index(' ') + 1)  # Location of first space after non-whitespace.
+    logger.error(format_message(heading, remaining, indentation=indentation))
 
 
 def warning(message: str) -> None:
