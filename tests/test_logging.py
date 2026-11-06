@@ -59,6 +59,28 @@ def log_paths_fixture(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> LogPat
     return LogPaths(main_log_path, full_log_path)
 
 
+@pytest.fixture(name='log_outputs')
+# pylint: disable-next=unused-variable
+def log_outputs_fixture(capsys: pytest.CaptureFixture[str], log_paths: LogPaths) -> LogOutputs:
+    """Run a decorated function and return what `loggerize()` logs."""
+    def remove_timestamps(logfile: Path) -> list[str]:
+        """Return the lines of *logfile* without the timestamp."""
+        return [line.partition(' ')[2] for line in logfile.read_text(encoding='utf-8').splitlines()]
+
+    def decorated_function() -> ExitCodes:
+        """Do nothing, essentially."""
+        return ExitCodes.SUCCESS
+
+    loggerize(decorated_function)()
+    captured = capsys.readouterr()
+    return LogOutputs(
+        main_log=remove_timestamps(log_paths.main),
+        full_log=remove_timestamps(log_paths.full),
+        console_stdout=captured.out.splitlines(),
+        console_stderr=captured.err,
+    )
+
+
 # pylint: disable-next=unused-variable
 def test_error_prefix() -> None:
     """Test the contents of Messages.ERROR_PREFIX constant."""
@@ -278,27 +300,6 @@ def test_loggerize_propagates_arguments(arguments: tuple[str, ...]) -> None:
     loggerize(decorated_function)(*arguments)
     assert received_arguments == arguments
 
-
-@pytest.fixture(name='log_outputs')
-# pylint: disable-next=unused-variable
-def log_outputs_fixture(capsys: pytest.CaptureFixture[str], log_paths: LogPaths) -> LogOutputs:
-    """Run a decorated function that logs at debug and info levels."""
-    def remove_timestamps(logfile: Path) -> list[str]:
-        """Return the lines of *logfile* without the timestamp."""
-        return [line.partition(' ')[2] for line in logfile.read_text(encoding='utf-8').splitlines()]
-
-    def decorated_function() -> ExitCodes:
-        """Do nothing, essentially."""
-        return ExitCodes.SUCCESS
-
-    loggerize(decorated_function)()
-    captured = capsys.readouterr()
-    return LogOutputs(
-        main_log=remove_timestamps(log_paths.main),
-        full_log=remove_timestamps(log_paths.full),
-        console_stdout=captured.out.splitlines(),
-        console_stderr=captured.err,
-    )
 
 
 # pylint: disable-next=unused-variable
