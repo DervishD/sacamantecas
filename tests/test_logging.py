@@ -136,7 +136,7 @@ def test_warning_loglevel(caplog: pytest.LogCaptureFixture) -> None:
 
 @pytest.mark.usefixtures('configured_logger')
 # pylint: disable-next=unused-variable
-def test_log_exception_level(caplog: pytest.LogCaptureFixture) -> None:
+def test_log_exception_loglevel(caplog: pytest.LogCaptureFixture) -> None:
     """Test `log_exception()` logs everything with `DEBUG` level."""
     get_logged_messages(caplog, ValueError('some message'))
     assert [record.levelno for record in caplog.records] == [logging.DEBUG, logging.DEBUG]
