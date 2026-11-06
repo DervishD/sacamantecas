@@ -8,6 +8,7 @@ from sacamantecas import (
     Debug,
     error,
     ExitCodes,
+    keyboard_interrupt_handler,
     log_exception,
     logger,
     loggerize,
@@ -23,22 +24,6 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
-class LogPaths(NamedTuple):
-    """Paths of the log files used by a test."""
-
-    main: Path
-    full: Path
-
-
-class LogOutputs(NamedTuple):
-    """Everything a `loggerize()` run produces, ready to be compared."""
-
-    main_log: list[str]
-    full_log: list[str]
-    console_stdout: list[str]
-    console_stderr: str
-
-
 @pytest.fixture(name='configured_logger')
 # pylint: disable-next=unused-variable
 def configured_logger_fixture(capsys: pytest.CaptureFixture[str]) -> Iterator[pytest.CaptureFixture[str]]:
@@ -48,37 +33,8 @@ def configured_logger_fixture(capsys: pytest.CaptureFixture[str]) -> Iterator[py
     logging.shutdown()
 
 
-@pytest.fixture(name='log_paths')
-# pylint: disable-next=unused-variable
-def log_paths_fixture(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> LogPaths:
-    """Redirect the program log files to a temporary directory."""
-    main_log_path = tmp_path / Paths.MAIN_LOG.name
-    full_log_path = tmp_path / Paths.FULL_LOG.name
-    monkeypatch.setattr(Paths, 'MAIN_LOG', main_log_path)
-    monkeypatch.setattr(Paths, 'FULL_LOG', full_log_path)
-    return LogPaths(main_log_path, full_log_path)
-
-
-@pytest.fixture(name='log_outputs')
-# pylint: disable-next=unused-variable
-def log_outputs_fixture(capsys: pytest.CaptureFixture[str], log_paths: LogPaths) -> LogOutputs:
-    """Run a decorated function and return what `loggerize()` logs."""
-    def remove_timestamps(logfile: Path) -> list[str]:
-        """Return the lines of *logfile* without the timestamp."""
-        return [line.partition(' ')[2] for line in logfile.read_text(encoding='utf-8').splitlines()]
-
-    def decorated_function() -> ExitCodes:
-        """Do nothing, essentially."""
-        return ExitCodes.SUCCESS
-
-    loggerize(decorated_function)()
-    captured = capsys.readouterr()
-    return LogOutputs(
-        main_log=remove_timestamps(log_paths.main),
-        full_log=remove_timestamps(log_paths.full),
-        console_stdout=captured.out.splitlines(),
-        console_stderr=captured.err,
-    )
+LOWERCASE_DEFAULT_ERROR_MESSAGE = lowercase_first_letter(Messages.DEFAULT_ERROR_MESSAGE)
+ERROR_INDENTATION = ' ' * (Messages.ERROR_PREFIX.strip().index(' ') + 1)
 
 
 # pylint: disable-next=unused-variable
@@ -87,10 +43,13 @@ def test_error_prefix() -> None:
     assert Messages.ERROR_PREFIX == '\n*** Error: '
 
 
+@pytest.mark.usefixtures('configured_logger')
 # pylint: disable-next=unused-variable
-def test_warning_prefix() -> None:
-    """Test the contents of Messages.WARNING_PREFIX constant."""
-    assert Messages.WARNING_PREFIX == '* Aviso: '
+def test_error_loglevel(caplog: pytest.LogCaptureFixture) -> None:
+    """Test `error()` logs a single record with `ERROR` level."""
+    error('Some message')
+    assert [record.levelno for record in caplog.records] == [logging.ERROR]
+    assert caplog.records[0].getMessage() == f'{Messages.ERROR_PREFIX}some message'
 
 
 # pylint: disable-next=unused-variable
@@ -105,10 +64,11 @@ def test_error_indentation(configured_logger: pytest.CaptureFixture[str]) -> Non
 
     heading_line, *continuation_lines = [line for line in captured.err.splitlines() if line]
 
-    # The heading starts at column 0, so the logger indentation was reset.
+    # The heading starts at column 0, the logger indentation was reset.
     assert heading_line == f'{Messages.ERROR_PREFIX.lstrip()}heading'
 
-    # Continuation lines go one column past the first space of the heading line.
+    # Continuation lines are indented so they start one column past the
+    # first space of the heading line.
     continuation_indentation = ' ' * (heading_line.index(' ') + 1)
     assert continuation_lines == [
         f'{continuation_indentation}First detail line',
@@ -116,38 +76,10 @@ def test_error_indentation(configured_logger: pytest.CaptureFixture[str]) -> Non
     ]
 
 
-@pytest.mark.usefixtures('configured_logger')
-# pylint: disable-next=unused-variable
-def test_error_loglevel(caplog: pytest.LogCaptureFixture) -> None:
-    """Test `error()` logs a single record with `ERROR` level."""
-    error('Some message')
-    assert [record.levelno for record in caplog.records] == [logging.ERROR]
-    assert caplog.records[0].getMessage() == f'{Messages.ERROR_PREFIX}some message'
-
-
-@pytest.mark.usefixtures('configured_logger')
-# pylint: disable-next=unused-variable
-def test_warning_loglevel(caplog: pytest.LogCaptureFixture) -> None:
-    """Test `warning()` logs a single record with `WARNING` level."""
-    warning('Some message')
-    assert [record.levelno for record in caplog.records] == [logging.WARNING]
-    assert caplog.records[0].getMessage() == f'{Messages.WARNING_PREFIX}some message'
-
-
-@pytest.mark.usefixtures('configured_logger')
-# pylint: disable-next=unused-variable
-def test_log_exception_loglevel(caplog: pytest.LogCaptureFixture) -> None:
-    """Test `log_exception()` logs everything with `DEBUG` level."""
-    get_logged_messages(caplog, ValueError('some message'))
-    assert [record.levelno for record in caplog.records] == [logging.DEBUG, logging.DEBUG]
-
-
-LOWERCASE_DEFAULT_ERROR_MESSAGE = lowercase_first_letter(Messages.DEFAULT_ERROR_MESSAGE)
-INDENTATION = ' ' * (Messages.ERROR_PREFIX.strip().index(' ') + 1)
 @pytest.mark.parametrize(('message', 'expected'), [
     pytest.param('Normal message', 'normal message', id='normal'),
-    pytest.param('Heading\nMsg\nDetail', f'heading\n{INDENTATION}Msg\n{INDENTATION}Detail', id='multiline'),
-    pytest.param('Heading\n\nDetail', f'heading\n\n{INDENTATION}Detail', id='holed_multiline'),
+    pytest.param('Heading\nMsg\nDetail', f'heading\n{ERROR_INDENTATION}Msg\n{ERROR_INDENTATION}Detail', id='multiline'),
+    pytest.param('Heading\n\nDetail', f'heading\n\n{ERROR_INDENTATION}Detail', id='holed_multiline'),
     pytest.param('Heading\n\n', 'heading', id='multiline_empty_tail'),
     pytest.param('', LOWERCASE_DEFAULT_ERROR_MESSAGE, id='empty'),
     pytest.param('  ', LOWERCASE_DEFAULT_ERROR_MESSAGE, id='spaces'),
@@ -163,9 +95,10 @@ def test_error_helper(configured_logger: pytest.CaptureFixture[str], message: st
     assert not captured.out
     assert captured.err == f'{Messages.ERROR_PREFIX}{expected}\n'
 
+
 @pytest.mark.parametrize(('message', 'expected'), [
-    pytest.param('\nEmpty heading', f'\n{INDENTATION}Empty heading', id='empty_heading'),
-    pytest.param('  \nWhitespace heading', f'\n{INDENTATION}Whitespace heading', id='whitespace_heading'),
+    pytest.param('\nEmpty heading', f'\n{ERROR_INDENTATION}Empty heading', id='empty_heading'),
+    pytest.param('  \nWhitespace heading', f'\n{ERROR_INDENTATION}Whitespace heading', id='whitespace_heading'),
 ])
 # pylint: disable-next=unused-variable
 def test_error_empty_heading(configured_logger: pytest.CaptureFixture[str], message: str, expected: str) -> None:
@@ -181,6 +114,23 @@ def test_error_empty_heading(configured_logger: pytest.CaptureFixture[str], mess
 
 
 LOWERCASE_DEFAULT_WARNING_MESSAGE = lowercase_first_letter(Messages.DEFAULT_WARNING_MESSAGE)
+
+
+# pylint: disable-next=unused-variable
+def test_warning_prefix() -> None:
+    """Test the contents of Messages.WARNING_PREFIX constant."""
+    assert Messages.WARNING_PREFIX == '* Aviso: '
+
+
+@pytest.mark.usefixtures('configured_logger')
+# pylint: disable-next=unused-variable
+def test_warning_loglevel(caplog: pytest.LogCaptureFixture) -> None:
+    """Test `warning()` logs a single record with `WARNING` level."""
+    warning('Some message')
+    assert [record.levelno for record in caplog.records] == [logging.WARNING]
+    assert caplog.records[0].getMessage() == f'{Messages.WARNING_PREFIX}some message'
+
+
 @pytest.mark.parametrize(('message', 'expected'), [
     pytest.param('Normal message', 'normal message', id='normal'),
     pytest.param('', LOWERCASE_DEFAULT_WARNING_MESSAGE, id='empty'),
@@ -210,6 +160,14 @@ def get_logged_messages(caplog: pytest.LogCaptureFixture, exception: Exception) 
     caplog.clear()
     log_exception(exception)
     return [record.getMessage().rstrip() for record in caplog.records]
+
+
+@pytest.mark.usefixtures('configured_logger')
+# pylint: disable-next=unused-variable
+def test_log_exception_loglevel(caplog: pytest.LogCaptureFixture) -> None:
+    """Test `log_exception()` logs everything with `DEBUG` level."""
+    get_logged_messages(caplog, ValueError('some message'))
+    assert [record.levelno for record in caplog.records] == [logging.DEBUG, logging.DEBUG]
 
 
 @pytest.mark.usefixtures('configured_logger')
@@ -252,6 +210,55 @@ def test_log_exception_with_context(
                 Debug.EXCEPTION_LOG.format('KeyError'),
                 Debug.EXCEPTION_LOG_CONTEXT.format(exc_name, representation, text).rstrip(),
             ]
+
+
+class LogPaths(NamedTuple):
+    """Paths of the log files used by a test."""
+
+    main: Path
+    full: Path
+
+
+class LogOutputs(NamedTuple):
+    """Everything a `loggerize()` run produces, ready to be compared."""
+
+    main_log: list[str]
+    full_log: list[str]
+    console_stdout: list[str]
+    console_stderr: str
+
+
+@pytest.fixture(name='log_paths')
+# pylint: disable-next=unused-variable
+def log_paths_fixture(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> LogPaths:
+    """Redirect the program log files to a temporary directory."""
+    main_log_path = tmp_path / Paths.MAIN_LOG.name
+    full_log_path = tmp_path / Paths.FULL_LOG.name
+    monkeypatch.setattr(Paths, 'MAIN_LOG', main_log_path)
+    monkeypatch.setattr(Paths, 'FULL_LOG', full_log_path)
+    return LogPaths(main_log_path, full_log_path)
+
+
+@pytest.fixture(name='log_outputs')
+# pylint: disable-next=unused-variable
+def log_outputs_fixture(capsys: pytest.CaptureFixture[str], log_paths: LogPaths) -> LogOutputs:
+    """Run a decorated function and return what `loggerize()` logs."""
+    def remove_timestamps(logfile: Path) -> list[str]:
+        """Return the lines of *logfile* without the timestamp."""
+        return [line.partition(' ')[2] for line in logfile.read_text(encoding='utf-8').splitlines()]
+
+    def decorated_function() -> ExitCodes:
+        """Do nothing, essentially."""
+        return ExitCodes.SUCCESS
+
+    loggerize(decorated_function)()
+    captured = capsys.readouterr()
+    return LogOutputs(
+        main_log=remove_timestamps(log_paths.main),
+        full_log=remove_timestamps(log_paths.full),
+        console_stdout=captured.out.splitlines(),
+        console_stderr=captured.err,
+    )
 
 
 # pylint: disable-next=unused-variable
@@ -301,7 +308,6 @@ def test_loggerize_propagates_arguments(arguments: tuple[str, ...]) -> None:
     assert received_arguments == arguments
 
 
-
 # pylint: disable-next=unused-variable
 def test_loggerize_main_log_contents(log_outputs: LogOutputs) -> None:
     """Test the main log has the proper contents by default."""
@@ -335,3 +341,112 @@ def test_loggerize_console_matches_main_log(log_outputs: LogOutputs) -> None:
     """Test the console shows the same lines as the main log, only through `stdout`."""
     assert not log_outputs.console_stderr
     assert log_outputs.console_stdout == log_outputs.main_log
+
+
+KEYBOARD_INTERRUPT_MESSAGE = f'{Messages.WARNING_PREFIX}{lowercase_first_letter(Messages.WARNING_KEYBOARD_INTERRUPT)}'
+
+
+@keyboard_interrupt_handler
+def interrupted_function() -> ExitCodes:
+    """Stub which just raises `KeyboardInterrupt`.
+
+    This mimics the end user interrupting the program when the `main()`
+    function is running.
+    """
+    raise KeyboardInterrupt
+
+
+@pytest.mark.usefixtures('configured_logger')
+# pylint: disable-next=unused-variable
+def test_keyboard_interrupt_loglevel(caplog: pytest.LogCaptureFixture) -> None:
+    """Test `keyboard_interrupt_handler()` logs with `WARNING` level."""
+    interrupted_function()
+    assert [record.levelno for record in caplog.records] == [logging.WARNING, logging.WARNING]
+    assert [record.getMessage() for record in caplog.records] == ['', KEYBOARD_INTERRUPT_MESSAGE]
+
+
+# pylint: disable-next=unused-variable
+def test_keyboard_interrupt_indentation(configured_logger: pytest.CaptureFixture[str]) -> None:
+    """Test `keyboard_interrupt_handler()` indentation handling."""
+    logger.indent()
+    logger.indent()
+    interrupted_function()
+    captured = configured_logger.readouterr()
+    assert not captured.out
+    # The message starts at column 0, the logger indentation was reset.
+    assert captured.err.splitlines() == ['', KEYBOARD_INTERRUPT_MESSAGE]
+
+
+@pytest.mark.usefixtures('configured_logger')
+# pylint: disable-next=unused-variable
+def test_keyboard_interrupt_exitcode() -> None:
+    """Test `keyboard_interrupt_handler()` exit code is correct."""
+    assert interrupted_function() is ExitCodes.KEYBOARD_INTERRUPT
+
+
+@pytest.mark.parametrize('status', [pytest.param(member, id=member.name) for member in ExitCodes])
+# pylint: disable-next=unused-variable
+def test_keyboard_interrupt_handler_propagates_exitcode(
+    configured_logger: pytest.CaptureFixture[str],
+    status: ExitCodes,
+) -> None:
+    """Test `keyboard_interrupt_handler()` propagates exitcodes."""
+    @keyboard_interrupt_handler
+    def decorated_function() -> ExitCodes:
+        """Return the status under test."""
+        return status
+
+    assert decorated_function() is status
+    captured = configured_logger.readouterr()
+    assert not captured.out
+    assert not captured.err
+
+
+@pytest.mark.usefixtures('configured_logger')
+@pytest.mark.parametrize('arguments', [
+    pytest.param((), id='no_arguments'),
+    pytest.param(('first',), id='one_argument'),
+    pytest.param(('first', 'second', 'third'), id='several_arguments'),
+])
+# pylint: disable-next=unused-variable
+def test_keyboard_interrupt_handler_propagates_arguments(arguments: tuple[str, ...]) -> None:
+    """Test `keyboard_interrupt_handler()` propagates arguments."""
+    received_arguments: tuple[str, ...] | None = None
+
+    @keyboard_interrupt_handler
+    def decorated_function(*args: str) -> ExitCodes:
+        """Record the received arguments."""
+        nonlocal received_arguments
+        received_arguments = args
+        return ExitCodes.SUCCESS
+
+    decorated_function(*arguments)
+    assert received_arguments == arguments
+
+
+# pylint: disable-next=unused-variable
+def test_keyboard_interrupt_handler_ignores_other_exceptions(configured_logger: pytest.CaptureFixture[str]) -> None:
+    """Test `keyboard_interrupt_handler()` propagates exceptions."""
+    failure_message = 'Some failure'
+
+    @keyboard_interrupt_handler
+    def failing_function() -> ExitCodes:
+        """Raise an exception which is not `KeyboardInterrupt`."""
+        raise RuntimeError(failure_message)
+
+    with pytest.raises(RuntimeError, match=failure_message):
+        failing_function()
+    captured = configured_logger.readouterr()
+    assert not captured.out
+    assert not captured.err
+
+
+# pylint: disable-next=unused-variable
+def test_keyboard_interrupt_output(configured_logger: pytest.CaptureFixture[str]) -> None:
+    """Test `keyboard_interrupt_handler()` output when interrupted."""
+    interrupted_function()
+    captured = configured_logger.readouterr()
+    assert not captured.out
+    # The starting empty line comes from the empty warning logged before
+    # the decorator own message.
+    assert captured.err == f'\n{KEYBOARD_INTERRUPT_MESSAGE}\n'
