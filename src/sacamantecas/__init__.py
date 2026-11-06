@@ -232,8 +232,7 @@ class Debug(StrEnum):
     PROCESSING_URL = f'Procesando URL {Messages.QUOTED}'
     REDIRECTED_URL = f'URL redirigido a {Messages.QUOTED}'
     CHARSET_NOT_IN_HEADERS = 'Charset no detectado en las cabeceras'
-    CHARSET_FROM_HTTP_EQUIV = 'Charset detectado mediante meta http-equiv'
-    CHARSET_FROM_META_CHARSET = 'Charset detectado mediante meta charset'
+    CHARSET_FROM_META = 'Charset detectado mediante <meta>'
     CHARSET_FROM_DEFAULT = 'Charset no detectado, usando valor por defecto'
     CHARSET_IN_HEADERS = 'Charset detectado en las cabeceras'
     CONTENTS_ENCODING = f'Contenidos codificados con charset {Messages.QUOTED}'
@@ -1492,6 +1491,13 @@ def get_redirected_url(contents: bytes, base_url: Url) -> Url | None:
 def detect_html_charset(contents: bytes) -> str:
     """Obtain charset for *contents* from HTML tags, if any.
 
+    This follows, in a simplified way, the *prescan* step of the WHATWG
+    HTML encoding sniffing algorithm: only the first 1024 bytes of the
+    *contents* are examined, and the first `<meta>` tag which declares a
+    charset wins, no matter if it does so using its `charset` attribute
+    or inside its `content` attribute, nor the order of its attributes,
+    the quoting style or the letter case.
+
     If the charset can not be determined a sane fallback (ISO-8859-1) is
     used. It may look like UTF-8 would be such a sane fallback, because
     some webpages may NOT specify any encoding if they are using UTF-8
@@ -1505,21 +1511,16 @@ def detect_html_charset(contents: bytes) -> str:
     Return the detected charset from *contents* or the sane fallback.
     """
     fallback_charset = 'ISO-8859-1'
-    meta_http_equiv_charset_re = rb'<meta http-equiv=(["\'])content-type\1.*?charset=(["\'])([^"\']+)\2'
-    meta_charset_re = rb'<meta charset=(["\'])([^"\']+)\1'
+    prescan_size = 1024
+    meta_tag_re = rb'<meta\b[^>]*>'
+    charset_re = rb'charset\s*=\s*["\']?([\w.:-]+)'
 
-    charset = fallback_charset
-    if match := re.search(meta_http_equiv_charset_re, contents, re.IGNORECASE):
-        # Next best thing, from the meta http-equiv="content-type".
-        logger.debug(Debug.CHARSET_FROM_HTTP_EQUIV)
-        charset = match.group(3).decode('ascii')
-    elif match := re.search(meta_charset_re, contents, re.IGNORECASE):
-        # Last resort, from some meta charset, if any…
-        logger.debug(Debug.CHARSET_FROM_META_CHARSET)
-        charset = match.group(2).decode('ascii')
-    else:
-        logger.debug(Debug.CHARSET_FROM_DEFAULT)
-    return charset
+    for meta_tag in re.finditer(meta_tag_re, contents[:prescan_size], re.IGNORECASE):
+        if match := re.search(charset_re, meta_tag.group(0), re.IGNORECASE):
+            logger.debug(Debug.CHARSET_FROM_META)
+            return match.group(1).decode('ascii')
+    logger.debug(Debug.CHARSET_FROM_DEFAULT)
+    return fallback_charset
 
 
 # pylint: disable-next=too-many-branches
