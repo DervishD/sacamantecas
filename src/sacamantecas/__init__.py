@@ -11,6 +11,7 @@ from dataclasses import asdict, dataclass, fields
 from enum import IntEnum, StrEnum
 import errno
 from functools import wraps
+from html import unescape
 from html.parser import HTMLParser
 from http.client import HTTPException
 import logging
@@ -1469,22 +1470,28 @@ def get_redirected_url(contents: bytes, base_url: Url) -> Url | None:
     """Get redirected URL, if any, from *contents*.
 
     Get redirected URL from a `meta http-equiv="refresh"` pragma in the
-    contents. Use *base_url* as base URL for redirection, if some parts
-    are missing in the URL specified by the pragma.
+    contents. The first such pragma which contains a URL wins, no matter
+    the order of its attributes, the quoting style, the letter case, or
+    whether the target URL is quoted. Pragmas without URL (just a delay)
+    are ignored. HTML entities in the target URL are unescaped.
+
+    Use *base_url* as base URL for redirection, so relative targets are
+    resolved against it.
 
     Return redirected URL, or `None` if there is no redirection pragma.
     """
-    meta_refresh_re = rb'<meta http-equiv="refresh" content="(?:[^;]+;\s+)?URL=([^"]+)"'
+    meta_tag_re = rb'<meta\b[^>]*>'
+    refresh_re = rb'http-equiv\s*=\s*["\']?refresh\b'
+    target_re = rb'\burl\s*=\s*["\']?([^"\'>\s]+)'
 
-    if match := re.search(meta_refresh_re, contents, re.IGNORECASE):
-        target_url = match.group(1).decode('ascii', errors='replace')
-        # If not specified in the obtained redirected URL, both the
-        # scheme and netloc will be reused from the base URL. Any
-        # other field will be obtained from the redirected URL and
-        # used, no matter if it is empty.
-        redirected_url = urljoin(base_url, target_url)
-        logger.debug(Debug.REDIRECTED_URL.format(redirected_url))
-        return redirected_url
+    for meta_tag in re.finditer(meta_tag_re, contents, re.IGNORECASE):
+        if not re.search(refresh_re, meta_tag.group(0), re.IGNORECASE):
+            continue
+        if match := re.search(target_re, meta_tag.group(0), re.IGNORECASE):
+            target_url = unescape(match.group(1).decode('ascii', errors='replace'))
+            redirected_url = urljoin(base_url, target_url)
+            logger.debug(Debug.REDIRECTED_URL.format(redirected_url))
+            return redirected_url
     return None
 
 
