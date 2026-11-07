@@ -1456,14 +1456,28 @@ def retrieve_url(url: Url) -> str:
 def resolve_file_url(url: Url) -> Url:
     """Resolve relative paths in `file:` *url*.
 
-    The first slash is removed from the path, so unless it also contains
-    a drive specification, it is considered relative.
+    A network location (`file://host/share/path`) is a UNC path, which
+    is always absolute, so it is left as it is and returned in the form
+    `file:////host/share/path`, the only one `urllib` can open.
+
+    A drive letter mistaken for the host (`file://C:/dir/file`) is moved
+    back to the path, and `localhost` is dropped as it is redundant.
+
+    Otherwise, the first slash is removed from the path, so unless it
+    also contains a drive specification, it is considered relative.
     """
     parsed_url = urlparse(url)
-    resolved_path = unquote(parsed_url.path[1:])
-    resolved_path = Path(resolved_path).resolve().as_posix()
-    resolved_path = quote(resolved_path, safe=':/')
-    return parsed_url._replace(path='/' + resolved_path).geturl()
+    path = unquote(parsed_url.path)
+    netloc = parsed_url.netloc
+    if re.prefixmatch(r'[a-z]:', netloc, re.IGNORECASE | re.ASCII):
+        path = f'/{netloc}{path}'
+    elif netloc.lower() not in {'', 'localhost'}:
+        path = f'//{netloc}{path}'
+    if not path.startswith('//'):
+        # The leading slash is URL syntax, not a root: remove it so the
+        # path is relative unless it has a drive, and add it back after.
+        path = '/' + Path(path.removeprefix('/')).resolve().as_posix()
+    return parsed_url._replace(netloc='', path=quote(path, safe=':/')).geturl()
 
 
 def get_redirected_url(contents: bytes, base_url: Url) -> Url | None:
