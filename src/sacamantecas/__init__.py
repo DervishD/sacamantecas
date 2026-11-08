@@ -258,6 +258,7 @@ class Debug(StrEnum):
     METADATA_IS_EMPTY = 'Metadato vacío'
     METADATA_MISSING_VALUE = f'Metadato {Messages.QUOTED} incompleto, ignorando'
     METADATA_MISSING_KEY = f'No se encontró una clave, usando {Messages.QUOTED}'
+    METADATA_DUPLICATE = f'Metadato duplicado {Messages.QUOTED}: {Messages.QUOTED}, ignorando'
     METADATA_OK = f'Metadato correcto {Messages.QUOTED}: {Messages.QUOTED}'
     METADATA_KEY_MARKER_FOUND = f'Se encontró una marca de clave {Messages.QUOTED}'
     METADATA_VALUE_MARKER_FOUND = f'Se encontró una marca de valor {Messages.QUOTED}'
@@ -374,9 +375,11 @@ class BaseParser(HTMLParser):
             if self.current_k not in self.retrieved_metadata:
                 self.retrieved_metadata[self.current_k] = []
             # A set is not used below, to preserve order.
-            if self.current_v not in self.retrieved_metadata[self.current_k]:
+            if self.current_v in self.retrieved_metadata[self.current_k]:
+                logger.debug(Debug.METADATA_DUPLICATE.format(self.current_k, self.current_v))
+            else:
                 self.retrieved_metadata[self.current_k].append(self.current_v)
-            logger.debug(Debug.METADATA_OK.format(self.current_k, self.current_v))
+                logger.debug(Debug.METADATA_OK.format(self.current_k, self.current_v))
         self.current_k = self.DEFAULT_K
         self.current_v = self.DEFAULT_V
 
