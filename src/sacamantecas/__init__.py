@@ -531,6 +531,7 @@ class BaratzParser(BaseParser):
             if tag == self.K_TAG:
                 logger.debug(Debug.METADATA_KEY_MARKER_FOUND.format(tag))
                 self.within_k = True
+                self.current_k = self.DEFAULT_K
                 if self.within_v:
                     # If still processing a value, log about the nesting
                     # error but reset parser so everything starts afresh
@@ -542,6 +543,7 @@ class BaratzParser(BaseParser):
             if tag == self.V_TAG:
                 logger.debug(Debug.METADATA_VALUE_MARKER_FOUND.format(tag))
                 self.within_v = True
+                self.current_v = self.DEFAULT_V
                 if self.within_k:
                     # If a new key is found but a previous one is still
                     # being processed, this nesting error is not fatal
