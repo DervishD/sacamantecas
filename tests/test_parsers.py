@@ -602,7 +602,7 @@ SAMPLE_TAG = BASE_STR.replace(' ', '_')
     # Current behavior: an attribute without value is logged as "None".
     pytest.param(
         [(SAMPLE_K, None)],
-        Debug.HTML_START_TAG.format(BASE_STR, ' ', f'{SAMPLE_K}="None"'),
+        Debug.HTML_START_TAG.format(SAMPLE_TAG, ' ', f'{SAMPLE_K}="None"'),
         id='valueless_attr',
     ),
 ])
@@ -618,7 +618,7 @@ def test_start_tag_logging(
     caplog.set_level(logging.DEBUG)
     parser = BaseParser()
 
-    parser.handle_starttag(BASE_STR, attrs)
+    parser.handle_starttag(SAMPLE_TAG, attrs)
 
     assert caplog.messages == [expected]
 
