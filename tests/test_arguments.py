@@ -1,75 +1,176 @@
 """Test suite for argument handling."""
-import inspect
-from typing import TYPE_CHECKING
+import logging
 
 import pytest
 
 from sacamantecas import (
-    bootstrap,
-    Handler,
+    Debug,
+    Gateway,
+    logger,
     parse_arguments,
-    single_url_handler,
-    SourceError,
-    spreadsheet_handler,
-    textfile_handler,
-    unsupported_source_handler,
+    SingleUrlGateway,
+    SpreadSheetGateway,
+    TextFileGateway,
+    UnsupportedGateway,
 )
 
-if TYPE_CHECKING:
-    from collections.abc import Callable
-    from pathlib import Path
+URL = 'https://host.domain.tld/page'
+STEM = 'file_stem'
 
 
-# pylint: disable-next=unused-variable
-def test_unsupported_source() -> None:
-    """Test unsupported source."""
-    sources = 'source'
-    source, handler = next(parse_arguments(sources))
-
-    with pytest.raises(SourceError) as excinfo:
-        bootstrap(handler)
-
-    assert source == sources
-    assert inspect.isgenerator(handler)
-    assert inspect.isgeneratorfunction(unsupported_source_handler)
-    assert handler.gi_code.co_name == unsupported_source_handler.__name__
-    assert str(excinfo.value) == 'La fuente no es de un tipo admitido.'
-
-
-@pytest.mark.parametrize(('sources', 'expected'), [
-    pytest.param('http://source', single_url_handler, id='test_source_identification_http_url'),
-    pytest.param('file://source', single_url_handler, id='test_source_identification_file_url'),
-    pytest.param('source.txt', textfile_handler, id='test_source_identification_txt_file'),
-    pytest.param('source.xlsx', spreadsheet_handler, id='test_source_identification_xlsx_file'),
+@pytest.mark.parametrize(('argument', 'expected'), [
+    pytest.param(
+        URL,
+        SingleUrlGateway,
+        id='url',
+    ),
+    pytest.param(
+        URL.upper(),
+        SingleUrlGateway,
+        id='url_uppercase',
+    ),
+    pytest.param(
+        f'{URL}.txt',
+        SingleUrlGateway,
+        id='url_with_file_suffix',
+    ),
+    pytest.param(
+        f'{STEM}.txt',
+        TextFileGateway,
+        id='text_file',
+    ),
+    pytest.param(
+        f'{STEM}.TXT',
+        TextFileGateway,
+        id='text_file_uppercase',
+    ),
+    pytest.param(
+        f'{STEM}.xlsx',
+        SpreadSheetGateway,
+        id='spreadsheet',
+    ),
+    pytest.param(
+        f'{STEM}.XLSX',
+        SpreadSheetGateway,
+        id='spreadsheet_uppercase',
+    ),
+    pytest.param(
+        f'C:\\dir\\{STEM}.txt',
+        TextFileGateway,
+        id='drive_path',
+    ),
+    pytest.param(
+        f'  {STEM}.txt  ',
+        TextFileGateway,
+        id='padded',
+    ),
+    pytest.param(
+        f'{STEM}.qxt',
+        UnsupportedGateway,
+        id='unsupported_extension',
+    ),
+    pytest.param(
+        STEM,
+        UnsupportedGateway,
+        id='no_extension',
+    ),
 ])
 # pylint: disable-next=unused-variable
-def test_source_identification(sources: str, expected: Handler) -> None:
-    """Test identification of different *sources*."""
-    source, handler = next(parse_arguments(sources))
+def test_parse_arguments_gateway_types(argument: str, expected: type[Gateway]) -> None:
+    """Test the gateway type chosen for a single argument."""
+    gateways = list(parse_arguments(argument))
 
-    assert source == sources
-    assert inspect.isgenerator(handler)
-    assert inspect.isgeneratorfunction(expected)
-    assert handler.gi_code.co_name == expected.__name__
+    assert [type(gateway) for gateway in gateways] == [expected]
 
 
-@pytest.mark.parametrize(('suffix', 'handler_factory'), [
-    pytest.param('.txt', textfile_handler, id='test_missing_source_txt_file'),
-    pytest.param('.xlsx', spreadsheet_handler, id='test_missing_source_xlsx_file'),
+@pytest.mark.parametrize(('arguments', 'expected'), [
+    pytest.param(
+        (),
+        [],
+        id='no_arguments',
+    ),
+    pytest.param(
+        ('',),
+        [],
+        id='empty',
+    ),
+    pytest.param(
+        (' \t\n ',),
+        [],
+        id='whitespace',
+    ),
+    pytest.param(
+        (f'  {STEM}.txt  ',),
+        [f'{STEM}.txt'],
+        id='padded',
+    ),
+    pytest.param(
+        (f'{STEM}.txt', URL, f'{STEM}.xlsx', STEM),
+        [f'{STEM}.txt', URL, f'{STEM}.xlsx', STEM],
+        id='order',
+    ),
+    pytest.param(
+        (f'{STEM}.xlsx', '  ', f'{STEM}.txt'),
+        [f'{STEM}.xlsx', f'{STEM}.txt'],
+        id='blank_between',
+    ),
+    pytest.param(
+        (f'{STEM}.txt', f'{STEM}.txt'),
+        [f'{STEM}.txt', f'{STEM}.txt'],
+        id='repeated',
+    ),
 ])
 # pylint: disable-next=unused-variable
-def test_missing_source(tmp_path: Path, suffix: str, handler_factory: Callable[[Path], Handler]) -> None:
-    """Test handling of missing sources."""
-    handler = handler_factory(tmp_path / f'non_existent{suffix}')
+def test_parse_arguments_labels(arguments: tuple[str, ...], expected: list[str]) -> None:
+    """Test the labels of the gateways built for several arguments."""
+    gateways = list(parse_arguments(*arguments))
 
-    with pytest.raises(SourceError) as excinfo:
-        bootstrap(handler)
-
-    assert str(excinfo.value).startswith('No se encontró el fichero de entrada.')
+    assert [gateway.label for gateway in gateways] == expected
 
 
+@pytest.mark.parametrize(('argument', 'expected'), [
+    pytest.param(
+        URL,
+        [Debug.PROCESSING_ARG.format(URL), Debug.ARG_IS_SINGLE_URL],
+        id='url',
+    ),
+    pytest.param(
+        f'{STEM}.txt',
+        [Debug.PROCESSING_ARG.format(f'{STEM}.txt'), Debug.ARG_IS_TEXTFILE],
+        id='text_file',
+    ),
+    pytest.param(
+        f'{STEM}.xlsx',
+        [Debug.PROCESSING_ARG.format(f'{STEM}.xlsx'), Debug.ARG_IS_SPREADSHEET],
+        id='spreadsheet',
+    ),
+    pytest.param(
+        STEM,
+        [Debug.PROCESSING_ARG.format(STEM), Debug.ARG_IS_UNSUPPORTED],
+        id='unsupported',
+    ),
+    pytest.param(
+        f'  {STEM}.txt  ',
+        [Debug.PROCESSING_ARG.format(f'{STEM}.txt'), Debug.ARG_IS_TEXTFILE],
+        id='padded',
+    ),
+    pytest.param(
+        '  ',
+        [],
+        id='blank',
+    ),
+])
 # pylint: disable-next=unused-variable
-def test_parse_arguments_no_args() -> None:
-    """Test handling of missing argument list."""
-    with pytest.raises(StopIteration):
-        next(parse_arguments())
+def test_parse_arguments_messages(
+    caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    argument: str,
+    expected: list[str],
+) -> None:
+    """Test the debug messages logged for an argument."""
+    monkeypatch.setattr(logger, 'propagate', True)
+    caplog.set_level(logging.DEBUG)
+
+    list(parse_arguments(argument))
+
+    assert caplog.messages == expected
