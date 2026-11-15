@@ -633,6 +633,10 @@ class Gateway(ABC):
         Raise `GatewayError` if *results* contains no metadata at all.
         This is checked first, so no I/O is involved in that case.
 
+        Raise `GatewayError` as well if none of those URLs has metadata
+        in *results*, because there would be nothing to save for this
+        source, and its sink must not be created in that case.
+
         Otherwise, the URLs are retrieved again from the source, using
         `get_urls()`, before saving anything. That way the sink reflects
         the source as it is at saving time, not as it was when the URLs
@@ -645,6 +649,11 @@ class Gateway(ABC):
         if not any(results.values()):
             raise GatewayError(Messages.GATEWAY_ERROR_NO_RESULTS_TO_SAVE)
         self.get_urls()
+        if not any(results.values()):
+            raise GatewayError(Messages.GATEWAY_ERROR_NO_RESULTS_TO_SAVE)
+        self.get_urls()
+        if not any(results.get(url) for url in self.urls):
+            raise GatewayError(Messages.GATEWAY_ERROR_NO_RESULTS_TO_SAVE)
         try:
             return self._save_metadata(results)
         except PermissionError as exc:
@@ -717,9 +726,7 @@ class SingleUrlGateway(Gateway):
 
     def _save_metadata(self, results: SkimResults) -> None:
         """Save *results* metadata to a text file sink."""
-        metadata = results.get(self.label)
-        if not metadata:
-            return
+        metadata = results.get(self.label, {})
 
         with self.sink_path.open('w', encoding='utf-8') as sink:
             logger.debug(Debug.DUMPING_METADATA_TO_SINK.format(self.sink_path))
