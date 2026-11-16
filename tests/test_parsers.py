@@ -582,6 +582,7 @@ def test_colon_only_key_wipes_last_key() -> None:
 
 SAMPLE_TAG = BASE_STR.replace(' ', '_')
 
+
 @pytest.mark.parametrize(('attrs', 'expected'), [
     pytest.param(
         [],
