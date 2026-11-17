@@ -649,9 +649,6 @@ class Gateway(ABC):
         if not any(results.values()):
             raise GatewayError(Messages.GATEWAY_ERROR_NO_RESULTS_TO_SAVE)
         self.get_urls()
-        if not any(results.values()):
-            raise GatewayError(Messages.GATEWAY_ERROR_NO_RESULTS_TO_SAVE)
-        self.get_urls()
         if not any(results.get(url) for url in self.urls):
             raise GatewayError(Messages.GATEWAY_ERROR_NO_RESULTS_TO_SAVE)
         try:
