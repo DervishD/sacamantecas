@@ -171,6 +171,7 @@ class Messages(StrEnum):
     GATEWAY_ERROR_OUTPUT_FILE_WRITE_FAILED = 'No se pudo escribir el fichero de salida'
     GATEWAY_ERROR_NO_RESULTS_TO_SAVE = 'No hay metadatos para esta fuente'
     GATEWAY_ERROR_INPUT_TEXT_FILE_NOT_UTF_8 = 'El fichero de entrada no está codificado en UTF-8'
+    GATEWAY_ERROR_NUL_IN_URLS = 'La fuente contiene URLs con caracteres NUL'
     GATEWAY_ERROR_SOURCE_SHEET_IS_INVALID = 'La hoja de entrada es inválida'
 
     # Skimming errors.
@@ -623,6 +624,8 @@ class Gateway(ABC):
             raise GatewayError(Messages.GATEWAY_ERROR_INPUT_FILE_NO_PERMISSION) from exc
         except OSError as exc:
             raise GatewayError(Messages.GATEWAY_ERROR_INPUT_FILE_READ_FAILED) from exc
+        if any('\x00' in url for url in unique_urls):
+            raise GatewayError(Messages.GATEWAY_ERROR_NUL_IN_URLS)
         self.urls = unique_urls
         return self.urls
 
