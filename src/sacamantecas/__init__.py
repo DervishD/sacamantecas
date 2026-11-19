@@ -970,7 +970,11 @@ class SpreadSheetGateway(Gateway):
                 sheet.column_dimensions[get_column_letter(column)].max = column
             logger.debug(Debug.DUMPING_METADATA_K_V.format(key, value))
             # There is a one row offset because of the added headers.
-            sheet.cell(row + 1, known_metadata[key], value=value)
+            cell = sheet.cell(row + 1, known_metadata[key], value=value)
+            # Metadata values are always written as text (strings).
+            # Otherwise, `openpyxl` would store those starting with '='
+            # as formulas, to be evaluated, which is an injection risk.
+            cell.data_type = CELLTYPE_STRING
 
 
 def loggerize(function: Callable[..., ExitCodes]) -> Callable[..., ExitCodes]:
