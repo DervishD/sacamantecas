@@ -808,10 +808,10 @@ class SpreadSheetGateway(Gateway):
     """
 
     ADDED_METADATA_COLUMN_HEADER = '[sm] {}'
-    ADDED_CELLS_FONT = 'Calibri'
-    ADDED_CELLS_COLOR = 'baddad'
-    ADDED_CELLS_FILL_TYPE = 'solid'
-    ADDED_COLUMNS_WIDTH = 42  # The Answer to the Ultimate Question of Life, the Universe, and Everything.
+    HEADER_FONT = 'Calibri'
+    HEADER_COLOR = 'baddad'
+    HEADER_FILL_TYPE = 'solid'
+    HEADER_COLUMN_WIDTH = 42  # The Answer to the Ultimate Question of Life, the Universe, and Everything.
 
     def __init__(self, source: str, *args: object, **kwargs: object) -> None:
         """."""
@@ -944,8 +944,8 @@ class SpreadSheetGateway(Gateway):
                 known_metadata[key] = column
                 logger.debug(Debug.METADATA_STORED_IN_COLUMN.format(key, get_column_letter(column)))
                 cell = sheet.cell(row=1, column=column, value=column_header)
-                cell.font = Font(name=self.ADDED_CELLS_FONT)
-                cell.fill = PatternFill(fgColor=self.ADDED_CELLS_COLOR, fill_type=self.ADDED_CELLS_FILL_TYPE)
+                cell.font = Font(name=self.HEADER_FONT)
+                cell.fill = PatternFill(fgColor=self.HEADER_COLOR, fill_type=self.HEADER_FILL_TYPE)
                 # Set column width.
                 #
                 # As per Excel specification, the width of the zero char
@@ -961,7 +961,7 @@ class SpreadSheetGateway(Gateway):
                 #
                 # To wit, the Answer to the Ultimate Question of Life,
                 # the Universe, and Everything.
-                sheet.column_dimensions[get_column_letter(column)].width = self.ADDED_COLUMNS_WIDTH
+                sheet.column_dimensions[get_column_letter(column)].width = self.HEADER_COLUMN_WIDTH
                 # This is needed because in some occasions Excel files
                 # are not properly generated and the last column has a
                 # *max* field too large, and that implies an unintended
