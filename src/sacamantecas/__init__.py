@@ -811,6 +811,7 @@ class SpreadSheetGateway(Gateway):
     ADDED_CELLS_FONT = 'Calibri'
     ADDED_CELLS_COLOR = 'baddad'
     ADDED_CELLS_FILL = 'solid'
+    ADDED_COLUMNS_WIDTH = 42  # The Answer to the Ultimate Question of Life, the Universe, and Everything.
 
     def __init__(self, source: str, *args: object, **kwargs: object) -> None:
         """."""
@@ -960,7 +961,7 @@ class SpreadSheetGateway(Gateway):
                 #
                 # To wit, the Answer to the Ultimate Question of Life,
                 # the Universe, and Everything.
-                sheet.column_dimensions[get_column_letter(column)].width = 42
+                sheet.column_dimensions[get_column_letter(column)].width = self.ADDED_COLUMNS_WIDTH
                 # This is needed because in some occasions Excel files
                 # are not properly generated and the last column has a
                 # *max* field too large, and that implies an unintended
