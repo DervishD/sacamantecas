@@ -810,7 +810,7 @@ class SpreadSheetGateway(Gateway):
     ADDED_METADATA_COLUMN_HEADER = '[sm] {}'
     ADDED_CELLS_FONT = 'Calibri'
     ADDED_CELLS_COLOR = 'baddad'
-    ADDED_CELLS_FILL = 'solid'
+    ADDED_CELLS_FILL_TYPE = 'solid'
     ADDED_COLUMNS_WIDTH = 42  # The Answer to the Ultimate Question of Life, the Universe, and Everything.
 
     def __init__(self, source: str, *args: object, **kwargs: object) -> None:
@@ -945,7 +945,7 @@ class SpreadSheetGateway(Gateway):
                 logger.debug(Debug.METADATA_STORED_IN_COLUMN.format(key, get_column_letter(column)))
                 cell = sheet.cell(row=1, column=column, value=column_header)
                 cell.font = Font(name=self.ADDED_CELLS_FONT)
-                cell.fill = PatternFill(fgColor=self.ADDED_CELLS_COLOR, fill_type=self.ADDED_CELLS_FILL)
+                cell.fill = PatternFill(fgColor=self.ADDED_CELLS_COLOR, fill_type=self.ADDED_CELLS_FILL_TYPE)
                 # Set column width.
                 #
                 # As per Excel specification, the width of the zero char
