@@ -173,6 +173,7 @@ class Messages(StrEnum):
     GATEWAY_ERROR_INPUT_TEXT_FILE_NOT_UTF_8 = 'El fichero de entrada no está codificado en UTF-8'
     GATEWAY_ERROR_NUL_IN_URLS = 'La fuente contiene URLs con caracteres NUL'
     GATEWAY_ERROR_SOURCE_SHEET_IS_INVALID = 'La hoja de entrada es inválida'
+    GATEWAY_ERROR_NO_SHEETS_IN_SOURCE_WORKBOOK = 'El fichero de entrada no contiene hojas'
 
     # Skimming errors.
     SKIMMING_ERROR_URL_ACCESS = 'No resultó posible acceder a la dirección especificada ({})'
@@ -844,6 +845,9 @@ class SpreadSheetGateway(Gateway):
             raise
         except Exception as exc:
             raise GatewayError(Messages.GATEWAY_ERROR_SOURCE_SHEET_IS_INVALID) from exc
+        if not source_workbook.worksheets:
+            source_workbook.close()
+            raise GatewayError(Messages.GATEWAY_ERROR_NO_SHEETS_IN_SOURCE_WORKBOOK)
         source_sheet = source_workbook.worksheets[0]
         logger.debug(Debug.WORKING_SHEET.format(source_sheet.title))
         self.url_rows = {}
