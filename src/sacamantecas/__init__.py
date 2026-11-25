@@ -977,8 +977,9 @@ class SpreadSheetGateway(Gateway):
             # There is a one row offset because of the added headers.
             cell = sheet.cell(row + 1, known_metadata[key], value=value)
             # Metadata values are always written as text (strings).
-            # Otherwise, `openpyxl` would store those starting with '='
-            # as formulas, to be evaluated, which is an injection risk.
+            # Otherwise, `openpyxl` would store those starting with '=',
+            # and other expressions, as formulas to be evaluated, which
+            # is an injection risk.
             cell.data_type = CELLTYPE_STRING
 
 
