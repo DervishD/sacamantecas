@@ -854,7 +854,7 @@ class SpreadSheetGateway(Gateway):
         all_urls: list[Url] = []
         for row in source_sheet.rows:
             row_number = row[0].row
-            if not row_number:
+            if row_number is None or row_number < 1:
                 continue
             logger.debug(Debug.PROCESSING_ROW.format(row_number))
             if (url := self._get_url_from_row(row)) is None:
