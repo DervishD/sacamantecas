@@ -23,6 +23,7 @@ def test_is_url_accepts(url: Url) -> None:
     """Test accepted URLs."""
     assert is_url(url)
 
+
 @pytest.mark.parametrize('url', [
     pytest.param('\u017ftp://', id='non_ASCII_F'),
     pytest.param('\u212attp://x', id='non_ASCII_K'),
