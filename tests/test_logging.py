@@ -376,7 +376,7 @@ def test_keyboard_interrupt_output(configured_logger: pytest.CaptureFixture[str]
     captured = configured_logger.readouterr()
     assert not captured.out
     # The starting empty line comes from the empty warning logged before
-    # the decorator own message.
+    # the decorator's own message.
     assert captured.err == f'\n{KEYBOARD_INTERRUPT_MESSAGE}\n'
 
 
