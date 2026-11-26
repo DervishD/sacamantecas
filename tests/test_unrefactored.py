@@ -10,7 +10,7 @@ import sacamantecas
 
 ALLOWED_UNREFACTORED_STRINGS = (
     # Early platform check.
-    'win32', '\nThis program is compatible only with the Win32 platform.\n',
+    'win32', '\nThis program is compatible only with the Win32 platform.',
     # Python well-known strings.
     'frozen', 'w', '%s',
     # Timestamp stem.
@@ -18,9 +18,13 @@ ALLOWED_UNREFACTORED_STRINGS = (
     # Empty strings.
     ' ', '',
     # Miscellaneous strings.
-    'file://', '.txt', '.xlsx', 'utf-8', 'ascii', '==', ' v', r'\W',
+    'localhost', 'file',
+    '.txt', '.xlsx',
+    'utf-8-sig', 'utf-8', 'ascii',
+    'always', 'replace',
+    '==', ' v', '[a-z]:', '\\W',
     # Punctuation.
-    '_', ':/', '/', '. ', ', ', '\n',
+    '_', ':/', '/', '//', '\n', '\x00',
 )
 
 
@@ -32,7 +36,7 @@ class UnrefactoredStringsAuditor(ast.NodeVisitor):
         self.stale_allowed_strings: list[str] = list(ALLOWED_UNREFACTORED_STRINGS)
         self.unrefactored_strings: list[tuple[int, str]] = []
 
-    def visit_ignoring_docstring(
+    def visit_while_ignoring_docstring(
         self,
         node:  ast.Module | ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef,
     ) -> None:
@@ -43,19 +47,19 @@ class UnrefactoredStringsAuditor(ast.NodeVisitor):
 
     def visit_Module(self, node: ast.Module) -> None:  # pylint: disable=invalid-name
         """Visit `ast.Module` *node*."""
-        self.visit_ignoring_docstring(node)
+        self.visit_while_ignoring_docstring(node)
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:  # pylint: disable=invalid-name
         """Visit `ast.ClassDef` *node*."""
-        self.visit_ignoring_docstring(node)
+        self.visit_while_ignoring_docstring(node)
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:   # pylint: disable=invalid-name
         """Visit `ast.FunctionDef` *node*."""
-        self.visit_ignoring_docstring(node)
+        self.visit_while_ignoring_docstring(node)
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:   # pylint: disable=invalid-name
         """Visit `ast.AsyncFunctionDef` *node*."""
-        self.visit_ignoring_docstring(node)
+        self.visit_while_ignoring_docstring(node)
 
     def visit_JoinedStr(self, node: ast.JoinedStr) -> None:  # pylint: disable=invalid-name
         """Visit `ast.JoinedStr` node."""
@@ -81,8 +85,8 @@ class UnrefactoredStringsAuditor(ast.NodeVisitor):
             return
 
         if isinstance(node, ast.Tuple | ast.List | ast.Set):
-            for elt in node.elts:
-                self.visit_magic_strings(elt)
+            for element in node.elts:
+                self.visit_magic_strings(element)
             return
 
         self.visit(node)
@@ -126,6 +130,47 @@ class UnrefactoredStringsAuditor(ast.NodeVisitor):
         if isinstance(node.value, str):
             self.unrefactored_strings.append((node.lineno, repr(node.value)))
 
+    @staticmethod
+    # pylint: disable=too-many-return-statements
+    def _is_quoted_format_call(node: ast.Call) -> bool:  # ruff: ignore[PLR0911]
+        """Check whether *node* is a call to `QUOTED.format()`.
+
+        Accepts both `QUOTED.format()` and `Messages.QUOTED.format()`.
+        """
+        if not isinstance(node.func, ast.Attribute):
+            # Not a method call.
+            return False
+        if node.func.attr != 'format':
+            # Not a `.format()` call.
+            return False
+        if isinstance(node.func.value, ast.Name):
+            # Is this `QUOTED.format()`?
+            return node.func.value.id == 'QUOTED'
+        if not isinstance(node.func.value, ast.Attribute):
+            # Not a `NAME_A.NAME_B.format()` call.
+            return False
+        if node.func.value.attr != 'QUOTED':
+            # Not a `.QUOTED.format()` call.
+            return False
+        if not isinstance(node.func.value.value, ast.Name):
+            # Not a `NAME.QUOTED.format()` call.
+            return False
+        # Is this `Messages.QUOTED.format()`?
+        return node.func.value.value.id == 'Messages'
+
+    def visit_Call(self, node: ast.Call) -> None:  # pylint: disable=invalid-name
+        """Visit `ast.Call` *node*."""
+        # Allow unrefactored strings ONLY for Messages.QUOTED.format()
+        # and QUOTED.format() calls.
+        if not self._is_quoted_format_call(node):
+            self.generic_visit(node)
+            return
+        for args in (node.args, (keyword.value for keyword in node.keywords)):
+            for arg in args:
+                if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+                    continue
+                self.visit(arg)
+
 
 class AuditReport(NamedTuple):
     """Encapsulate a non-refactored strings auditing report."""
@@ -168,7 +213,7 @@ def test_unrefactored_strings() -> None:
             unrefactored_strings=[(2, "'magic'")],
             stale_allowed_strings=[],
         ),
-        id='test_allowed_refactored_strings_are_ignored',
+        id='ignore_allowed_refactored_strings',
     ),
     pytest.param(
         ['allowed_string'], ['stale_allowed_string'],
@@ -177,7 +222,7 @@ def test_unrefactored_strings() -> None:
             unrefactored_strings=[],
             stale_allowed_strings=['stale_allowed_string'],
         ),
-        id='test_allowed_refactored_strings_stale_detected',
+        id='detect_stale_refactored_strings',
     ),
 ])
 # pylint: disable-next=unused-variable
@@ -199,74 +244,32 @@ def test_allowed_refactored_strings(
     pytest.param(
         '"""Module docstring."""',
         [],
-        id='test_docstrings_ignore_module_docstring',
+        id='module_docstrings_ignored',
     ),
     pytest.param(
         'class Example:\n """Class docstring."""',
         [],
-        id='test_docstrings_ignore_class_docstring',
+        id='class_docstrings_ignored',
     ),
     pytest.param(
         'def example():\n """Function docstring."""',
         [],
-        id='test_docstrings_ignore_function_docstring',
+        id='function_docstrings_ignored',
     ),
     pytest.param(
         'async def example():\n """Async function docstring."""',
         [],
-        id='test_docstrings_ignore_async_function_docstring',
+        id='async_function_docstrings_ignored',
     ),
     pytest.param(
         'def example():\n """Docstring."""\n "This is not a docstring, but a magic string."',
         [(3, "'This is not a docstring, but a magic string.'")],
-        id = 'test_docstrings_docstring_is_first_child',
+        id='docstring_is_first_child',
     ),
 ])
 # pylint: disable-next=unused-variable
 def test_docstrings(source: str, unrefactored: list[tuple[int, str]]) -> None:
     """Test that docstrings are ignored."""
-    report = audit(source)
-
-    assert report.unrefactored_strings == unrefactored
-
-
-@pytest.mark.parametrize(('source', 'unrefactored'), [
-    pytest.param("EXAMPLES = ('x', 'y')", [], id='test_containers_tuple_container'),
-    pytest.param("EXAMPLES = ['x', 'y']", [], id='test_containers_list_container'),
-    pytest.param("EXAMPLES = {'x', 'y'}", [], id='test_containers_set_container'),
-    pytest.param("EXAMPLES = ('x', ('y', 'z'))", [], id='test_containers_nested_tuple'),
-    pytest.param("PAIR = 'x', foo('magic')", [(1, "'magic'")], id='test_containers_mixed_tuple'),
-    pytest.param('EXAMPLES = ()', [], id='test_containers_empty_tuple'),
-])
-# pylint: disable-next=unused-variable
-def test_containers(source: str, unrefactored: list[tuple[int, str]]) -> None:
-    """Test `Auditor` supported containers handling."""
-    report = audit(source)
-
-    assert report.unrefactored_strings == unrefactored
-
-
-@pytest.mark.parametrize(('source', 'unrefactored'), [
-    pytest.param("MAPPING = {'a': 'b'}", [(1, "'b'")], id='test_dicts_bare_value_is_magic'),
-    pytest.param("MAPPING = {'a': {'nested': 'magic'}}", [(1, "'magic'")], id='test_dicts_nested_key_is_not_magic'),
-    pytest.param('MAPPING = {**foo}', [], id='test_dicts_unpacked_expr_as_key_is_none'),
-    pytest.param("MAPPING = {**foo('magic')}", [(1, "'magic'")], id='test_dicts_unpacked_expr_with_bare_string'),
-])
-# pylint: disable-next=unused-variable
-def test_dicts(source: str, unrefactored: list[tuple[int, str]]) -> None:
-    """Test `ast.Dict` nodes handling."""
-    report = audit(source)
-
-    assert report.unrefactored_strings == unrefactored
-
-
-@pytest.mark.parametrize(('source', 'unrefactored'), [
-    pytest.param('x = f"prefix_{i}_suffix"', [], id='test_fstrings_literal_fragments_ignored'),
-    pytest.param('x = f"{foo(\'magic\')}"', [(1, "'magic'")], id='test_fstrings_bare_string_in_expression_is_magic'),
-])
-# pylint: disable-next=unused-variable
-def test_fstrings(source: str, unrefactored: list[tuple[int, str]]) -> None:
-    """Test f-string literals are ignored but expressions are not."""
     report = audit(source)
 
     assert report.unrefactored_strings == unrefactored
@@ -281,8 +284,50 @@ def test_fields_outside_body() -> None:
     as a function argument default value but any other field outside the
     node's `body` element (decorator arguments, base classes, a literal
     return annotation, etc.) would be an equally valid choice, so one is
-    is representative of all.
+    representative of all.
     """
     report = audit('def foo(x="magic"):\n pass\n')
 
     assert report.unrefactored_strings == [(1, "'magic'")]
+
+
+@pytest.mark.parametrize(('source', 'unrefactored'), [
+    pytest.param('x = f"prefix_{i}_suffix"', [], id='fstrings_literal_fragments_ignored'),
+    pytest.param('x = f"{foo(\'magic\')}"', [(1, "'magic'")], id='fstrings_bare_string_in_expression_is_magic'),
+])
+# pylint: disable-next=unused-variable
+def test_fstrings(source: str, unrefactored: list[tuple[int, str]]) -> None:
+    """Test f-string literals are ignored but expressions are not."""
+    report = audit(source)
+
+    assert report.unrefactored_strings == unrefactored
+
+
+@pytest.mark.parametrize(('source', 'unrefactored'), [
+    pytest.param("EXAMPLES = ['x', 'y']", [], id='list'),
+    pytest.param("EXAMPLES = {'x', 'y'}", [], id='set'),
+    pytest.param("EXAMPLES = ('x', 'y')", [], id='tuple'),
+    pytest.param("EXAMPLES = ('x', ('y', 'z'))", [], id='nested_tuple'),
+    pytest.param("PAIR = 'x', foo('magic')", [(1, "'magic'")], id='mixed_tuple'),
+    pytest.param('EXAMPLES = ()', [], id='empty_tuple'),
+])
+# pylint: disable-next=unused-variable
+def test_containers(source: str, unrefactored: list[tuple[int, str]]) -> None:
+    """Test `Auditor` supported containers handling."""
+    report = audit(source)
+
+    assert report.unrefactored_strings == unrefactored
+
+
+@pytest.mark.parametrize(('source', 'unrefactored'), [
+    pytest.param("MAPPING = {'a': 'b'}", [(1, "'b'")], id='dict_bare_value_is_magic'),
+    pytest.param("MAPPING = {'a': {'nested': 'magic'}}", [(1, "'magic'")], id='dict_nested_key_is_not_magic'),
+    pytest.param('MAPPING = {**foo}', [], id='dict_unpacked_expr_as_key_is_none'),
+    pytest.param("MAPPING = {**foo('magic')}", [(1, "'magic'")], id='dict_unpacked_expr_with_bare_string'),
+])
+# pylint: disable-next=unused-variable
+def test_dicts(source: str, unrefactored: list[tuple[int, str]]) -> None:
+    """Test `ast.Dict` nodes handling."""
+    report = audit(source)
+
+    assert report.unrefactored_strings == unrefactored
