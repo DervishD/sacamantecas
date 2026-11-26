@@ -72,9 +72,9 @@ def codetrees() -> list[ast.Module]:
 
 
 @pytest.mark.parametrize('classname', [
-    pytest.param(sacamantecas.ExitCodes.__name__, id='test_no_unused_ExitCodes_attributes'),
-    pytest.param(sacamantecas.Messages.__name__, id='test_no_unused_Messages_attributes'),
-    pytest.param(sacamantecas.Paths.__name__, id='test_no_unused_Paths_attributes'),
+    pytest.param(sacamantecas.ExitCodes.__name__, id='exitcodes'),
+    pytest.param(sacamantecas.Messages.__name__, id='messages'),
+    pytest.param(sacamantecas.Paths.__name__, id='paths'),
 ])
 # pylint: disable-next=unused-variable
 def test_no_unused_class_attributes(classname: str) -> None:
