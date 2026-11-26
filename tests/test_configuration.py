@@ -482,10 +482,12 @@ def test_load_inifile_open_errors(
     expected: str,
 ) -> None:
     """Test the errors raised when opening the INI file fails."""
-    def failing_open(*_args: object, **_kwargs: object) -> NoReturn:
+
+    def mock_open(*_args: object, **_kwargs: object) -> NoReturn:
+        """Stub which just raises an exception."""
         raise error
 
-    monkeypatch.setattr(Path, 'open', failing_open)
+    monkeypatch.setattr(Path, 'open', mock_open)
     inifile_path = tmp_path / 'file.ini'
 
     with pytest.raises(IniFileError) as exc_info:
