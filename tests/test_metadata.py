@@ -9,6 +9,20 @@ from sacamantecas.about import BUILD, PROGRAM_NAME
 PROJECT_METADATA = get_project_metadata()
 
 
+# pylint: disable-next=unused-variable
+def test_project_root() -> None:
+    """Test the project root for the program is coherent."""
+    assert PROJECT_METADATA is not None
+    assert Path(__file__).parent.parent == PROJECT_METADATA['project_root']
+
+
+# pylint: disable-next=unused-variable
+def test_program_name_matches_metadata() -> None:
+    """Test the hardcoded program name is what it should be."""
+    assert PROJECT_METADATA is not None
+    assert PROJECT_METADATA['project']['name'] == PROGRAM_NAME
+
+
 # This project uses a PyPA compliant versioning scheme, as defined in
 # https://packaging.python.org/en/latest/specifications/version-specifiers/#version-scheme
 #
@@ -56,17 +70,3 @@ def test_version_matches_pypa_spec() -> None:
         )?+
     $"""
     assert re.fullmatch(pypa_spec_compliant_version_regex, BUILD, re.ASCII|re.VERBOSE) is not None
-
-
-# pylint: disable-next=unused-variable
-def test_project_root() -> None:
-    """Test the project root for the program is coherent."""
-    assert PROJECT_METADATA is not None
-    assert Path(__file__).parent.parent == PROJECT_METADATA['project_root']
-
-
-# pylint: disable-next=unused-variable
-def test_program_name_matches_metadata() -> None:
-    """Test the hardcorded program name is what it should be."""
-    assert PROJECT_METADATA is not None
-    assert PROJECT_METADATA['project']['name'] == PROGRAM_NAME
