@@ -21,6 +21,72 @@ from sacamantecas import (
     SettingsError,
 )
 
+type ProfileSummary = tuple[str, re.Pattern[str], type[BaseParser], ParserConfig]
+
+
+SAMPLE_K = 'sample_k'
+SAMPLE_V = 'sample_v'
+SAMPLE_PROFILE_NAME = 'a_profile_name'
+SAMPLE_URL_PATTERN = 'a_url_pattern'
+SAMPLE_K_PATTERN = 'a_k_pattern'
+SAMPLE_V_PATTERN = 'a_v_pattern'
+SAMPLE_PERCENT_PATTERN = 'a_%_pattern'
+
+
+OLD_REGIME_PROFILE_NAME = 'old_regime_sample_profile'
+OLD_REGIME_URL_PATTERN = 'old_regime_url_pattern'
+OLD_REGIME_CONTENTS = {
+    'url': OLD_REGIME_URL_PATTERN,
+    OldRegimeParser.K_CLASS: 'sample_k_pattern',
+    OldRegimeParser.V_CLASS: 'sample_v_pattern',
+}
+OLD_REGIME_PROFILE = (
+    OLD_REGIME_PROFILE_NAME,
+    re.compile(OLD_REGIME_CONTENTS['url'], re.IGNORECASE),
+    OldRegimeParser,
+    {
+        OldRegimeParser.K_CLASS: re.compile(OLD_REGIME_CONTENTS[OldRegimeParser.K_CLASS], re.IGNORECASE),
+        OldRegimeParser.V_CLASS: re.compile(OLD_REGIME_CONTENTS[OldRegimeParser.V_CLASS], re.IGNORECASE),
+    },
+)
+OLD_REGIME_INI = (
+    f'[{OLD_REGIME_PROFILE_NAME}]\n'
+    f'url = {OLD_REGIME_CONTENTS['url']}\n'
+    f'{OldRegimeParser.K_CLASS} = {OLD_REGIME_CONTENTS[OldRegimeParser.K_CLASS]}\n'
+    f'{OldRegimeParser.V_CLASS} = {OLD_REGIME_CONTENTS[OldRegimeParser.V_CLASS]}\n'
+)
+
+BARATZ_PROFILE_NAME = 'baratz_sample_profile'
+BARATZ_URL_PATTERN = 'baratz_url_pattern'
+BARATZ_CONTENTS = {
+    'url': BARATZ_URL_PATTERN,
+    BaratzParser.M_TAG: 'sample_tag_pattern',
+    BaratzParser.M_ATTR: 'sample_attr_pattern',
+    BaratzParser.M_VALUE: 'sample_value_pattern',
+}
+BARATZ_PROFILE = (
+    BARATZ_PROFILE_NAME,
+    re.compile(BARATZ_CONTENTS['url'], re.IGNORECASE),
+    BaratzParser,
+    {
+        BaratzParser.M_TAG: re.compile(BARATZ_CONTENTS[BaratzParser.M_TAG], re.IGNORECASE),
+        BaratzParser.M_ATTR: re.compile(BARATZ_CONTENTS[BaratzParser.M_ATTR], re.IGNORECASE),
+        BaratzParser.M_VALUE: re.compile(BARATZ_CONTENTS[BaratzParser.M_VALUE], re.IGNORECASE),
+    },
+)
+BARATZ_INI = (
+    f'[{BARATZ_PROFILE_NAME}]\n'
+    f'url = {BARATZ_CONTENTS['url']}\n'
+    f'{BaratzParser.M_TAG} = {BARATZ_CONTENTS[BaratzParser.M_TAG]}\n'
+    f'{BaratzParser.M_ATTR} = {BARATZ_CONTENTS[BaratzParser.M_ATTR]}\n'
+    f'{BaratzParser.M_VALUE} = {BARATZ_CONTENTS[BaratzParser.M_VALUE]}\n'
+)
+
+SETTINGS_INI = (
+    'url_retrieval_timeout_seconds = 7\n'
+    'max_url_redirections = 3\n'
+)
+
 
 @pytest.mark.parametrize(('contents', 'expected'), [
     pytest.param(
@@ -50,8 +116,7 @@ def test_parse_settings(contents: dict[str, str], expected: Settings) -> None:
     assert parse_settings(contents) == expected
 
 
-SAMPLE_K = 'sample_k'
-SAMPLE_V = 'sample_v'
+
 @pytest.mark.parametrize(('contents', 'expected'), [
     # Unknown settings.
     pytest.param(
@@ -113,44 +178,6 @@ def test_parse_settings_errors(contents: dict[str, str], expected: str) -> None:
     assert str(exc_info.value) == expected
 
 
-type ProfileSummary = tuple[str, re.Pattern[str], type[BaseParser], ParserConfig]
-
-OLD_REGIME_PROFILE_NAME = 'old_regime_sample_profile'
-OLD_REGIME_URL_PATTERN = 'old_regime_url_pattern'
-OLD_REGIME_CONTENTS = {
-    'url': OLD_REGIME_URL_PATTERN,
-    OldRegimeParser.K_CLASS: 'sample_k_pattern',
-    OldRegimeParser.V_CLASS: 'sample_v_pattern',
-}
-OLD_REGIME_PROFILE = (
-    OLD_REGIME_PROFILE_NAME,
-    re.compile(OLD_REGIME_CONTENTS['url'], re.IGNORECASE),
-    OldRegimeParser,
-    {
-        OldRegimeParser.K_CLASS: re.compile(OLD_REGIME_CONTENTS[OldRegimeParser.K_CLASS], re.IGNORECASE),
-        OldRegimeParser.V_CLASS: re.compile(OLD_REGIME_CONTENTS[OldRegimeParser.V_CLASS], re.IGNORECASE),
-    },
-)
-BARATZ_PROFILE_NAME = 'baratz_sample_profile'
-BARATZ_URL_PATTERN = 'baratz_url_pattern'
-BARATZ_CONTENTS = {
-    'url': BARATZ_URL_PATTERN,
-    BaratzParser.M_TAG: 'sample_tag_pattern',
-    BaratzParser.M_ATTR: 'sample_attr_pattern',
-    BaratzParser.M_VALUE: 'sample_value_pattern',
-}
-BARATZ_PROFILE = (
-    BARATZ_PROFILE_NAME,
-    re.compile(BARATZ_CONTENTS['url'], re.IGNORECASE),
-    BaratzParser,
-    {
-        BaratzParser.M_TAG: re.compile(BARATZ_CONTENTS[BaratzParser.M_TAG], re.IGNORECASE),
-        BaratzParser.M_ATTR: re.compile(BARATZ_CONTENTS[BaratzParser.M_ATTR], re.IGNORECASE),
-        BaratzParser.M_VALUE: re.compile(BARATZ_CONTENTS[BaratzParser.M_VALUE], re.IGNORECASE),
-    },
-)
-
-
 @pytest.mark.parametrize(('contents', 'expected'), [
     pytest.param(
         {},
@@ -189,70 +216,60 @@ def test_parse_profiles(contents: dict[str, dict[str, str]], expected: list[Prof
     assert actual == expected
 
 
-PROFILE_NAME = 'sample_profile_name'
-OTHER_PROFILE_NAME = 'other_sample_profile_name'
-URL_PATTERN = 'sample_url_pattern'
-K_PATTERN = 'sample_k_pattern'
-V_PATTERN = 'sample_v_pattern'
-EXTRA_PATTERN = 'sample_x_pattern'
-BARATZ_PARAMETERS = {
-    BaratzParser.M_TAG: EXTRA_PATTERN,
-    BaratzParser.M_ATTR: EXTRA_PATTERN,
-    BaratzParser.M_VALUE: EXTRA_PATTERN,
-}
+
 
 
 @pytest.mark.parametrize(('contents', 'expected'), [
     # Empty profile.
     pytest.param(
-        {PROFILE_NAME: {}},
-        Messages.PROFILE_ERROR_EMPTY_PROFILE.format(PROFILE_NAME),
+        {SAMPLE_PROFILE_NAME: {}},
+        Messages.PROFILE_ERROR_EMPTY_PROFILE.format(SAMPLE_PROFILE_NAME),
         id='empty_profile',
     ),
 
     # Missing URL pattern.
     pytest.param(
-        {PROFILE_NAME: {OldRegimeParser.K_CLASS: K_PATTERN, OldRegimeParser.V_CLASS: V_PATTERN}},
-        Messages.PROFILE_ERROR_PROFILE_WITHOUT_URL.format(PROFILE_NAME),
+        {SAMPLE_PROFILE_NAME: {OldRegimeParser.K_CLASS: SAMPLE_K_PATTERN, OldRegimeParser.V_CLASS: SAMPLE_V_PATTERN}},
+        Messages.PROFILE_ERROR_PROFILE_WITHOUT_URL.format(SAMPLE_PROFILE_NAME),
         id='no_url',
     ),
     pytest.param(
-        {PROFILE_NAME: {**OLD_REGIME_CONTENTS, 'url': ''}},
-        Messages.PROFILE_ERROR_PROFILE_WITHOUT_URL.format(PROFILE_NAME),
+        {SAMPLE_PROFILE_NAME: {**OLD_REGIME_CONTENTS, 'url': ''}},
+        Messages.PROFILE_ERROR_PROFILE_WITHOUT_URL.format(SAMPLE_PROFILE_NAME),
         id='empty_url',
     ),
 
     # Parameters not matching any parser.
     pytest.param(
-        {PROFILE_NAME: {'url': URL_PATTERN}},
-        Messages.PROFILE_ERROR_PROFILE_WRONG_PARAMETERS.format(PROFILE_NAME),
+        {SAMPLE_PROFILE_NAME: {'url': SAMPLE_URL_PATTERN}},
+        Messages.PROFILE_ERROR_PROFILE_WRONG_PARAMETERS.format(SAMPLE_PROFILE_NAME),
         id='only_url',
     ),
     pytest.param(
-        {PROFILE_NAME: {'url': URL_PATTERN, OldRegimeParser.K_CLASS: K_PATTERN}},
-        Messages.PROFILE_ERROR_PROFILE_WRONG_PARAMETERS.format(PROFILE_NAME),
+        {SAMPLE_PROFILE_NAME: {'url': SAMPLE_URL_PATTERN, OldRegimeParser.K_CLASS: SAMPLE_K_PATTERN}},
+        Messages.PROFILE_ERROR_PROFILE_WRONG_PARAMETERS.format(SAMPLE_PROFILE_NAME),
         id='missing_parameter',
     ),
     pytest.param(
-        {PROFILE_NAME: {**OLD_REGIME_CONTENTS, 'nope': EXTRA_PATTERN}},
-        Messages.PROFILE_ERROR_PROFILE_WRONG_PARAMETERS.format(PROFILE_NAME),
+        {SAMPLE_PROFILE_NAME: {**OLD_REGIME_CONTENTS, 'nope': 'nope'}},
+        Messages.PROFILE_ERROR_PROFILE_WRONG_PARAMETERS.format(SAMPLE_PROFILE_NAME),
         id='unknown_parameter',
     ),
     pytest.param(
-        {PROFILE_NAME: {**OLD_REGIME_CONTENTS, **BARATZ_PARAMETERS}},
-        Messages.PROFILE_ERROR_PROFILE_WRONG_PARAMETERS.format(PROFILE_NAME),
+        {SAMPLE_PROFILE_NAME: {**OLD_REGIME_CONTENTS, **{k: v for k, v in BARATZ_CONTENTS.items() if k != 'url'}}},
+        Messages.PROFILE_ERROR_PROFILE_WRONG_PARAMETERS.format(SAMPLE_PROFILE_NAME),
         id='mixed_parameters',
     ),
 
     # Several profiles.
     pytest.param(
-        {PROFILE_NAME: OLD_REGIME_CONTENTS, OTHER_PROFILE_NAME: {}},
-        Messages.PROFILE_ERROR_EMPTY_PROFILE.format(OTHER_PROFILE_NAME),
+        {SAMPLE_PROFILE_NAME: OLD_REGIME_CONTENTS, f'{SAMPLE_PROFILE_NAME}o': {}},
+        Messages.PROFILE_ERROR_EMPTY_PROFILE.format(f'{SAMPLE_PROFILE_NAME}o'),
         id='second_profile',
     ),
     pytest.param(
-        {PROFILE_NAME: {}, OTHER_PROFILE_NAME: {'url': URL_PATTERN}},
-        Messages.PROFILE_ERROR_EMPTY_PROFILE.format(PROFILE_NAME),
+        {SAMPLE_PROFILE_NAME: {}, f'{SAMPLE_PROFILE_NAME}o': {'url': SAMPLE_URL_PATTERN}},
+        Messages.PROFILE_ERROR_EMPTY_PROFILE.format(SAMPLE_PROFILE_NAME),
         id='first_error',
     ),
 ])
@@ -283,33 +300,17 @@ def test_parse_profiles_invalid_regex(key: str, pattern: str) -> None:
     with pytest.raises(re.PatternError) as exc:
         re.compile(pattern)
     expected = Messages.PROFILE_ERROR_INVALID_REGEX.format(
-        PROFILE_NAME, key, pattern, exc.value.pos or 0, type(exc.value).__name__, exc.value.msg,
+        SAMPLE_PROFILE_NAME, key, pattern, exc.value.pos or 0, type(exc.value).__name__, exc.value.msg,
     )
 
     with pytest.raises(ProfileError) as exc_info:
-        parse_profiles({PROFILE_NAME: {**OLD_REGIME_CONTENTS, key: pattern}})
+        parse_profiles({SAMPLE_PROFILE_NAME: {**OLD_REGIME_CONTENTS, key: pattern}})
 
     assert str(exc_info.value) == expected
 
 
-SETTINGS_INI = (
-    'url_retrieval_timeout_seconds = 7\n'
-    'max_url_redirections = 3\n'
-)
-OLD_REGIME_INI = (
-    f'[{OLD_REGIME_PROFILE_NAME}]\n'
-    f'url = {OLD_REGIME_CONTENTS['url']}\n'
-    f'{OldRegimeParser.K_CLASS} = {OLD_REGIME_CONTENTS[OldRegimeParser.K_CLASS]}\n'
-    f'{OldRegimeParser.V_CLASS} = {OLD_REGIME_CONTENTS[OldRegimeParser.V_CLASS]}\n'
-)
-BARATZ_INI = (
-    f'[{BARATZ_PROFILE_NAME}]\n'
-    f'url = {BARATZ_CONTENTS['url']}\n'
-    f'{BaratzParser.M_TAG} = {BARATZ_CONTENTS[BaratzParser.M_TAG]}\n'
-    f'{BaratzParser.M_ATTR} = {BARATZ_CONTENTS[BaratzParser.M_ATTR]}\n'
-    f'{BaratzParser.M_VALUE} = {BARATZ_CONTENTS[BaratzParser.M_VALUE]}\n'
-)
-PERCENT_PATTERN = 'sample_%_pattern'
+
+
 
 
 @pytest.mark.parametrize(('contents', 'expected_settings', 'expected_profiles'), [
@@ -338,9 +339,9 @@ PERCENT_PATTERN = 'sample_%_pattern'
         id='bom',
     ),
     pytest.param(
-        OLD_REGIME_INI.replace(OLD_REGIME_URL_PATTERN, PERCENT_PATTERN),
+        OLD_REGIME_INI.replace(OLD_REGIME_URL_PATTERN, SAMPLE_PERCENT_PATTERN),
         Settings(),
-        [(OLD_REGIME_PROFILE_NAME, re.compile(PERCENT_PATTERN, re.IGNORECASE), *OLD_REGIME_PROFILE[2:])],
+        [(OLD_REGIME_PROFILE_NAME, re.compile(SAMPLE_PERCENT_PATTERN, re.IGNORECASE), *OLD_REGIME_PROFILE[2:])],
         id='percent_sign',
     ),
 ])
@@ -368,30 +369,24 @@ def test_load_inifile(
 
 # The path is not known until the test runs, so in the expected messages
 # a '{}' placeholder is kept to fill in the INI file path.
-INI_PATH_PLACEHOLDER = '{}'
-
-
 @pytest.mark.parametrize(('contents', 'expected_error', 'expected_message'), [
     # Syntax errors.
     pytest.param(
-        f'[{PROFILE_NAME}]\n'
-        'line with a missing equals sign, not a key value pair\n',
+        f'[{SAMPLE_PROFILE_NAME}]\nline with a missing equals sign, not a key value pair\n',
         IniFileError,
-        Messages.INIFILE_ERROR_WRONG_SYNTAX.format('Parsing', INI_PATH_PLACEHOLDER),
+        Messages.INIFILE_ERROR_WRONG_SYNTAX.format('Parsing', '{}'),
         id='no_equals',
     ),
     pytest.param(
         f'{OLD_REGIME_INI}{OLD_REGIME_INI}',
         IniFileError,
-        Messages.INIFILE_ERROR_WRONG_SYNTAX.format('DuplicateSection', INI_PATH_PLACEHOLDER),
+        Messages.INIFILE_ERROR_WRONG_SYNTAX.format('DuplicateSection', '{}'),
         id='duplicate_section',
     ),
     pytest.param(
-        f'[{PROFILE_NAME}]\n'
-        f'url = {URL_PATTERN}\n'
-        f'url = {URL_PATTERN}\n',
+        f'[{SAMPLE_PROFILE_NAME}]\nurl = {SAMPLE_URL_PATTERN}\nurl = {SAMPLE_URL_PATTERN}\n',
         IniFileError,
-        Messages.INIFILE_ERROR_WRONG_SYNTAX.format('DuplicateOption', INI_PATH_PLACEHOLDER),
+        Messages.INIFILE_ERROR_WRONG_SYNTAX.format('DuplicateOption', '{}'),
         id='duplicate_option',
     ),
 
@@ -399,28 +394,27 @@ INI_PATH_PLACEHOLDER = '{}'
     pytest.param(
         '',
         ProfileError,
-        Messages.INIFILE_ERROR_NO_VALID_PROFILES.format(INI_PATH_PLACEHOLDER),
+        Messages.INIFILE_ERROR_NO_VALID_PROFILES.format('{}'),
         id='empty_file',
     ),
     pytest.param(
         SETTINGS_INI,
         ProfileError,
-        Messages.INIFILE_ERROR_NO_VALID_PROFILES.format(INI_PATH_PLACEHOLDER),
+        Messages.INIFILE_ERROR_NO_VALID_PROFILES.format('{}'),
         id='only_settings',
     ),
 
     # Errors raised when parsing settings and profiles.
     pytest.param(
-        f'{URL_PATTERN} = 1\n'
-        f'{OLD_REGIME_INI}',
+        f'{SAMPLE_URL_PATTERN} = 1\n{OLD_REGIME_INI}',
         SettingsError,
-        Messages.SETTINGS_ERROR_UNKNOWN_KEYS.format(Messages.QUOTED.format(URL_PATTERN)),
+        Messages.SETTINGS_ERROR_UNKNOWN_KEYS.format(Messages.QUOTED.format(SAMPLE_URL_PATTERN)),
         id='unknown_setting',
     ),
     pytest.param(
-        f'[{PROFILE_NAME}]\n',
+        f'[{SAMPLE_PROFILE_NAME}]\n',
         ProfileError,
-        Messages.PROFILE_ERROR_EMPTY_PROFILE.format(PROFILE_NAME),
+        Messages.PROFILE_ERROR_EMPTY_PROFILE.format(SAMPLE_PROFILE_NAME),
         id='empty_profile',
     ),
 ])
