@@ -141,7 +141,6 @@ def test_parse_settings(contents: dict[str, str], expected: Settings) -> None:
         Messages.SETTINGS_ERROR_UNKNOWN_KEYS.format(Messages.QUOTED.format(SAMPLE_K)),
         id='unknown_and_invalid',
     ),
-
     # Invalid values.
     pytest.param(
         {'url_retrieval_timeout_seconds': SAMPLE_V},
@@ -226,7 +225,6 @@ def test_parse_profiles(contents: dict[str, dict[str, str]], expected: list[Prof
         Messages.PROFILE_ERROR_EMPTY_PROFILE.format(SAMPLE_PROFILE_NAME),
         id='empty_profile',
     ),
-
     # Missing URL pattern.
     pytest.param(
         {SAMPLE_PROFILE_NAME: {OldRegimeParser.K_CLASS: SAMPLE_K_PATTERN, OldRegimeParser.V_CLASS: SAMPLE_V_PATTERN}},
@@ -238,7 +236,6 @@ def test_parse_profiles(contents: dict[str, dict[str, str]], expected: list[Prof
         Messages.PROFILE_ERROR_PROFILE_WITHOUT_URL.format(SAMPLE_PROFILE_NAME),
         id='empty_url',
     ),
-
     # Parameters not matching any parser.
     pytest.param(
         {SAMPLE_PROFILE_NAME: {'url': SAMPLE_URL_PATTERN}},
@@ -260,7 +257,6 @@ def test_parse_profiles(contents: dict[str, dict[str, str]], expected: list[Prof
         Messages.PROFILE_ERROR_PROFILE_WRONG_PARAMETERS.format(SAMPLE_PROFILE_NAME),
         id='mixed_parameters',
     ),
-
     # Several profiles.
     pytest.param(
         {SAMPLE_PROFILE_NAME: OLD_REGIME_CONTENTS, f'{SAMPLE_PROFILE_NAME}o': {}},
@@ -389,7 +385,6 @@ def test_load_inifile(
         Messages.INIFILE_ERROR_WRONG_SYNTAX.format('DuplicateOption', '{}'),
         id='duplicate_option',
     ),
-
     # No profiles.
     pytest.param(
         '',
@@ -403,7 +398,6 @@ def test_load_inifile(
         Messages.INIFILE_ERROR_NO_VALID_PROFILES.format('{}'),
         id='only_settings',
     ),
-
     # Errors raised when parsing settings and profiles.
     pytest.param(
         f'{SAMPLE_URL_PATTERN} = 1\n{OLD_REGIME_INI}',
