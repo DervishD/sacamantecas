@@ -33,6 +33,119 @@ FALLBACK_CHARSET = 'ISO-8859-1'
 PRESCAN_SIZE = 1024
 PRESCAN_LIMIT_TEST_TAG = b'<meta charset="charset">'
 
+SAMPLE_EXCEPTION_MESSAGE = 'Text of the exception, which must never reach the user!'
+SAMPLE_URL = 'http://example.com/dir/page.html'
+SAMPLE_REDIRECTION_TARGET_URL = 'http://example.com/redirection_target'
+SAMPLE_PAGE_CONTENTS = '<meta charset="utf-8">\nSome placeholder text\nmultiline and utf-8\u00f1\u20ac.'
+SAMPLE_REDIRECTION_PAGE = '<meta http-equiv="refresh" content="0; URL={target}">'
+SAMPLE_REDIRECTION_TO_TARGET = SAMPLE_REDIRECTION_PAGE.format(target=SAMPLE_REDIRECTION_TARGET_URL).encode('ascii')
+
+DEFAULT_PAGE_NAME = 'page.html'
+MISSING_PAGE_NAME = 'missing.html'
+
+# The default values for the mocked `Settings()`.
+URL_RETRIEVAL_TIMEOUT_SECONDS = 42
+MAX_URL_REDIRECTIONS = 42
+
+
+class FakeResponse:
+    """Minimal stand-in for the object returned by `urlopen()`."""
+
+    def __init__(self, contents: bytes, content_type: str | None) -> None:
+        """Build a response with *contents* and *content_type*."""
+        self.contents = contents
+        self.headers = HTTPMessage()
+        if content_type is not None:
+            self.headers['Content-Type'] = content_type
+        self.closed = False
+
+    def read(self) -> bytes:
+        """Return the response contents."""
+        return self.contents
+
+    def __enter__(self) -> Self:
+        """Enter the context manager."""
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        """Exit the context manager, closing the response."""
+        self.closed = True
+
+
+class FakeUrlopen:
+    """Replacement for `urlopen()`.
+
+    Serve canned responses and record the calls.
+    """
+
+    def __init__(self) -> None:
+        """Initialize object."""
+        self.responses: dict[str, FakeResponse | Exception] = {}
+        self.served: list[FakeResponse] = []
+        self.requests: list[Request] = []
+        self.timeouts: list[float] = []
+
+    def set_response(self, url: str, contents: bytes, content_type: str | None = None) -> None:
+        """Serve a response with *contents* for *url*."""
+        self.responses[url] = FakeResponse(contents, content_type)
+
+    def set_exception(self, url: str, exception: Exception) -> None:
+        """Raise *exception* when *url* is requested."""
+        self.responses[url] = exception
+
+    def __call__(self, request: Request, timeout: float) -> FakeResponse:
+        """Record the call and serve the response for the URL."""
+        self.requests.append(request)
+        self.timeouts.append(timeout)
+        response = self.responses[request.full_url]
+        if isinstance(response, Exception):
+            raise response
+        self.served.append(response)
+        return response
+
+
+@pytest.fixture(name='set_settings', autouse=True)
+# pylint: disable-next=unused-variable
+def set_settings_fixture(monkeypatch: pytest.MonkeyPatch) -> Callable[..., None]:
+    """Install the test settings and return a function to override some of them."""
+    program_module = sys.modules[retrieve_url.__module__]
+
+    def set_settings(**overrides: int) -> None:
+        """Replace the program settings.
+
+        It uses the default values, updated with *overrides*.
+        """
+        values = {
+            'url_retrieval_timeout_seconds': URL_RETRIEVAL_TIMEOUT_SECONDS,
+            'max_url_redirections': MAX_URL_REDIRECTIONS,
+        } | overrides
+        monkeypatch.setattr(program_module, 'program_settings', Settings(**values))
+
+    set_settings()
+    return set_settings
+
+
+@pytest.fixture(name='working_directory')
+# pylint: disable-next=unused-variable
+def working_directory_fixture(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
+    """Make a temporary directory the current working directory."""
+    monkeypatch.chdir(tmp_path)
+    return tmp_path.resolve()
+
+
+@pytest.fixture(name='fake_urlopen')
+# pylint: disable-next=unused-variable
+def fake_urlopen_fixture(monkeypatch: pytest.MonkeyPatch) -> FakeUrlopen:
+    """Replace `urlopen()` in the program by a fake one."""
+    fake = FakeUrlopen()
+    monkeypatch.setattr(sys.modules[retrieve_url.__module__], 'urlopen', fake)
+    return fake
+
+
+def url_access_message(reason: str) -> str:
+    """Return the URL access error message for *reason*."""
+    return Messages.SKIMMING_ERROR_URL_ACCESS.format(reason)
+
 
 @pytest.mark.parametrize(('contents', 'expected'), [
     # Declarations through the `content` attribute.
@@ -152,76 +265,70 @@ def test_detect_html_charset(contents: bytes, expected: str) -> None:
     assert detect_html_charset(contents) == expected
 
 
-SAMPLE_URL = 'http://example.com/dir/page.html'
-TARGET_URL = 'http://example.com/new'
-
-
 @pytest.mark.parametrize(('contents', 'expected'), [
-    # Forms of the declaration.
     pytest.param(
-        f'<meta http-equiv="refresh" content="0; URL={TARGET_URL}">',
-        TARGET_URL,
+        f'<meta http-equiv="refresh" content="0; URL={SAMPLE_REDIRECTION_TARGET_URL}">',
+        SAMPLE_REDIRECTION_TARGET_URL,
         id='canonical',
     ),
     pytest.param(
-        f'<meta http-equiv="refresh" content="0; url={TARGET_URL}">',
-        TARGET_URL,
+        f'<meta http-equiv="refresh" content="0; url={SAMPLE_REDIRECTION_TARGET_URL}">',
+        SAMPLE_REDIRECTION_TARGET_URL,
         id='lowercase_url',
     ),
     pytest.param(
-        f'<meta http-equiv="Refresh" content="0; URL={TARGET_URL}">',
-        TARGET_URL,
+        f'<meta http-equiv="Refresh" content="0; URL={SAMPLE_REDIRECTION_TARGET_URL}">',
+        SAMPLE_REDIRECTION_TARGET_URL,
         id='mixed_case_refresh',
     ),
     pytest.param(
-        f'<META HTTP-EQUIV="REFRESH" CONTENT="0; URL={TARGET_URL}">',
-        TARGET_URL,
+        f'<META HTTP-EQUIV="REFRESH" CONTENT="0; URL={SAMPLE_REDIRECTION_TARGET_URL}">',
+        SAMPLE_REDIRECTION_TARGET_URL,
         id='uppercase_tag',
     ),
     pytest.param(
-        f'<meta http-equiv="refresh" content="0;URL={TARGET_URL}">',
-        TARGET_URL,
+        f'<meta http-equiv="refresh" content="0;URL={SAMPLE_REDIRECTION_TARGET_URL}">',
+        SAMPLE_REDIRECTION_TARGET_URL,
         id='no_space_after_semicolon',
     ),
     pytest.param(
-        f'<meta http-equiv="refresh" content="0, URL={TARGET_URL}">',
-        TARGET_URL,
+        f'<meta http-equiv="refresh" content="0, URL={SAMPLE_REDIRECTION_TARGET_URL}">',
+        SAMPLE_REDIRECTION_TARGET_URL,
         id='comma_separator',
     ),
     pytest.param(
-        f'<meta http-equiv="refresh" content="URL={TARGET_URL}">',
-        TARGET_URL,
+        f'<meta http-equiv="refresh" content="URL={SAMPLE_REDIRECTION_TARGET_URL}">',
+        SAMPLE_REDIRECTION_TARGET_URL,
         id='no_time',
     ),
     pytest.param(
-        f'<meta http-equiv="refresh" content="0; URL=\'{TARGET_URL}\'">',
-        TARGET_URL,
+        f'<meta http-equiv="refresh" content="0; URL=\'{SAMPLE_REDIRECTION_TARGET_URL}\'">',
+        SAMPLE_REDIRECTION_TARGET_URL,
         id='quoted_target',
     ),
     pytest.param(
-        f"<meta http-equiv='refresh' content='0; URL={TARGET_URL}'>",
-        TARGET_URL,
+        f"<meta http-equiv='refresh' content='0; URL={SAMPLE_REDIRECTION_TARGET_URL}'>",
+        SAMPLE_REDIRECTION_TARGET_URL,
         id='single_quote_attributes',
     ),
     pytest.param(
-        f'<meta content="0; URL={TARGET_URL}" http-equiv="refresh">',
-        TARGET_URL,
+        f'<meta content="0; URL={SAMPLE_REDIRECTION_TARGET_URL}" http-equiv="refresh">',
+        SAMPLE_REDIRECTION_TARGET_URL,
         id='swapped_attribute_order',
     ),
     pytest.param(
-        f'<meta http-equiv="refresh" id="x" content="0; URL={TARGET_URL}">',
-        TARGET_URL,
+        f'<meta http-equiv="refresh" id="x" content="0; URL={SAMPLE_REDIRECTION_TARGET_URL}">',
+        SAMPLE_REDIRECTION_TARGET_URL,
         id='extra_attribute_between',
     ),
     pytest.param(
-        f'<meta\n  http-equiv="refresh"\n  content="0;\n  URL={TARGET_URL}">',
-        TARGET_URL,
+        f'<meta\n  http-equiv="refresh"\n  content="0;\n  URL={SAMPLE_REDIRECTION_TARGET_URL}">',
+        SAMPLE_REDIRECTION_TARGET_URL,
         id='multiline',
     ),
-    # The target itself.
     pytest.param(
-        f'<meta http-equiv="refresh" content="0; URL={TARGET_URL}?a=1&amp;b=2">',
-        f'{TARGET_URL}?a=1&b=2',
+        f'<meta http-equiv="refresh" content="0; URL={SAMPLE_REDIRECTION_TARGET_URL}?a=1&amp;b=2">',
+        f'{SAMPLE_REDIRECTION_TARGET_URL}?a=1&b=2',
         id='entity_in_query',
     ),
     pytest.param(
@@ -229,25 +336,23 @@ TARGET_URL = 'http://example.com/new'
         'http://example.com:8080/new?x=1',
         id='port_and_query',
     ),
-    # Which declaration wins.
     pytest.param(
-        f'<meta charset="utf-8"><meta http-equiv="refresh" content="0; URL={TARGET_URL}">',
-        TARGET_URL,
+        f'<meta charset="utf-8"><meta http-equiv="refresh" content="0; URL={SAMPLE_REDIRECTION_TARGET_URL}">',
+        SAMPLE_REDIRECTION_TARGET_URL,
         id='unrelated_meta_first',
     ),
     pytest.param(
-        f'<meta http-equiv="refresh" content="0; URL={TARGET_URL}/first">'
-        f'<meta http-equiv="refresh" content="0; URL={TARGET_URL}/second">',
-        f'{TARGET_URL}/first',
+        f'<meta http-equiv="refresh" content="0; URL={SAMPLE_REDIRECTION_TARGET_URL}/first">'
+        f'<meta http-equiv="refresh" content="0; URL={SAMPLE_REDIRECTION_TARGET_URL}/second">',
+        f'{SAMPLE_REDIRECTION_TARGET_URL}/first',
         id='first_refresh_wins',
     ),
     pytest.param(
         '<meta http-equiv="refresh" content="30">'
-        f'<meta http-equiv="refresh" content="0; URL={TARGET_URL}">',
-        TARGET_URL,
+        f'<meta http-equiv="refresh" content="0; URL={SAMPLE_REDIRECTION_TARGET_URL}">',
+        SAMPLE_REDIRECTION_TARGET_URL,
         id='refresh_without_url_skipped',
     ),
-    # No redirection.
     pytest.param(
         '',
         None,
@@ -264,12 +369,12 @@ TARGET_URL = 'http://example.com/new'
         id='refresh_without_url',
     ),
     pytest.param(
-        f'<meta http-equiv="content-type" content="text/html; url={TARGET_URL}">',
+        f'<meta http-equiv="content-type" content="text/html; url={SAMPLE_REDIRECTION_TARGET_URL}">',
         None,
         id='other_http_equiv',
     ),
     pytest.param(
-        f'<p>refresh url={TARGET_URL}</p>',
+        f'<p>refresh url={SAMPLE_REDIRECTION_TARGET_URL}</p>',
         None,
         id='url_outside_meta',
     ),
@@ -335,14 +440,6 @@ def test_get_redirected_url_resolves_target(base_url: Url, target: str, expected
     """Test `get_redirected_url()` resolves the target against the base URL."""
     contents = f'<meta http-equiv="refresh" content="0; URL={target}">'.encode('ascii')
     assert get_redirected_url(contents, base_url) == expected
-
-
-@pytest.fixture(name='working_directory')
-# pylint: disable-next=unused-variable
-def working_directory_fixture(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
-    """Make a temporary directory the current working directory."""
-    monkeypatch.chdir(tmp_path)
-    return tmp_path.resolve()
 
 
 @pytest.mark.parametrize(('url', 'expected'), [
@@ -569,23 +666,10 @@ def test_resolve_file_url_is_idempotent(url: Url) -> None:
     assert resolve_file_url(resolved_url) == resolved_url
 
 
-EXCEPTION_MESSAGE = 'Text of the exception, which must never reach the user!'
-
-
-def http_error(code: int) -> HTTPError:
-    """Return an `HTTPError` with status *code*."""
-    return HTTPError('http://example.com', code, EXCEPTION_MESSAGE, HTTPMessage(), None)
-
-
-def url_access_message(reason: str) -> str:
-    """Return the URL access error message for *reason*."""
-    return Messages.SKIMMING_ERROR_URL_ACCESS.format(reason)
-
-
 @pytest.mark.parametrize(('exception', 'expected'), [
     # `HTTPError` is also a `URLError` and an `OSError`, but it wins.
     pytest.param(
-        http_error(404),
+        HTTPError('http://example.com', 404, SAMPLE_EXCEPTION_MESSAGE, HTTPMessage(), None),
         url_access_message(Messages.URL_ACCESS_REASON_HTTP_ERROR.format(404)),
         id='http_error_404',
     ),
@@ -614,51 +698,51 @@ def url_access_message(reason: str) -> str:
     # A connection error inside a `URLError` is reported with its class
     # name, it does not take the errno path.
     pytest.param(
-        URLError(ConnectionResetError(errno.ECONNRESET, EXCEPTION_MESSAGE)),
+        URLError(ConnectionResetError(errno.ECONNRESET, SAMPLE_EXCEPTION_MESSAGE)),
         url_access_message(Messages.URL_ACCESS_REASON_OSLIKE_ERROR.format('ConnectionResetError')),
         id='urlerror_connection_reset',
     ),
     pytest.param(
-        URLError(EXCEPTION_MESSAGE),
+        URLError(SAMPLE_EXCEPTION_MESSAGE),
         url_access_message(Messages.URL_ACCESS_REASON_UNEXPECTED_ERROR),
         id='urlerror_text_reason',
     ),
     # Connection errors which are not wrapped.
     pytest.param(
-        ConnectionResetError(errno.ECONNRESET, EXCEPTION_MESSAGE),
+        ConnectionResetError(errno.ECONNRESET, SAMPLE_EXCEPTION_MESSAGE),
         Messages.SKIMMING_ERROR_CONNECTION_FAILED.format(errno.errorcode[errno.ECONNRESET]),
         id='connection_reset',
     ),
     pytest.param(
-        ConnectionRefusedError(errno.ECONNREFUSED, EXCEPTION_MESSAGE),
+        ConnectionRefusedError(errno.ECONNREFUSED, SAMPLE_EXCEPTION_MESSAGE),
         Messages.SKIMMING_ERROR_CONNECTION_FAILED.format(errno.errorcode[errno.ECONNREFUSED]),
         id='connection_refused',
     ),
     pytest.param(
-        ConnectionError(99999, EXCEPTION_MESSAGE),
+        ConnectionError(99999, SAMPLE_EXCEPTION_MESSAGE),
         Messages.SKIMMING_ERROR_CONNECTION_FAILED_UNKNOWN_REASON,
         id='connection_unknown_errno',
     ),
     pytest.param(
-        ConnectionError(EXCEPTION_MESSAGE),
+        ConnectionError(SAMPLE_EXCEPTION_MESSAGE),
         Messages.SKIMMING_ERROR_CONNECTION_FAILED_UNKNOWN_REASON,
         id='connection_no_errno',
     ),
     # `RemoteDisconnected` is also an `HTTPException`,
     # but the connection error case goes first.
     pytest.param(
-        RemoteDisconnected(EXCEPTION_MESSAGE),
+        RemoteDisconnected(SAMPLE_EXCEPTION_MESSAGE),
         Messages.SKIMMING_ERROR_CONNECTION_FAILED_UNKNOWN_REASON,
         id='remote_disconnected',
     ),
     # Other HTTP protocol exceptions.
     pytest.param(
-        IncompleteRead(EXCEPTION_MESSAGE.encode()),
+        IncompleteRead(SAMPLE_EXCEPTION_MESSAGE.encode()),
         Messages.SKIMMING_ERROR_ERROR_HTTP_RETRIEVAL.format('IncompleteRead'),
         id='incomplete_read',
     ),
     pytest.param(
-        BadStatusLine(EXCEPTION_MESSAGE),
+        BadStatusLine(SAMPLE_EXCEPTION_MESSAGE),
         Messages.SKIMMING_ERROR_ERROR_HTTP_RETRIEVAL.format('BadStatusLine'),
         id='bad_status_line',
     ),
@@ -670,7 +754,7 @@ def url_access_message(reason: str) -> str:
         id='timeout',
     ),
     pytest.param(
-        OSError(EXCEPTION_MESSAGE),
+        OSError(SAMPLE_EXCEPTION_MESSAGE),
         Messages.SKIMMING_ERROR_CONNECTION_FAILED.format('OSError'),
         id='os_error',
     ),
@@ -680,7 +764,7 @@ def url_access_message(reason: str) -> str:
         id='certificate_error',
     ),
     pytest.param(
-        ssl.SSLError(EXCEPTION_MESSAGE),
+        ssl.SSLError(SAMPLE_EXCEPTION_MESSAGE),
         Messages.SKIMMING_ERROR_CONNECTION_FAILED.format('SSLError'),
         id='ssl_error',
     ),
@@ -689,7 +773,7 @@ def url_access_message(reason: str) -> str:
         Messages.SKIMMING_ERROR_CONNECTION_FAILED.format('SSLEOFError'),
         id='ssl_eof_error',
     ),
-    # The program own exceptions.
+    # The program's own exceptions.
     pytest.param(
         TooManyRedirectionsError(42),
         Messages.SKIMMING_ERROR_TOO_MANY_REDIRECTIONS.format(42),
@@ -708,24 +792,24 @@ def url_access_message(reason: str) -> str:
     # Decoding and invalid URLs.
     # `UnicodeDecodeError` is a `ValueError`, but it wins.
     pytest.param(
-        UnicodeDecodeError('utf-8', b'\xff', 0, 1, EXCEPTION_MESSAGE),
+        UnicodeDecodeError('utf-8', b'\xff', 0, 1, SAMPLE_EXCEPTION_MESSAGE),
         Messages.SKIMMING_ERROR_UNDECODABLE_CONTENTS.format('utf-8'),
         id='undecodable_contents',
     ),
     pytest.param(
-        ValueError(EXCEPTION_MESSAGE),
+        ValueError(SAMPLE_EXCEPTION_MESSAGE),
         Messages.SKIMMING_ERROR_INVALID_URL,
         id='invalid_url',
     ),
     # No message: the caller lets these propagate.
     pytest.param(
-        RuntimeError(EXCEPTION_MESSAGE),
+        RuntimeError(SAMPLE_EXCEPTION_MESSAGE),
         None,
         id='runtime_error',
     ),
     pytest.param(
         # Needed to check the parent of `CharsetError` is not caught.
-        LookupError(EXCEPTION_MESSAGE),
+        LookupError(SAMPLE_EXCEPTION_MESSAGE),
         None,
         id='lookup_error',
     ),
@@ -735,43 +819,16 @@ def test_retrieval_error_message(exception: Exception, expected: str | None) -> 
     """Test `retrieval_error_message()`."""
     message = retrieval_error_message(exception)
     assert message == expected
-    # The exception own text must never be shown to the end user.
-    assert message is None or EXCEPTION_MESSAGE not in message
-
-
-REDIRECTION_PAGE = '<meta http-equiv="refresh" content="0; URL={target}">'
-PAGE_CONTENTS = '<meta charset="utf-8">\nSome placeholder text\nmultiline and utf-8\u00f1\u20ac.'
-DEFAULT_PAGE_NAME = 'page.html'
-MISSING_PAGE_NAME = 'missing.html'
-
-# The default values for the mocked `Settings()`.
-URL_RETRIEVAL_TIMEOUT_SECONDS = 42
-MAX_URL_REDIRECTIONS = 42
-
-
-@pytest.fixture(name='set_settings', autouse=True)
-# pylint: disable-next=unused-variable
-def set_settings_fixture(monkeypatch: pytest.MonkeyPatch) -> Callable[..., None]:
-    """Install the test settings and return a function to override some of them."""
-    program_module = sys.modules[retrieve_url.__module__]
-
-    def set_settings(**overrides: int) -> None:
-        values = {
-            'url_retrieval_timeout_seconds': URL_RETRIEVAL_TIMEOUT_SECONDS,
-            'max_url_redirections': MAX_URL_REDIRECTIONS,
-        } | overrides
-        monkeypatch.setattr(program_module, 'program_settings', Settings(**values))
-
-    set_settings()
-    return set_settings
+    # The exception's own text must never be shown to the end user.
+    assert message is None or SAMPLE_EXCEPTION_MESSAGE not in message
 
 
 # pylint: disable-next=unused-variable
 def test_retrieve_url_reads_file(tmp_path: Path) -> None:
     """Test `retrieve_url()` reads the contents of a `file:` URL."""
     page_path = tmp_path / DEFAULT_PAGE_NAME
-    page_path.write_bytes(PAGE_CONTENTS.encode())
-    assert retrieve_url(page_path.as_uri()) == PAGE_CONTENTS
+    page_path.write_bytes(SAMPLE_PAGE_CONTENTS.encode())
+    assert retrieve_url(page_path.as_uri()) == SAMPLE_PAGE_CONTENTS
 
 
 # pylint: disable-next=unused-variable
@@ -786,8 +843,8 @@ def test_retrieve_url_reads_empty_file(tmp_path: Path) -> None:
 # pylint: disable-next=unused-variable
 def test_retrieve_url_reads_relative_url(tmp_path: Path) -> None:
     """Test `retrieve_url()` resolves relative `file:` URLs."""
-    (tmp_path / DEFAULT_PAGE_NAME).write_bytes(PAGE_CONTENTS.encode())
-    assert retrieve_url(f'file:///{DEFAULT_PAGE_NAME}') == PAGE_CONTENTS
+    (tmp_path / DEFAULT_PAGE_NAME).write_bytes(SAMPLE_PAGE_CONTENTS.encode())
+    assert retrieve_url(f'file:///{DEFAULT_PAGE_NAME}') == SAMPLE_PAGE_CONTENTS
 
 
 # pylint: disable-next=unused-variable
@@ -795,8 +852,8 @@ def test_retrieve_url_reads_encoded_path(tmp_path: Path) -> None:
     """Test `retrieve_url()` handles percent-encoded `file:` URLs."""
     page_path = tmp_path / DEFAULT_PAGE_NAME
     page_path = page_path.with_stem(f'{page_path.stem} \u00f1')
-    page_path.write_bytes(PAGE_CONTENTS.encode())
-    assert retrieve_url(page_path.as_uri()) == PAGE_CONTENTS
+    page_path.write_bytes(SAMPLE_PAGE_CONTENTS.encode())
+    assert retrieve_url(page_path.as_uri()) == SAMPLE_PAGE_CONTENTS
 
 
 # pylint: disable-next=unused-variable
@@ -876,20 +933,20 @@ def test_retrieve_url_undecodable_contents(tmp_path: Path) -> None:
 def test_retrieve_url_follows_redirection(tmp_path: Path, target_template: str) -> None:
     """Test `retrieve_url()` follows a `meta refresh` redirection."""
     second_path = tmp_path / 'second.html'
-    second_path.write_bytes(PAGE_CONTENTS.encode())
+    second_path.write_bytes(SAMPLE_PAGE_CONTENTS.encode())
     target = target_template.format(second_url=second_path.as_uri())
     first_path = tmp_path / 'first.html'
-    first_path.write_bytes(REDIRECTION_PAGE.format(target=target).encode('ascii'))
-    assert retrieve_url(first_path.as_uri()) == PAGE_CONTENTS
+    first_path.write_bytes(SAMPLE_REDIRECTION_PAGE.format(target=target).encode('ascii'))
+    assert retrieve_url(first_path.as_uri()) == SAMPLE_PAGE_CONTENTS
 
 
 @pytest.mark.usefixtures('working_directory')
 # pylint: disable-next=unused-variable
 def test_retrieve_url_follows_redirection_from_relative_url(tmp_path: Path) -> None:
     """Test `retrieve_url()` follows a relative redirection."""
-    (tmp_path / 'first.html').write_bytes(REDIRECTION_PAGE.format(target='second.html').encode('ascii'))
-    (tmp_path / 'second.html').write_bytes(PAGE_CONTENTS.encode())
-    assert retrieve_url('file:///first.html') == PAGE_CONTENTS
+    (tmp_path / 'first.html').write_bytes(SAMPLE_REDIRECTION_PAGE.format(target='second.html').encode('ascii'))
+    (tmp_path / 'second.html').write_bytes(SAMPLE_PAGE_CONTENTS.encode())
+    assert retrieve_url('file:///first.html') == SAMPLE_PAGE_CONTENTS
 
 
 # pylint: disable-next=unused-variable
@@ -901,11 +958,11 @@ def test_retrieve_url_redirections_limit(tmp_path: Path) -> None:
     base = tmp_path / DEFAULT_PAGE_NAME
     last_number = MAX_URL_REDIRECTIONS + 1
     for number in range(last_number):
-        redirection = REDIRECTION_PAGE.format(target=f'{base.stem}{number + 1}.html')
+        redirection = SAMPLE_REDIRECTION_PAGE.format(target=f'{base.stem}{number + 1}.html')
         base.with_stem(f'{base.stem}{number}').write_bytes(redirection.encode('ascii'))
-    base.with_stem(f'{base.stem}{last_number}').write_bytes(PAGE_CONTENTS.encode('utf-8'))
+    base.with_stem(f'{base.stem}{last_number}').write_bytes(SAMPLE_PAGE_CONTENTS.encode('utf-8'))
 
-    assert retrieve_url(base.with_stem(f'{base.stem}1').as_uri()) == PAGE_CONTENTS
+    assert retrieve_url(base.with_stem(f'{base.stem}1').as_uri()) == SAMPLE_PAGE_CONTENTS
     with pytest.raises(TooManyRedirectionsError) as exception_info:
         retrieve_url(base.with_stem(f'{base.stem}0').as_uri())
     assert exception_info.value.limit == MAX_URL_REDIRECTIONS
@@ -921,7 +978,7 @@ def test_retrieve_url_no_redirections_allowed(set_settings: Callable[..., None],
     redirection_limit = 0
     set_settings(max_url_redirections=redirection_limit)
     page_path = tmp_path / DEFAULT_PAGE_NAME
-    page_path.write_bytes(REDIRECTION_PAGE.format(target=MISSING_PAGE_NAME).encode('ascii'))
+    page_path.write_bytes(SAMPLE_REDIRECTION_PAGE.format(target=MISSING_PAGE_NAME).encode('ascii'))
     with pytest.raises(TooManyRedirectionsError) as exception_info:
         retrieve_url(page_path.as_uri())
     assert exception_info.value.limit == redirection_limit
@@ -934,85 +991,16 @@ def test_retrieve_url_redirection_uses_last_page_charset(tmp_path: Path) -> None
     (tmp_path / 'second.html').write_bytes(second_page.encode('utf-8'))
     first_path = tmp_path / 'first.html'
     first_path.write_bytes(
-        ('<meta charset="iso-8859-1">' + REDIRECTION_PAGE.format(target='second.html')).encode('iso-8859-1'),
+        ('<meta charset="iso-8859-1">' + SAMPLE_REDIRECTION_PAGE.format(target='second.html')).encode('iso-8859-1'),
     )
     assert retrieve_url(first_path.as_uri()) == second_page
-
-
-REDIRECTION_TARGET_URL = 'http://example.com/second'
-REDIRECTION_TO_TARGET = REDIRECTION_PAGE.format(target=REDIRECTION_TARGET_URL).encode('ascii')
-
-
-class FakeResponse:
-    """Minimal stand-in for the object returned by `urlopen()`."""
-
-    def __init__(self, contents: bytes, content_type: str | None) -> None:
-        """Build a response with *contents* and *content_type*."""
-        self.contents = contents
-        self.headers = HTTPMessage()
-        if content_type is not None:
-            self.headers['Content-Type'] = content_type
-        self.closed = False
-
-    def read(self) -> bytes:
-        """Return the response contents."""
-        return self.contents
-
-    def __enter__(self) -> Self:
-        """Enter the context manager."""
-        return self
-
-    def __exit__(self, *args: object) -> None:
-        """Exit the context manager, closing the response."""
-        self.closed = True
-
-
-class FakeUrlopen:
-    """Replacement for `urlopen()`.
-
-    Serve canned responses and record the calls.
-    """
-
-    def __init__(self) -> None:
-        """Initialize object."""
-        self.responses: dict[str, FakeResponse | Exception] = {}
-        self.served: list[FakeResponse] = []
-        self.requests: list[Request] = []
-        self.timeouts: list[float] = []
-
-    def set_response(self, url: str, contents: bytes, content_type: str | None = None) -> None:
-        """Serve a response with *contents* for *url*."""
-        self.responses[url] = FakeResponse(contents, content_type)
-
-    def set_exception(self, url: str, exception: Exception) -> None:
-        """Raise *exception* when *url* is requested."""
-        self.responses[url] = exception
-
-    def __call__(self, request: Request, timeout: float) -> FakeResponse:
-        """Record the call and serve the response for the URL."""
-        self.requests.append(request)
-        self.timeouts.append(timeout)
-        response = self.responses[request.full_url]
-        if isinstance(response, Exception):
-            raise response
-        self.served.append(response)
-        return response
-
-
-@pytest.fixture(name='fake_urlopen')
-# pylint: disable-next=unused-variable
-def fake_urlopen_fixture(monkeypatch: pytest.MonkeyPatch) -> FakeUrlopen:
-    """Replace `urlopen()` in the program by a fake one."""
-    fake = FakeUrlopen()
-    monkeypatch.setattr(sys.modules[retrieve_url.__module__], 'urlopen', fake)
-    return fake
 
 
 # pylint: disable-next=unused-variable
 def test_retrieve_url_header_charset_beats_meta(fake_urlopen: FakeUrlopen) -> None:
     """Test `retrieve_url()` charset from header beats one from meta."""
-    fake_urlopen.set_response(SAMPLE_URL, PAGE_CONTENTS.encode(), 'text/html; charset=utf-8')
-    assert retrieve_url(SAMPLE_URL) == PAGE_CONTENTS
+    fake_urlopen.set_response(SAMPLE_URL, SAMPLE_PAGE_CONTENTS.encode(), 'text/html; charset=utf-8')
+    assert retrieve_url(SAMPLE_URL) == SAMPLE_PAGE_CONTENTS
 
 
 # pylint: disable-next=unused-variable
@@ -1023,7 +1011,7 @@ def test_retrieve_url_unknown_header_charset(fake_urlopen: FakeUrlopen) -> None:
     headers, too.
     """
     unknown_charset = 'unknown_charset'
-    fake_urlopen.set_response(SAMPLE_URL, PAGE_CONTENTS.encode('utf-8'), f'text/html; charset={unknown_charset}')
+    fake_urlopen.set_response(SAMPLE_URL, SAMPLE_PAGE_CONTENTS.encode('utf-8'), f'text/html; charset={unknown_charset}')
     with pytest.raises(CharsetError) as exception_info:
         retrieve_url(SAMPLE_URL)
     assert exception_info.value.charset == unknown_charset
@@ -1038,7 +1026,7 @@ def test_retrieve_url_blank_header_charset(fake_urlopen: FakeUrlopen) -> None:
     The detected charset in this case is **EMPTY** and not the literal
     whitespace present in the headers.
     """
-    fake_urlopen.set_response(SAMPLE_URL, PAGE_CONTENTS.encode('utf-8'), 'text/html; charset=" "')
+    fake_urlopen.set_response(SAMPLE_URL, SAMPLE_PAGE_CONTENTS.encode('utf-8'), 'text/html; charset=" "')
     with pytest.raises(CharsetError) as exception_info:
         retrieve_url(SAMPLE_URL)
     assert exception_info.value.charset == ''  # pylint: disable=use-implicit-booleaness-not-comparison-to-string
@@ -1047,16 +1035,16 @@ def test_retrieve_url_blank_header_charset(fake_urlopen: FakeUrlopen) -> None:
 # pylint: disable-next=unused-variable
 def test_retrieve_url_header_charset_is_not_carried_over(fake_urlopen: FakeUrlopen) -> None:
     """Test `retrieve_url()` uses the charset in the last response."""
-    fake_urlopen.set_response(SAMPLE_URL, REDIRECTION_TO_TARGET, 'text/html; charset=iso-8859-1')
-    fake_urlopen.set_response(REDIRECTION_TARGET_URL, PAGE_CONTENTS.encode('utf-8'))
-    assert retrieve_url(SAMPLE_URL) == PAGE_CONTENTS
+    fake_urlopen.set_response(SAMPLE_URL, SAMPLE_REDIRECTION_TO_TARGET, 'text/html; charset=iso-8859-1')
+    fake_urlopen.set_response(SAMPLE_REDIRECTION_TARGET_URL, SAMPLE_PAGE_CONTENTS.encode('utf-8'))
+    assert retrieve_url(SAMPLE_URL) == SAMPLE_PAGE_CONTENTS
 
 
 # pylint: disable-next=unused-variable
 def test_retrieve_url_requests_url_unchanged(fake_urlopen: FakeUrlopen) -> None:
     """Test `retrieve_url()` does not alter a non-`file:` URL."""
     url = 'http://example.com/page(1)?c=d'
-    fake_urlopen.set_response(url, PAGE_CONTENTS.encode('utf-8'))
+    fake_urlopen.set_response(url, SAMPLE_PAGE_CONTENTS.encode('utf-8'))
     retrieve_url(url)
     assert [request.full_url for request in fake_urlopen.requests] == [url]
 
@@ -1064,10 +1052,10 @@ def test_retrieve_url_requests_url_unchanged(fake_urlopen: FakeUrlopen) -> None:
 # pylint: disable-next=unused-variable
 def test_retrieve_url_requests_every_redirection(fake_urlopen: FakeUrlopen) -> None:
     """Test `retrieve_url()` requests all redirections."""
-    fake_urlopen.set_response(SAMPLE_URL, REDIRECTION_TO_TARGET)
-    fake_urlopen.set_response(REDIRECTION_TARGET_URL, PAGE_CONTENTS.encode('utf-8'))
+    fake_urlopen.set_response(SAMPLE_URL, SAMPLE_REDIRECTION_TO_TARGET)
+    fake_urlopen.set_response(SAMPLE_REDIRECTION_TARGET_URL, SAMPLE_PAGE_CONTENTS.encode('utf-8'))
     retrieve_url(SAMPLE_URL)
-    assert [request.full_url for request in fake_urlopen.requests] == [SAMPLE_URL, REDIRECTION_TARGET_URL]
+    assert [request.full_url for request in fake_urlopen.requests] == [SAMPLE_URL, SAMPLE_REDIRECTION_TARGET_URL]
     assert [request.get_header('User-agent') for request in fake_urlopen.requests] == [USER_AGENT, USER_AGENT]
     assert fake_urlopen.timeouts == [URL_RETRIEVAL_TIMEOUT_SECONDS, URL_RETRIEVAL_TIMEOUT_SECONDS]
 
@@ -1075,19 +1063,19 @@ def test_retrieve_url_requests_every_redirection(fake_urlopen: FakeUrlopen) -> N
 # pylint: disable-next=unused-variable
 def test_retrieve_url_closes_responses(fake_urlopen: FakeUrlopen) -> None:
     """Test `retrieve_url()` closes every response."""
-    fake_urlopen.set_response(SAMPLE_URL, REDIRECTION_TO_TARGET)
-    fake_urlopen.set_response(REDIRECTION_TARGET_URL, PAGE_CONTENTS.encode('utf-8'))
+    fake_urlopen.set_response(SAMPLE_URL, SAMPLE_REDIRECTION_TO_TARGET)
+    fake_urlopen.set_response(SAMPLE_REDIRECTION_TARGET_URL, SAMPLE_PAGE_CONTENTS.encode('utf-8'))
     retrieve_url(SAMPLE_URL)
     assert [response.closed for response in fake_urlopen.served] == [True, True]
 
 
 @pytest.mark.parametrize('exception', [
     pytest.param(
-        URLError(EXCEPTION_MESSAGE),
+        URLError(SAMPLE_EXCEPTION_MESSAGE),
         id='url_error',
     ),
     pytest.param(
-        http_error(404),
+        HTTPError('http://example.com', 404, SAMPLE_EXCEPTION_MESSAGE, HTTPMessage(), None),
         id='http_error',
     ),
     pytest.param(
@@ -1095,7 +1083,7 @@ def test_retrieve_url_closes_responses(fake_urlopen: FakeUrlopen) -> None:
         id='timeout',
     ),
     pytest.param(
-        ConnectionResetError(errno.ECONNRESET, EXCEPTION_MESSAGE),
+        ConnectionResetError(errno.ECONNRESET, SAMPLE_EXCEPTION_MESSAGE),
         id='connection_reset',
     ),
 ])
