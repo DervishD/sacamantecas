@@ -1670,8 +1670,7 @@ def test_spreadsheet_gateway_get_urls_without_worksheets(monkeypatch: pytest.Mon
 
     def mock_load_workbook(*_args: object, **_kwargs: object) -> Workbook:
         workbook = Workbook()
-        if workbook.active:
-            workbook.remove(workbook.active)
+        workbook.remove(workbook.worksheets[0])
         return workbook
 
     monkeypatch.setattr('sacamantecas.load_workbook', mock_load_workbook)
