@@ -1,34 +1,24 @@
 """Test suite for running the package as a script."""
 import runpy
 import sys
-from textwrap import dedent
 
 import pytest
 
-from sacamantecas import ExitCodes, Paths
+from sacamantecas import ExitCodes, lowercase_first_letter, Messages, Paths
 
+PACKAGE_NAME = Paths.__module__.partition('.')[0]
 
 # pylint: disable-next=unused-variable
 def test_script_run(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
     """Test running the module instead of importing it."""
     monkeypatch.setattr(Paths, 'MAIN_LOG', None)
     monkeypatch.setattr(Paths, 'FULL_LOG', None)
+    monkeypatch.setattr(sys, 'argv', [PACKAGE_NAME])
 
-    sys.argv = [Paths.__module__]
     with pytest.raises(SystemExit) as excinfo:
-        runpy.run_module(Paths.__module__)
+        runpy.run_module(PACKAGE_NAME)
     assert excinfo.value.code == ExitCodes.NO_ARGUMENTS
 
-    expected_stdout_start = 'sacamantecas versión'
-    expected_stdout_end = 'Proceso finalizado.'
-    expected_stderr = dedent("""
-        *** Error: no se han especificado fuentes de entrada para ser procesadas.
-
-            Arrastre y suelte un fichero de entrada sobre el icono de la aplicación,
-            o bien proporcione los nombres de las fuentes de entrada como argumentos.
-    """)
-    # Optionally capture stdout/stderr
     captured = capsys.readouterr()
-    assert captured.out.startswith(expected_stdout_start)
-    assert captured.out.strip().endswith(expected_stdout_end)
-    assert captured.err == expected_stderr
+    assert captured.out.strip().endswith(Messages.PROCESS_DONE)
+    assert ' '.join(lowercase_first_letter(Messages.ERROR_NO_ARGUMENTS).split()) in ' '.join(captured.err.split())

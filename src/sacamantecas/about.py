@@ -3,7 +3,7 @@
 # pylint: disable=unused-variable
 PROGRAM_NAME = 'sacamantecas'
 VERSION = '5.4.0.post0'
-BUILD = '5.4.0.post249+development.5a91c36.dirty'
+BUILD = '5.4.0.post250+development.5eba7d5.dirty'
 DEVELOPMENT_MODE = not bool('')
 REPOSITORY = 'https://github.com/DervishD/sacamantecas'
 DEPENDENCIES = ['legion @ git+https://github.com/DervishD/legion.git@v3.0.6', 'openpyxl==3.1.5']
