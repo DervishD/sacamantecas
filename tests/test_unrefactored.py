@@ -304,6 +304,29 @@ def test_fstrings(source: str, unrefactored: list[tuple[int, str]]) -> None:
 
 
 @pytest.mark.parametrize(('source', 'unrefactored'), [
+    pytest.param("QUOTED.format('x')", [], id='bare_quoted'),
+    pytest.param("Messages.QUOTED.format('x')", [], id='messages_quoted'),
+    pytest.param("Messages.QUOTED.format(key='x')", [], id='messages_quoted_keyword'),
+    pytest.param("OTHER.format('magic')", [(1, "'magic'")], id='bare_other_name'),
+    pytest.param("QUOTED('magic')", [(1, "'magic'")], id='not_a_method_call'),
+    pytest.param("QUOTED.upper('magic')", [(1, "'magic'")], id='not_format'),
+    pytest.param("foo().format('magic')", [(1, "'magic'")], id='format_on_call_result'),
+    pytest.param("Messages.OTHER.format('magic')", [(1, "'magic'")], id='attribute_not_quoted'),
+    pytest.param("Other.QUOTED.format('magic')", [(1, "'magic'")], id='quoted_on_wrong_name'),
+    pytest.param("foo().QUOTED.format('magic')", [(1, "'magic'")], id='quoted_on_call_result'),
+])
+# pylint: disable-next=unused-variable
+def test_quoted_format_calls(source: str, unrefactored: list[tuple[int, str]]) -> None:
+    """Test that `Auditor` handles `Messages.QUOTED` properly.
+
+    Only `QUOTED.format()` and `Messages.QUOTED.format()` are allowed.
+    """
+    report = audit(source)
+
+    assert report.unrefactored_strings == unrefactored
+
+
+@pytest.mark.parametrize(('source', 'unrefactored'), [
     pytest.param("EXAMPLES = ['x', 'y']", [], id='list'),
     pytest.param("EXAMPLES = {'x', 'y'}", [], id='set'),
     pytest.param("EXAMPLES = ('x', 'y')", [], id='tuple'),

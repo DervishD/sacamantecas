@@ -71,7 +71,7 @@ class StubGateway(Gateway):
             raise self.stub_exception
         return list(self.stub_urls)
 
-    def _save_metadata(self, results: SkimResults) -> None:
+    def _save_metadata(self, results: SkimResults) -> None:  # pragma: no cover
         """Not used by these tests."""
         raise NotImplementedError
 
@@ -474,13 +474,9 @@ def test_saca_las_mantecas_empty_contents(monkeypatch: pytest.MonkeyPatch) -> No
         """Return empty contents, whatever the URL."""
         return ''
 
-    def mock_feed(contents: str) -> None:
-        """Record the call."""
-        feed_calls.append(contents)
-
     parser = BaseParser()
     monkeypatch.setattr('sacamantecas.retrieve_url', mock_retrieve_url)
-    monkeypatch.setattr(parser, 'feed', mock_feed)
+    monkeypatch.setattr(parser, 'feed', feed_calls.append)
 
     with pytest.raises(SkimmingError) as exc_info:
         saca_las_mantecas(URL_A, parser)
